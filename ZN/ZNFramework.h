@@ -1,3 +1,4 @@
 #pragma once
 
-#define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
+#include "ZNFramework/Math/ZNMatrix2.h"
+#include "ZNFramework/Math/ZNVector2.h"

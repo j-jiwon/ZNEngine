@@ -30,21 +30,21 @@
     <ClInclude Include="d3dx12.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ZNVector2.h">
+    <ClInclude Include="ZN.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ZNFramework\Math\ZNMatrix2.h">
       <Filter>ZNFramework\Public</Filter>
     </ClInclude>
-    <ClInclude Include="ZNMatrix2.h">
+    <ClInclude Include="ZNFramework\Math\ZNVector2.h">
       <Filter>ZNFramework\Public</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="ZN.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="ZNVector2.cpp">
+    <ClCompile Include="ZNFramework\Math\ZNMatrix2.cpp">
       <Filter>ZNFramework\Private</Filter>
     </ClCompile>
-    <ClCompile Include="ZNMatrix2.cpp">
+    <ClCompile Include="ZNFramework\Math\ZNVector2.cpp">
       <Filter>ZNFramework\Private</Filter>
     </ClCompile>
   </ItemGroup>
