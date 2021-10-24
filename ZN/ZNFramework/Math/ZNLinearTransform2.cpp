@@ -1,6 +1,8 @@
 #include "ZNLinearTransform2.h"
 #include <math.h>
 
+using namespace ZNFramework;
+
 ZNLinearTransform2::ZNLinearTransform2()
 	: matrix2()
 {

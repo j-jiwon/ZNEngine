@@ -1,5 +1,7 @@
 #include "ZNMatrix4.h"
 
+using namespace ZNFramework;
+
 ZNMatrix4::ZNMatrix4()
 	: _11(0), _12(0), _13(0), _14(0)
 	, _21(0), _22(0), _23(0), _24(0)
@@ -19,7 +21,7 @@ ZNMatrix4::ZNMatrix4(float f11, float f12, float f13, float f14
 {
 }
 
-ZNMatrix4::ZNMatrix4(ZNVector4 v1, ZNVector4 v2, ZNVector4 v3, ZNVector4 v4)
+ZNMatrix4::ZNMatrix4(const ZNVector4& v1, const ZNVector4& v2, const ZNVector4& v3, const ZNVector4& v4)
 	: _11(v1.x), _12(v1.y), _13(v1.z), _14(v1.w)
 	, _21(v2.x), _22(v2.y), _23(v2.z), _24(v2.w)
 	, _31(v3.x), _32(v3.y), _33(v3.z), _34(v3.w)
@@ -76,7 +78,7 @@ ZNMatrix4 ZNMatrix4::operator*(const ZNMatrix4& m) const
 
 }
 
-ZNMatrix4 ZNMatrix4::operator*(const float f) const
+ZNMatrix4 ZNMatrix4::operator*(float f) const
 {
 	return ZNMatrix4(_11 * f, _12 * f, _13 * f, _14 * f,
 					_21 * f, _22 * f, _23 * f, _24 * f,

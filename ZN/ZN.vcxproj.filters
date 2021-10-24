@@ -39,6 +39,30 @@
     <ClInclude Include="ZNFramework\Math\ZNVector2.h">
       <Filter>ZNFramework\Public</Filter>
     </ClInclude>
+    <ClInclude Include="ZNFramework\Math\ZNAffineTransform2.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ZNFramework\Math\ZNAffineTransform3.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ZNFramework\Math\ZNLinearTransform2.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ZNFramework\Math\ZNLinearTransform3.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ZNFramework\Math\ZNMatrix3.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ZNFramework\Math\ZNMatrix4.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ZNFramework\Math\ZNVector3.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ZNFramework\Math\ZNVector4.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ZNFramework\Math\ZNMatrix2.cpp">
@@ -46,6 +70,30 @@
     </ClCompile>
     <ClCompile Include="ZNFramework\Math\ZNVector2.cpp">
       <Filter>ZNFramework\Private</Filter>
+    </ClCompile>
+    <ClCompile Include="ZNFramework\Math\ZNAffineTransform2.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ZNFramework\Math\ZNAffineTransform3.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ZNFramework\Math\ZNLinearTransform2.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ZNFramework\Math\ZNLinearTransform3.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ZNFramework\Math\ZNMatrix3.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ZNFramework\Math\ZNMatrix4.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ZNFramework\Math\ZNVector3.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ZNFramework\Math\ZNVector4.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

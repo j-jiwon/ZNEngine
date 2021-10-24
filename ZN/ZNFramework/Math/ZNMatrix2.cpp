@@ -1,5 +1,7 @@
 #include "ZNMatrix2.h"
 
+using namespace ZNFramework;
+
 ZNMatrix2::ZNMatrix2()
 	:_11(0), _12(0), _21(0), _22(0)
 {
@@ -10,15 +12,10 @@ ZNMatrix2::ZNMatrix2(float f11, float f12, float f21, float f22)
 {
 }
 
-ZNMatrix2::ZNMatrix2(ZNVector2 v1, ZNVector2 v2)
-	: _11(v1.x), _12(v1.y), _21(v2.x), _22(v2.y)
+ZNMatrix2::ZNMatrix2(const ZNVector2& v1, const ZNVector2& v2)
 {
-}
-
-ZNMatrix2::ZNMatrix2(const ZNMatrix2& m)
-{
-	_11 = m._11; _12 = m._12;
-	_21 = m._21; _22 = m._22;
+	_11 = v1.x; _12 = v1.y;
+	_21 = v1.x; _22 = v2.y;
 }
 
 bool ZNMatrix2::operator==(const ZNMatrix2& m) const
@@ -49,7 +46,7 @@ ZNMatrix2 ZNMatrix2::operator*(const ZNMatrix2& m) const
 					 _21 * m._11 + _22 * m._21, _21 * m._12 + _22 * m._22);
 }
 
-ZNMatrix2 ZNMatrix2::operator*(const float f) const
+ZNMatrix2 ZNMatrix2::operator*(float f) const
 {
 	return ZNMatrix2(_11 * f, _12 * f,
 					 _21 * f, _22 * f);
@@ -69,7 +66,7 @@ ZNMatrix2& ZNMatrix2::operator*=(const ZNMatrix2& m)
 	_12 = m._11 * mat._12 + m._12 * mat._22;
 	_21 = m._21 * mat._11 + m._22 * mat._21;
 	_22 = m._21 * mat._12 + m._22 * mat._22;
-	return *this;
+	return *this;	
 }
 
 ZNMatrix2& ZNMatrix2::Transpose()

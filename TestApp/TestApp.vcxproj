@@ -78,6 +78,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
+    <OutDir>$(SolutionDir)Build\$(Platform)_$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)Build\Intermediates\$(ProjectName)_$(Platform)_$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
@@ -118,11 +120,12 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)\ZN;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ZN;$(ProjectDir)Libs\googletest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(SolutionDir)Build\$(Platform)_$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -144,11 +147,58 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="UnitTest\AffineTransform.cpp" />
+    <ClCompile Include="UnitTest\LinearTransform.cpp" />
+    <ClCompile Include="UnitTest\Matrix.cpp" />
+    <ClCompile Include="UnitTest\Vector.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ZN\ZN.vcxproj">
       <Project>{55b268e0-3aaa-4f8c-a526-2a7c9f81cc35}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Libs\googletest\include\gmock\gmock-actions.h" />
+    <ClInclude Include="Libs\googletest\include\gmock\gmock-cardinalities.h" />
+    <ClInclude Include="Libs\googletest\include\gmock\gmock-function-mocker.h" />
+    <ClInclude Include="Libs\googletest\include\gmock\gmock-matchers.h" />
+    <ClInclude Include="Libs\googletest\include\gmock\gmock-more-actions.h" />
+    <ClInclude Include="Libs\googletest\include\gmock\gmock-more-matchers.h" />
+    <ClInclude Include="Libs\googletest\include\gmock\gmock-nice-strict.h" />
+    <ClInclude Include="Libs\googletest\include\gmock\gmock-spec-builders.h" />
+    <ClInclude Include="Libs\googletest\include\gmock\gmock.h" />
+    <ClInclude Include="Libs\googletest\include\gmock\internal\custom\gmock-generated-actions.h" />
+    <ClInclude Include="Libs\googletest\include\gmock\internal\custom\gmock-matchers.h" />
+    <ClInclude Include="Libs\googletest\include\gmock\internal\custom\gmock-port.h" />
+    <ClInclude Include="Libs\googletest\include\gmock\internal\gmock-internal-utils.h" />
+    <ClInclude Include="Libs\googletest\include\gmock\internal\gmock-port.h" />
+    <ClInclude Include="Libs\googletest\include\gmock\internal\gmock-pp.h" />
+    <ClInclude Include="Libs\googletest\include\gtest\gtest-death-test.h" />
+    <ClInclude Include="Libs\googletest\include\gtest\gtest-matchers.h" />
+    <ClInclude Include="Libs\googletest\include\gtest\gtest-message.h" />
+    <ClInclude Include="Libs\googletest\include\gtest\gtest-param-test.h" />
+    <ClInclude Include="Libs\googletest\include\gtest\gtest-printers.h" />
+    <ClInclude Include="Libs\googletest\include\gtest\gtest-spi.h" />
+    <ClInclude Include="Libs\googletest\include\gtest\gtest-test-part.h" />
+    <ClInclude Include="Libs\googletest\include\gtest\gtest-typed-test.h" />
+    <ClInclude Include="Libs\googletest\include\gtest\gtest.h" />
+    <ClInclude Include="Libs\googletest\include\gtest\gtest_pred_impl.h" />
+    <ClInclude Include="Libs\googletest\include\gtest\gtest_prod.h" />
+    <ClInclude Include="Libs\googletest\include\gtest\internal\custom\gtest-port.h" />
+    <ClInclude Include="Libs\googletest\include\gtest\internal\custom\gtest-printers.h" />
+    <ClInclude Include="Libs\googletest\include\gtest\internal\custom\gtest.h" />
+    <ClInclude Include="Libs\googletest\include\gtest\internal\gtest-death-test-internal.h" />
+    <ClInclude Include="Libs\googletest\include\gtest\internal\gtest-filepath.h" />
+    <ClInclude Include="Libs\googletest\include\gtest\internal\gtest-internal.h" />
+    <ClInclude Include="Libs\googletest\include\gtest\internal\gtest-param-util.h" />
+    <ClInclude Include="Libs\googletest\include\gtest\internal\gtest-port-arch.h" />
+    <ClInclude Include="Libs\googletest\include\gtest\internal\gtest-port.h" />
+    <ClInclude Include="Libs\googletest\include\gtest\internal\gtest-string.h" />
+    <ClInclude Include="Libs\googletest\include\gtest\internal\gtest-type-util.h" />
+    <ClInclude Include="UnitTest\Helper.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Libs\googletest\LICENSE" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

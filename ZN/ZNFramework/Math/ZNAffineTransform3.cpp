@@ -5,6 +5,13 @@
 #include "ZNLinearTransform3.h"
 #include "ZNAffineTransform3.h"
 
+using namespace ZNFramework;
+
+ZNAffineTransform3::ZNAffineTransform3()
+	:matrix3(), translation()
+{
+}
+
 ZNAffineTransform3::ZNAffineTransform3(const ZNLinearTransform3& lt, const ZNVector3& v)
 	: matrix3(lt.matrix3), translation(v)
 {
@@ -15,11 +22,6 @@ ZNAffineTransform3::ZNAffineTransform3(const ZNMatrix4& m)
 		m._21, m._22, m._23,
 		m._31, m._32, m._33)
 	, translation(m._41, m._42, m._43)
-{
-}
-
-ZNAffineTransform3::ZNAffineTransform3(float x, float y, float z)
-	:matrix3(ZNMatrix3()), translation(x, y, z)
 {
 }
 

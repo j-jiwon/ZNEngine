@@ -1,5 +1,7 @@
 #include "ZNMatrix3.h"
 
+using namespace ZNFramework;
+
 ZNMatrix3::ZNMatrix3()
 	:_11(0), _12(0), _13(0)
 	,_21(0), _22(0), _23(0)
@@ -15,18 +17,11 @@ ZNMatrix3::ZNMatrix3(float f11, float f12, float f13,
 	,_31(f31), _32(f32), _33(f33) {
 }
 
-ZNMatrix3::ZNMatrix3(ZNVector3 v1, ZNVector3 v2, ZNVector3 v3)
+ZNMatrix3::ZNMatrix3(const ZNVector3& v1, const ZNVector3& v2, const ZNVector3& v3)
 	:_11(v1.x), _12(v1.y), _13(v1.z)
 	,_21(v2.x), _22(v2.y), _23(v2.z)
 	,_31(v3.x), _32(v3.y), _33(v3.z)
 {
-}
-
-ZNMatrix3::ZNMatrix3(const ZNMatrix3& m)
-{
-	_11 = m._11; _12 = m._12; _13 = m._13;
-	_21 = m._21; _22 = m._22; _23 = m._23;
-	_31 = m._31; _32 = m._32; _33 = m._33;
 }
 
 bool ZNMatrix3::operator==(const ZNMatrix3& m) const
@@ -64,7 +59,7 @@ ZNMatrix3 ZNMatrix3::operator*(const ZNMatrix3& m) const
 				   , _31 * m._11 + _32 * m._21 + _33 * m._31, _31 * m._12 + _32 * m._22 + _33 * m._32, _31 * m._13 + _32 * m._23 + _33 * m._33);
 }
 
-ZNMatrix3 ZNMatrix3::operator*(const float f) const
+ZNMatrix3 ZNMatrix3::operator*(float f) const
 {
 	return ZNMatrix3(_11 * f, _12 * f, _13 * f
 					,_21 * f, _22 * f, _23 * f
@@ -81,7 +76,7 @@ ZNMatrix3& ZNMatrix3::operator+=(const ZNMatrix3& m)
 
 ZNMatrix3& ZNMatrix3::operator*=(const ZNMatrix3& m)
 {
-	ZNMatrix3 mat{ *this };
+	ZNMatrix3 mat(*this);
 	_11 = (mat._11 * m._11) + (mat._12 * m._21) + (mat._13 * m._31);
 	_12 = (mat._11 * m._12) + (mat._12 * m._22) + (mat._13 * m._32);
 	_13 = (mat._11 * m._13) + (mat._12 * m._23) + (mat._13 * m._33);

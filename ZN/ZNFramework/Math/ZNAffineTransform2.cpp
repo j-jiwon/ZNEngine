@@ -1,8 +1,16 @@
 #include "ZNMatrix2.h"
 #include "ZNMatrix3.h"
 #include "ZNVector2.h"
+#include "ZNVector3.h"
 #include "ZNLinearTransform2.h"
 #include "ZNAffineTransform2.h"
+
+using namespace ZNFramework;
+
+ZNAffineTransform2::ZNAffineTransform2()
+	:matrix2(), translation()
+{
+}
 
 ZNAffineTransform2::ZNAffineTransform2(const ZNLinearTransform2& lt, const ZNVector2& v)
 	: matrix2(lt.matrix2), translation(v)
@@ -11,11 +19,6 @@ ZNAffineTransform2::ZNAffineTransform2(const ZNLinearTransform2& lt, const ZNVec
 
 ZNAffineTransform2::ZNAffineTransform2(const ZNMatrix3& m)
 	: matrix2(m._11, m._12, m._21, m._22), translation(m._31, m._32)
-{
-}
-
-ZNAffineTransform2::ZNAffineTransform2(float x, float y)
-	: matrix2(ZNMatrix2()), translation(x, y)
 {
 }
 
@@ -49,8 +52,8 @@ ZNAffineTransform2& ZNAffineTransform2::Translate(const ZNVector2& v)
 
 ZNAffineTransform2& ZNAffineTransform2::Multiply(const ZNAffineTransform2& at)
 {
-	matrix2 *= at.matrix2;
 	translation = translation * at.matrix2 + at.translation;
+	matrix2 *= at.matrix2;
 	return *this;
 }
 

@@ -3,6 +3,8 @@
 #include "ZNMatrix4.h"
 #include "ZNVector4.h"
 
+using namespace ZNFramework;
+
 ZNVector4::ZNVector4()
 	:x(0.0f), y(0.0f), z(0.0f), w(0.0f)
 {
@@ -46,7 +48,7 @@ ZNVector4 ZNVector4::operator-(const ZNVector4& v) const
 	return ZNVector4(x - v.x, y - v.y, z - v.z, w - v.w);
 }
 
-ZNVector4 ZNVector4::operator*(const float f) const
+ZNVector4 ZNVector4::operator*(float f) const
 {
 	return ZNVector4(x * f, y * f, z * f, w * f);
 }

@@ -2,6 +2,8 @@
 #include "ZNMatrix3.h"
 #include <math.h>
 
+using namespace ZNFramework;
+
 ZNLinearTransform3::ZNLinearTransform3()
 	:matrix3()
 {
