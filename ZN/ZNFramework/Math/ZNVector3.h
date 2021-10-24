@@ -16,7 +16,9 @@ public:
 	ZNVector3 operator + (const ZNVector3& v) const;
 	ZNVector3 operator - (const ZNVector3& v) const;
 	ZNVector3 operator * (const float f) const;
-	// ZNVector3 operator * (const ZNMatrix3& m) const;
+	ZNVector3 operator * (const ZNMatrix3& m) const;
+	ZNVector3 operator *= (const ZNVector3 & v);
+	ZNVector3 operator *= (const ZNMatrix3& m);
 
 	float Length() const;
 	float LengthSq() const;

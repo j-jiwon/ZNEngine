@@ -1,5 +1,5 @@
 #pragma once
-// #include "ZNMatrix2.h"
+#include "ZNMatrix2.h"
 
 class ZNVector2
 {
@@ -17,7 +17,9 @@ public:
 	ZNVector2 operator + (const ZNVector2& v) const;
 	ZNVector2 operator - (const ZNVector2& v) const;
 	ZNVector2 operator * (const float f) const;
-	// ZNVector2 operator * (const ZNMatrix2& m) const;
+	ZNVector2 operator * (const ZNMatrix2& m) const;
+	ZNVector2 operator *= (const ZNVector2& v);
+	ZNVector2 operator *= (const ZNMatrix2& m);
 
 	float Length() const;
 	float LengthSq() const;

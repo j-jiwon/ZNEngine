@@ -52,13 +52,25 @@ ZNVector2 ZNVector2::operator*(const float f) const
 	return ZNVector2(x * f, y * f);
 }
 
-/*
 ZNVector2 ZNVector2::operator*(const ZNMatrix2& m) const
 {
-	return ZNVector2(v.x * m._11 + v.y * m._21
-					, v.x * m._12 + v.y * m._22);
+	return ZNVector2(x * m._11 + y * m._21
+					, x * m._12 + y * m._22);
 }
-*/
+
+ZNVector2 ZNVector2::operator*=(const ZNVector2& v)
+{
+	x *= v.x;
+	y *= v.y;
+	return *this;
+}
+
+ZNVector2 ZNVector2::operator*=(const ZNMatrix2& m)
+{
+	x = x * m._11 + y * m._21;
+	y = y * m._12 + y * m._22;
+	return *this;
+}
 
 float ZNVector2::Length() const
 {
