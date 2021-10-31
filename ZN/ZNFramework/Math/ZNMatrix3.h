@@ -19,9 +19,11 @@ namespace ZNFramework {
 		ZNMatrix3 operator - (const ZNMatrix3& m) const;
 		ZNMatrix3 operator * (const ZNMatrix3& m) const;
 		ZNMatrix3 operator * (float f) const;
-		ZNMatrix3& operator += (const ZNMatrix3& m);
-		ZNMatrix3& operator *= (const ZNMatrix3& m);
 
+		ZNMatrix3& operator += (const ZNMatrix3& m);
+		ZNMatrix3& operator -= (const ZNMatrix3& m);
+		ZNMatrix3& operator *= (const ZNMatrix3& m);
+		ZNMatrix3& operator *= (float f);
 
 		ZNMatrix3& Transpose();
 		ZNMatrix3& Inverse();
@@ -29,8 +31,19 @@ namespace ZNFramework {
 
 		float Determinant() const;
 
-		float _11, _12, _13;
-		float _21, _22, _23;
-		float _31, _32, _33;
+		union
+		{
+			struct
+			{
+				float _11, _12, _13;
+				float _21, _22, _23;
+				float _31, _32, _33;
+			};
+			struct
+			{
+				float m[3][3];
+			};
+			float value[9];
+		};
 	};
 }

@@ -18,13 +18,30 @@ namespace ZNFramework
 		ZNMatrix2 operator - (const ZNMatrix2& m) const;
 		ZNMatrix2 operator * (const ZNMatrix2& m) const;
 		ZNMatrix2 operator * (float f) const;
+		
 		ZNMatrix2& operator += (const ZNMatrix2& m);
+		ZNMatrix2& operator -= (const ZNMatrix2& m);
 		ZNMatrix2& operator *= (const ZNMatrix2& m);
+		ZNMatrix2& operator *= (float f);
 
 		ZNMatrix2& Transpose();
 		ZNMatrix2& Inverse();
 		ZNMatrix2 Identity();
 
-		float _11, _12, _21, _22;
+		float Determinant() const;
+
+		union
+		{
+			struct
+			{
+				float _11, _12;
+				float _21, _22;
+			};
+			struct
+			{
+				float m[2][2];
+			};
+			float value[4];
+		};
 	};
 }

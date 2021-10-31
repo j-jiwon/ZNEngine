@@ -30,6 +30,13 @@ float ZNVector3::Dot(const ZNVector3& v1, const ZNVector3& v2)
 	return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
 }
 
+ZNVector3 ZNFramework::ZNVector3::Cross(const ZNVector3& v1, const ZNVector3& v2)
+{
+	return ZNVector3(v1.y * v2.z - v1.z * v2.y
+					, v1.z * v2.x - v1.x * v2.z
+					, v1.x * v2.y - v1.y * v2.x );
+}
+
 ZNVector3 ZNVector3::operator+(const ZNVector3& v) const
 {
 	return ZNVector3(x + v.x, y + v.y, z + v.z);
@@ -54,6 +61,30 @@ ZNVector3 ZNVector3::operator*(const ZNMatrix3& m) const
 	return vec;
 }
 
+ZNVector3& ZNFramework::ZNVector3::operator+=(const ZNVector3& v)
+{
+	x += v.x;
+	y += v.y;
+	z += v.z;
+	return *this;
+}
+
+ZNVector3& ZNFramework::ZNVector3::operator+=(float f)
+{
+	x += f;
+	y += f;
+	z += f;
+	return *this;
+}
+
+ZNVector3& ZNFramework::ZNVector3::operator-=(const ZNVector3& v)
+{
+	x -= v.x;
+	y -= v.y;
+	z -= v.z;
+	return *this;
+}
+
 ZNVector3& ZNVector3::operator*=(const ZNVector3& v)
 {
 	ZNVector3 vec(*this);
@@ -69,6 +100,14 @@ ZNVector3& ZNVector3::operator*=(const ZNMatrix3& m)
 	x = v.x * m._11 + v.y * m._21 + v.z * m._31;
 	y = v.x * m._12 + v.y * m._22 + v.z * m._32;
 	z = v.x * m._13 + v.y * m._23 + v.z * m._33;
+	return *this;
+}
+
+ZNVector3& ZNFramework::ZNVector3::operator*=(float f)
+{
+	x = x * f;
+	y = y * f;
+	z = z * f;
 	return *this;
 }
 

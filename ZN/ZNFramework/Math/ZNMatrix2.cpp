@@ -59,6 +59,13 @@ ZNMatrix2& ZNMatrix2::operator+=(const ZNMatrix2& m)
 	return *this;
 }
 
+ZNMatrix2& ZNFramework::ZNMatrix2::operator-=(const ZNMatrix2& m)
+{
+	_11 -= m._11; _12 -= m._12;
+	_21 -= m._21; _22 -= m._22;
+	return *this;
+}
+
 ZNMatrix2& ZNMatrix2::operator*=(const ZNMatrix2& m)
 {
 	ZNMatrix2 mat(*this);
@@ -67,6 +74,13 @@ ZNMatrix2& ZNMatrix2::operator*=(const ZNMatrix2& m)
 	_21 = m._21 * mat._11 + m._22 * mat._21;
 	_22 = m._21 * mat._12 + m._22 * mat._22;
 	return *this;	
+}
+
+ZNMatrix2& ZNFramework::ZNMatrix2::operator*=(float f)
+{
+	_11 *= f; _12 *= f;
+	_21 *= f; _22 *= f;
+	return *this;
 }
 
 ZNMatrix2& ZNMatrix2::Transpose()
@@ -92,4 +106,9 @@ ZNMatrix2& ZNMatrix2::Inverse()
 ZNMatrix2 ZNMatrix2::Identity() 
 {
 	return ZNMatrix2(1.0f, 0.0f, 0.0f, 1.0f);
+}
+
+float ZNFramework::ZNMatrix2::Determinant() const
+{
+	return _11 * _22 - _12 * _21;
 }

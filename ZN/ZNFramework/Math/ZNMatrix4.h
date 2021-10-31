@@ -23,15 +23,31 @@ namespace ZNFramework
 		ZNMatrix4 operator * (const ZNMatrix4& m) const;
 		ZNMatrix4 operator * (float f) const;
 
+		ZNMatrix4& operator += (const ZNMatrix4& m);
+		ZNMatrix4& operator -= (const ZNMatrix4& m);
+		ZNMatrix4& operator *= (const ZNMatrix4& m);
+		ZNMatrix4& operator *= (float f);
+
 		ZNMatrix4& Transpose();
 		ZNMatrix4& Inverse();
 		ZNMatrix4 Identity();
 
 		float Determinant() const;
 
-		float _11, _12, _13, _14;
-		float _21, _22, _23, _24;
-		float _31, _32, _33, _34;
-		float _41, _42, _43, _44;
+		union
+		{
+			struct
+			{
+				float _11, _12, _13, _14;
+				float _21, _22, _23, _24;
+				float _31, _32, _33, _34;
+				float _41, _42, _43, _44;
+			};
+			struct
+			{
+				float m[4][4];
+			};
+			float value[16];
+		};
 	};
 }

@@ -53,6 +53,72 @@ ZNVector4 ZNVector4::operator*(float f) const
 	return ZNVector4(x * f, y * f, z * f, w * f);
 }
 
+ZNVector4 ZNVector4::operator*(const ZNMatrix4& m) const
+{
+	ZNVector4 vec(*this);
+	vec.x = vec.x * m._11 + vec.y * m._21 + vec.z * m._31 + vec.w * m._41;
+	vec.y = vec.x * m._12 + vec.y * m._22 + vec.z * m._32 + vec.w * m._42;
+	vec.z = vec.x * m._13 + vec.y * m._23 + vec.z * m._33 + vec.w * m._43;
+	vec.w = vec.x * m._14 + vec.y * m._24 + vec.z * m._34 + vec.w * m._44;
+	return vec;
+}
+
+ZNVector4& ZNFramework::ZNVector4::operator+=(const ZNVector4& v)
+{
+	x += v.x;
+	y += v.y;
+	z += v.z;
+	w += v.w;
+	return *this;
+}
+
+ZNVector4& ZNFramework::ZNVector4::operator+=(float f)
+{
+	x += f;
+	y += f;
+	z += f;
+	w += f;
+	return *this;
+}
+
+ZNVector4& ZNFramework::ZNVector4::operator-=(const ZNVector4& v)
+{
+	x -= v.x;
+	y -= v.y;
+	z -= v.z;
+	w -= v.w;
+	return *this;
+}
+
+ZNVector4& ZNVector4::operator*=(const ZNVector4& v)
+{
+	ZNVector4 vec(*this);
+	x = v.x * vec.x;
+	y = v.y * vec.y;
+	z = v.z * vec.z;
+	w = v.w * vec.w;
+	return *this;
+}
+
+ZNVector4& ZNVector4::operator*=(const ZNMatrix4& m)
+{
+	ZNVector4 v(*this);
+	x = v.x * m._11 + v.y * m._21 + v.z * m._31 + v.w * m._41;
+	y = v.x * m._12 + v.y * m._22 + v.z * m._32 + v.w * m._42;
+	z = v.x * m._13 + v.y * m._23 + v.z * m._33 + v.w * m._43;
+	w = v.x * m._14 + v.y * m._24 + v.z * m._34 + v.w * m._44;
+	return *this;
+}
+
+ZNVector4& ZNFramework::ZNVector4::operator*=(float f)
+{
+	x = x * f;
+	y = y * f;
+	z = z * f;
+	w = w * f;
+	return *this;
+}
+
 float ZNVector4::Length() const
 {
 	return sqrt(x * x + y * y + z * z + w * w);

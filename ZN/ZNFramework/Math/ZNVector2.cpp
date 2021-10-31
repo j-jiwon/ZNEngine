@@ -68,6 +68,27 @@ ZNVector2 ZNVector2::operator*(const ZNMatrix2& m) const
 					 x * m._12 + y * m._22);
 }
 
+ZNVector2& ZNFramework::ZNVector2::operator+=(const ZNVector2& v)
+{
+	x += v.x;
+	y += v.y;
+	return *this;
+}
+
+ZNVector2& ZNFramework::ZNVector2::operator+=(float f)
+{
+	x += f;
+	y += f;
+	return *this;
+}
+
+ZNVector2& ZNFramework::ZNVector2::operator-=(const ZNVector2& v)
+{
+	x -= v.x;
+	y -= v.y;
+	return *this;
+}
+
 ZNVector2& ZNVector2::operator*=(const ZNVector2& v)
 {
 	ZNVector2 vec(x, y);
@@ -80,6 +101,13 @@ ZNVector2& ZNVector2::operator*=(const ZNMatrix2& m)
 {
 	x = x * m._11 + y * m._21;
 	y = y * m._12 + y * m._22;
+	return *this;
+}
+
+ZNVector2& ZNFramework::ZNVector2::operator*=(float f)
+{
+	x = x * f;
+	y = y * f;
 	return *this;
 }
 

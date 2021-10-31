@@ -81,9 +81,54 @@ ZNMatrix4 ZNMatrix4::operator*(const ZNMatrix4& m) const
 ZNMatrix4 ZNMatrix4::operator*(float f) const
 {
 	return ZNMatrix4(_11 * f, _12 * f, _13 * f, _14 * f,
-					_21 * f, _22 * f, _23 * f, _24 * f,
-					_31 * f, _32 * f, _33 * f, _34 * f,
-					_41 * f, _42 * f, _43 * f, _44 * f);
+					 _21 * f, _22 * f, _23 * f, _24 * f,
+					 _31 * f, _32 * f, _33 * f, _34 * f,
+					 _41 * f, _42 * f, _43 * f, _44 * f);
+}
+
+ZNMatrix4& ZNFramework::ZNMatrix4::operator+=(const ZNMatrix4& m)
+{
+	_11 += m._11; _12 += m._12; _13 += m._13; _14 += m._14;
+	_21 += m._21; _22 += m._22; _23 += m._23; _24 += m._24;
+	_31 += m._31; _32 += m._32; _33 += m._33; _34 += m._34;
+	_41 += m._41; _42 += m._42; _43 += m._43; _44 += m._44;
+	return *this;
+}
+
+ZNMatrix4& ZNFramework::ZNMatrix4::operator-=(const ZNMatrix4& m)
+{
+	_11 -= m._11; _12 -= m._12; _13 -= m._13; _14 += m._14;
+	_21 -= m._21; _22 -= m._22; _23 -= m._23; _24 += m._24;
+	_31 -= m._31; _32 -= m._32; _33 -= m._33; _34 += m._34;
+	_41 -= m._41; _42 -= m._42; _43 -= m._43; _44 += m._44;
+	return *this;
+}
+
+ZNMatrix4& ZNFramework::ZNMatrix4::operator*=(const ZNMatrix4& m)
+{
+	ZNMatrix4 mat(*this);
+	_11 = (mat._11 * m._11) + (mat._12 * m._21) + (mat._13 * m._31) + (mat._14 * m._41);
+	_12 = (mat._11 * m._12) + (mat._12 * m._22) + (mat._13 * m._32) + (mat._14 * m._42);
+	_13 = (mat._11 * m._13) + (mat._12 * m._23) + (mat._13 * m._33) + (mat._14 * m._43);
+	_21 = (mat._21 * m._11) + (mat._22 * m._21) + (mat._23 * m._31) + (mat._24 * m._41);
+	_22 = (mat._21 * m._12) + (mat._22 * m._22) + (mat._23 * m._32) + (mat._24 * m._42);
+	_23 = (mat._21 * m._13) + (mat._22 * m._23) + (mat._23 * m._33) + (mat._24 * m._43);
+	_31 = (mat._31 * m._11) + (mat._32 * m._21) + (mat._33 * m._31) + (mat._34 * m._41);
+	_32 = (mat._31 * m._12) + (mat._32 * m._22) + (mat._33 * m._32) + (mat._34 * m._42);
+	_33 = (mat._31 * m._13) + (mat._32 * m._23) + (mat._33 * m._33) + (mat._34 * m._43);
+	_41 = (mat._41 * m._11) + (mat._42 * m._21) + (mat._43 * m._31) + (mat._44 * m._41);
+	_42 = (mat._41 * m._12) + (mat._42 * m._22) + (mat._43 * m._32) + (mat._44 * m._42);
+	_43 = (mat._41 * m._13) + (mat._42 * m._23) + (mat._43 * m._33) + (mat._44 * m._43);
+	return *this;												   
+}
+
+ZNMatrix4& ZNFramework::ZNMatrix4::operator*=(float f)
+{
+	_11 *= f; _12 *= f; _13 *= f; _14 *= f;
+	_21 *= f; _22 *= f; _23 *= f; _24 *= f;
+	_31 *= f; _32 *= f; _33 *= f; _34 *= f;
+	_41 *= f; _42 *= f; _43 *= f; _44 *= f;
+	return *this;
 }
 
 ZNMatrix4& ZNMatrix4::Transpose()

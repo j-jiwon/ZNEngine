@@ -131,7 +131,7 @@ TEST(Matrix, Transpose)
             }
         }
 
-        EXPECT_EQ(r, m.TransposeMatrix());
+        EXPECT_EQ(r, m.Transpose());
     };
     body(ZNMatrix2());
     body(ZNMatrix3());
