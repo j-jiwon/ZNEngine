@@ -61,23 +61,27 @@ ZNLinearTransform3& ZNLinearTransform3::RotateZ(float angle)
 {
 	float cosA = cos(angle);
 	float sinA = sin(angle);
-	matrix3 *= ZNMatrix3(cosA, sinA, 0.0f,
-		                -sinA, cosA, 0.0f,
+	matrix3 *= ZNMatrix3(cosA, -sinA, 0.0f,
+		                sinA, cosA, 0.0f,
 		                 0.0f, 0.0f, 1.0f);
 	return *this;
 }
 
 ZNLinearTransform3& ZNLinearTransform3::Rotate(const ZNVector3& axis, float angle)
 {
-	if (angle == 0) return *this;
 	float cosA = cos(angle);
 	float sinA = sin(angle);
-	ZNVector3 au = axis;
-	au.Normalize();
+	float revCos = 1 - cosA;
 
-	matrix3 *= ZNMatrix3(cosA + au.x * au.x * (1 - cosA), au.x * au.y * (1 - cosA) - au.z * sinA, au.x * au.z * (1 - cosA) + au.y * sinA,
-						au.y * au.x * (1 - cosA) + au.z * sinA, cosA + au.y * au.y * (1 - cosA), au.y * au.z * (1 - cosA) - au.x * sinA,
-						au.z * au.x * (1 - cosA) - au.y * sinA, au.z * au.y * (1 - cosA) + au.x * sinA, cosA + au.z * au.z * (1 - cosA));
+	matrix3 *= ZNMatrix3(cosA + axis.x * axis.x * revCos
+						, axis.x * axis.y * revCos + axis.z * sinA
+						, axis.x * axis.z * revCos - axis.y * sinA
+						, axis.y * axis.x * revCos - axis.z * sinA
+						, cosA + axis.y * axis.y * revCos
+						, axis.y * axis.z * revCos + axis.x * sinA
+						, axis.z * axis.x * revCos + axis.y * sinA
+						, axis.z * axis.y * revCos - axis.x * sinA
+						, cosA + axis.z * axis.z * revCos);
 	return *this;
 }
 

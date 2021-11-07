@@ -101,7 +101,7 @@ TEST(Matrix, Multiply)
                 r.m[i][j] = 0.0f;
                 for (int k = 0; k < dimension; ++k)
                 {
-                    r.m[i][j] += m1.m[i][k] * m2.m[k][j];
+                     r.m[i][j] += m1.m[i][k] * m2.m[k][j];
                 }
                 
             }

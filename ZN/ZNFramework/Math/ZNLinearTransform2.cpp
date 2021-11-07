@@ -41,8 +41,7 @@ ZNLinearTransform2& ZNLinearTransform2::Rotate(float angle)
 	float cosA = cos(angle);
 	float sinA = sin(angle);
 
-	ZNMatrix2 m(cosA, -sinA, sinA, cosA);
-	matrix2 *= m;
+	matrix2 *= ZNMatrix2 (cosA, sinA, -sinA, cosA);
 	return *this;
 }
 

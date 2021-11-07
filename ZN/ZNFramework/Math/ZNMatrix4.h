@@ -28,8 +28,8 @@ namespace ZNFramework
 		ZNMatrix4& operator *= (const ZNMatrix4& m);
 		ZNMatrix4& operator *= (float f);
 
-		ZNMatrix4& Transpose();
-		ZNMatrix4& Inverse();
+		ZNMatrix4 Transpose() const;
+		ZNMatrix4 Inverse() const;
 		ZNMatrix4 Identity();
 
 		float Determinant() const;

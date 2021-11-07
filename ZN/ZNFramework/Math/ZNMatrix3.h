@@ -25,8 +25,8 @@ namespace ZNFramework {
 		ZNMatrix3& operator *= (const ZNMatrix3& m);
 		ZNMatrix3& operator *= (float f);
 
-		ZNMatrix3& Transpose();
-		ZNMatrix3& Inverse();
+		ZNMatrix3 Transpose() const;
+		ZNMatrix3 Inverse() const;
 		ZNMatrix3 Identity();
 
 		float Determinant() const;

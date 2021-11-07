@@ -54,11 +54,9 @@ ZNVector3 ZNVector3::operator*(float f) const
 
 ZNVector3 ZNVector3::operator*(const ZNMatrix3& m) const
 {
-	ZNVector3 vec(*this);
-	vec.x = vec.x * m._11 + vec.y * m._21 + vec.z * m._31;
-	vec.y = vec.x * m._12 + vec.y * m._22 + vec.z * m._32;
-	vec.z = vec.x * m._13 + vec.y * m._23 + vec.z * m._33;
-	return vec;
+	return ZNVector3(x * m._11 + y * m._21 + z * m._31
+					, x * m._12 + y * m._22 + z * m._32
+					, x * m._13 + y * m._23 + z * m._33);
 }
 
 ZNVector3& ZNFramework::ZNVector3::operator+=(const ZNVector3& v)
@@ -125,7 +123,7 @@ ZNVector3& ZNVector3::Normalize()
 {
 	float lengthSq = x * x + y * y + z * z;
 	float t = 0.0f;
-	if (lengthSq > 0.0f) t = 1 / lengthSq;
+	if (lengthSq > 0.0f) t = 1 / sqrtf(lengthSq);
 
 	this->x = x * t;
 	this->y = y * t;

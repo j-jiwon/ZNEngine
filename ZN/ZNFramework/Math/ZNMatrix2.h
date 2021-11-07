@@ -24,8 +24,8 @@ namespace ZNFramework
 		ZNMatrix2& operator *= (const ZNMatrix2& m);
 		ZNMatrix2& operator *= (float f);
 
-		ZNMatrix2& Transpose();
-		ZNMatrix2& Inverse();
+		ZNMatrix2 Transpose() const;
+		ZNMatrix2 Inverse() const;
 		ZNMatrix2 Identity();
 
 		float Determinant() const;

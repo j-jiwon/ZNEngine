@@ -3,7 +3,7 @@
 using namespace ZNFramework;
 
 ZNMatrix2::ZNMatrix2()
-	:_11(0), _12(0), _21(0), _22(0)
+	:_11(1), _12(0), _21(0), _22(1)
 {
 }
 
@@ -69,10 +69,10 @@ ZNMatrix2& ZNFramework::ZNMatrix2::operator-=(const ZNMatrix2& m)
 ZNMatrix2& ZNMatrix2::operator*=(const ZNMatrix2& m)
 {
 	ZNMatrix2 mat(*this);
-	_11 = m._11 * mat._11 + m._12 * mat._21;
-	_12 = m._11 * mat._12 + m._12 * mat._22;
-	_21 = m._21 * mat._11 + m._22 * mat._21;
-	_22 = m._21 * mat._12 + m._22 * mat._22;
+	_11 = mat._11 * m._11 + mat._12 * m._21;
+	_12 = mat._11 * m._12 + mat._12 * m._22;
+	_21 = mat._21 * m._11 + mat._22 * m._21;
+	_22 = mat._21 * m._12 + mat._22 * m._22;
 	return *this;	
 }
 
@@ -83,24 +83,23 @@ ZNMatrix2& ZNFramework::ZNMatrix2::operator*=(float f)
 	return *this;
 }
 
-ZNMatrix2& ZNMatrix2::Transpose()
+ZNMatrix2 ZNMatrix2::Transpose() const
 {
-	float t = this->_12;
-	this->_12 = _21;
-	this->_21 = t;
-	return *this;
+	return ZNMatrix2(_11, _21
+					, _12, _22);
 }
 
-ZNMatrix2& ZNMatrix2::Inverse()
+ZNMatrix2 ZNMatrix2::Inverse() const
 {
 	float det = _11 * _22 - _12 * _21;
+	ZNMatrix2 mat;
 	if (det != 0.0f)
 	{
 		float t = 1.0f / det;
-		this->_11 = t * _22;  this->_12 = -t * _12;
-		this->_21 = -t * _21; this->_22 = t * _11;
+		mat._11 = t * _22;  mat._12 = -t * _12;
+		mat._21 = -t * _21; mat._22 = t * _11;
 	}
-	return *this;
+	return mat;
 }
 
 ZNMatrix2 ZNMatrix2::Identity() 

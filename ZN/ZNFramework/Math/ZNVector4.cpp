@@ -55,12 +55,10 @@ ZNVector4 ZNVector4::operator*(float f) const
 
 ZNVector4 ZNVector4::operator*(const ZNMatrix4& m) const
 {
-	ZNVector4 vec(*this);
-	vec.x = vec.x * m._11 + vec.y * m._21 + vec.z * m._31 + vec.w * m._41;
-	vec.y = vec.x * m._12 + vec.y * m._22 + vec.z * m._32 + vec.w * m._42;
-	vec.z = vec.x * m._13 + vec.y * m._23 + vec.z * m._33 + vec.w * m._43;
-	vec.w = vec.x * m._14 + vec.y * m._24 + vec.z * m._34 + vec.w * m._44;
-	return vec;
+	return ZNVector4(x * m._11 + y * m._21 + z * m._31 + w * m._41
+					, x * m._12 + y * m._22 + z * m._32 + w * m._42
+					, x * m._13 + y * m._23 + z * m._33 + w * m._43
+					, x * m._14 + y * m._24 + z * m._34 + w * m._44);
 }
 
 ZNVector4& ZNFramework::ZNVector4::operator+=(const ZNVector4& v)
@@ -133,7 +131,7 @@ ZNVector4& ZNVector4::Normalize()
 {
 	float lengthSq = x * x + y * y + z * z + w * w;
 	float t = 0.0f;
-	if (lengthSq > 0.0f) t = 1 / lengthSq;
+	if (lengthSq > 0.0f) t = 1 / sqrtf(lengthSq);
 
 	this->x = x * t;
 	this->y = y * t;

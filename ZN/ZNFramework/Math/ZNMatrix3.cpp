@@ -3,9 +3,9 @@
 using namespace ZNFramework;
 
 ZNMatrix3::ZNMatrix3()
-	:_11(0), _12(0), _13(0)
-	,_21(0), _22(0), _23(0)
-	,_31(0), _32(0), _33(0)
+	:_11(1), _12(0), _13(0)
+	,_21(0), _22(1), _23(0)
+	,_31(0), _32(0), _33(1)
 {
 }
 
@@ -55,9 +55,15 @@ ZNMatrix3 ZNMatrix3::operator-(const ZNMatrix3& m) const
 
 ZNMatrix3 ZNMatrix3::operator*(const ZNMatrix3& m) const
 {
-	return ZNMatrix3(_11 * m._11 + _12 * m._21 + _13 * m._31, _11 * m._12 + _12 * m._22 + _13 * m._32, _11 * m._13 + _12 * m._23 + _13 * m._33
-				   , _21 * m._11 + _22 * m._21 + _23 * m._31, _21 * m._12 + _22 * m._22 + _23 * m._32, _21 * m._13 + _22 * m._23 + _23 * m._33
-				   , _31 * m._11 + _32 * m._21 + _33 * m._31, _31 * m._12 + _32 * m._22 + _33 * m._32, _31 * m._13 + _32 * m._23 + _33 * m._33);
+	return ZNMatrix3(_11 * m._11 + _12 * m._21 + _13 * m._31
+					, _11 * m._12 + _12 * m._22 + _13 * m._32
+					, _11 * m._13 + _12 * m._23 + _13 * m._33
+				    , _21 * m._11 + _22 * m._21 + _23 * m._31
+					, _21 * m._12 + _22 * m._22 + _23 * m._32
+					, _21 * m._13 + _22 * m._23 + _23 * m._33
+				    , _31 * m._11 + _32 * m._21 + _33 * m._31
+					, _31 * m._12 + _32 * m._22 + _33 * m._32
+					, _31 * m._13 + _32 * m._23 + _33 * m._33);
 }
 
 ZNMatrix3 ZNMatrix3::operator*(float f) const
@@ -106,32 +112,31 @@ ZNMatrix3& ZNFramework::ZNMatrix3::operator*=(float f)
 	return *this;
 }
 
-ZNMatrix3& ZNMatrix3::Transpose()
+ZNMatrix3 ZNMatrix3::Transpose() const
 {
-	ZNMatrix3 m(*this);
-	this->_12 = m._21; this->_13 = m._31;
-	this->_21 = m._12; this->_23 = m._32;
-	this->_31 = m._13; this->_32 = m._23;
-	return *this;
+	return ZNMatrix3(_11, _21, _31
+					, _12, _22, _32
+					, _13, _23, _33);
 }
 
-ZNMatrix3& ZNMatrix3::Inverse()
+ZNMatrix3 ZNMatrix3::Inverse() const
 {
 	float det = Determinant();
+	ZNMatrix3 mat;
 	if (det != 0.0f)
 	{
 		float t = 1.0f / det;
-		this->_11 = t * (_22 * _33 - _23 * _32);
-		this->_12 = t * (_13 * _32 - _12 * _33);
-		this->_13 = t * (_12 * _23 - _13 * _22);
-		this->_21 = t * (_23 * _31 - _21 * _33);
-		this->_22 = t * (_11 * _33 - _13 * _31);
-		this->_23 = t * (_13 * _21 - _11 * _23);
-		this->_31 = t * (_21 * _32 - _22 * _31);
-		this->_32 = t * (_12 * _31 - _11 * _32);
-		this->_33 = t * (_11 * _22 - _12 * _21);
+		mat._11 = (_22 * _33 - _23 * _32) * t;
+		mat._13 = (_12 * _23 - _13 * _22) * t;
+		mat._12 = (_13 * _32 - _12 * _33) * t;
+		mat._21 = (_23 * _31 - _21 * _33) * t;
+		mat._22 = (_11 * _33 - _13 * _31) * t;
+		mat._23 = (_13 * _21 - _11 * _23) * t;
+		mat._31 = (_21 * _32 - _22 * _31) * t;
+		mat._32 = (_12 * _31 - _11 * _32) * t;
+		mat._33 = (_11 * _22 - _12 * _21) * t;
 	}
-	return *this;
+	return mat;
 }
 
 ZNMatrix3 ZNMatrix3::Identity()

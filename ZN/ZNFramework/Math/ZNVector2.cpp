@@ -125,7 +125,7 @@ ZNVector2& ZNVector2::Normalize()
 {
 	float lengthSq = x * x + y * y;
 	float t = 0.0f;
-	if (lengthSq > 0.0f) t = 1 / lengthSq;
+	if (lengthSq > 0.0f) t = 1 / sqrtf(lengthSq);
 
 	this->x = x * t;
 	this->y = y * t;
