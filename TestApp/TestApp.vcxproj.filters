@@ -30,6 +30,9 @@
     <ClCompile Include="UnitTest\Framework\Math\Vector.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="UnitTest\Framework\Window.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Libs\googletest\include\gmock\internal\custom\gmock-generated-actions.h">

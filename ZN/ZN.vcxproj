@@ -161,6 +161,7 @@
       <ObjectFileName>$(IntDir)%(RelativeDir)</ObjectFileName>
       <AdditionalOptions>/Qpar %(AdditionalOptions)</AdditionalOptions>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -216,6 +217,7 @@
     <ClInclude Include="ZNFramework\Math\ZNVector2.h" />
     <ClInclude Include="ZNFramework\Math\ZNVector3.h" />
     <ClInclude Include="ZNFramework\Math\ZNVector4.h" />
+    <ClInclude Include="ZNFramework\ZNWindow.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ZNFramework\Math\ZNAffineTransform2.cpp" />
@@ -228,6 +230,7 @@
     <ClCompile Include="ZNFramework\Math\ZNVector2.cpp" />
     <ClCompile Include="ZNFramework\Math\ZNVector3.cpp" />
     <ClCompile Include="ZNFramework\Math\ZNVector4.cpp" />
+    <ClCompile Include="ZNFramework\ZNWindow.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
