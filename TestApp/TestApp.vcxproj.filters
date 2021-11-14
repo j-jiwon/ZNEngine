@@ -18,16 +18,16 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="UnitTest\AffineTransform.cpp">
+    <ClCompile Include="UnitTest\Framework\Math\AffineTransform.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="UnitTest\LinearTransform.cpp">
+    <ClCompile Include="UnitTest\Framework\Math\LinearTransform.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="UnitTest\Matrix.cpp">
+    <ClCompile Include="UnitTest\Framework\Math\Matrix.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="UnitTest\Vector.cpp">
+    <ClCompile Include="UnitTest\Framework\Math\Vector.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -143,7 +143,7 @@
     <ClInclude Include="Libs\googletest\include\gtest\gtest-typed-test.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="UnitTest\Helper.h">
+    <ClInclude Include="UnitTest\Framework\Math\Helper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

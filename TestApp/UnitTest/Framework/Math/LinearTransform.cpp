@@ -1,5 +1,4 @@
 #include <algorithm>
-#include "../Libs/googletest/include/gtest/gtest.h"
 #include "Helper.h"
 #include "ZNFramework.h"
 using namespace ZNFramework;
@@ -11,7 +10,7 @@ TEST(LinearTransform, Equal)
         using LT = decltype(lt);
         using M = decltype(m);
         M a, b, c;
-        RendomObjectsWithValuesForEqualTest<M>(a, b, c);
+        RandomObjectsWithValuesForEqualTest<M>(a, b, c);
         LT a2(a);
         LT b2(a);
         LT c2(c);
@@ -29,7 +28,7 @@ TEST(LinearTransform, NotEqual)
         using LT = decltype(lt);
         using M = decltype(m);
         M a, b, c;
-        RendomObjectsWithValuesForEqualTest<M>(a, b, c);
+        RandomObjectsWithValuesForEqualTest<M>(a, b, c);
         LT a2(a);
         LT b2(a);
         LT c2(c);
@@ -47,8 +46,8 @@ TEST(LinearTransform, Scale)
         using LT = decltype(lt);
         using M = decltype(m);
         using V = decltype(v);
-        m = RendomObjectWithValues<M>();
-        V s = RendomObjectWithValues<V>();
+        m = RandomObjectWithValues<M>();
+        V s = RandomObjectWithValues<V>();
         M r;
         int dimension = sizeof(m.m[0]) / sizeof(m.m[0][0]);
         for (int i = 0; i < dimension; ++i)
@@ -84,25 +83,25 @@ TEST(LinearTransform, Rotate)
     // 모든 직교행렬의 전치행렬은 역행렬이다.
     // 모든 회전행렬은 직교행렬이다.
     auto lt2 = ZNLinearTransform2();
-    lt2.Rotate(DegreeToRadian(RendomFloat()));
+    lt2.Rotate(DegreeToRadian(RandomFloat()));
     checkIdentity(lt2.matrix2 * lt2.matrix2.Transpose());
 
     auto lt3 = ZNLinearTransform3();
-    lt3.RotateX(DegreeToRadian(RendomFloat()));
+    lt3.RotateX(DegreeToRadian(RandomFloat()));
     checkIdentity(lt3.matrix3 * lt3.matrix3.Transpose());
     
     lt3 = ZNLinearTransform3();
-    lt3.RotateY(DegreeToRadian(RendomFloat()));
+    lt3.RotateY(DegreeToRadian(RandomFloat()));
     checkIdentity(lt3.matrix3 * lt3.matrix3.Transpose());
     
     lt3 = ZNLinearTransform3();
-    lt3.RotateZ(DegreeToRadian(RendomFloat()));
+    lt3.RotateZ(DegreeToRadian(RandomFloat()));
     checkIdentity(lt3.matrix3 * lt3.matrix3.Transpose());
     
-    auto axis = RendomObjectWithValues<ZNVector3>();
+    auto axis = RandomObjectWithValues<ZNVector3>();
     axis.Normalize();
     lt3 = ZNLinearTransform3();
-    lt3.Rotate(axis, DegreeToRadian(RendomFloat()));
+    lt3.Rotate(axis, DegreeToRadian(RandomFloat()));
     checkIdentity(lt3.matrix3 * lt3.matrix3.Transpose());
 }
 
@@ -112,8 +111,8 @@ TEST(LinearTransform, Multiply)
     {
         using LT = decltype(lt);
         using M = decltype(m);
-        M m1 = RendomObjectWithValues<M>();
-        M m2 = RendomObjectWithValues<M>();
+        M m1 = RandomObjectWithValues<M>();
+        M m2 = RandomObjectWithValues<M>();
         M r = m1 * m2;
         EXPECT_EQ(LT(r), LT(m1).Multiply(m2));
     };

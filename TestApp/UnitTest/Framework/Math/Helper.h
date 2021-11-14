@@ -22,31 +22,31 @@ float RadianToDegree(T radian)
     return radian * 180.f / static_cast<T>(M_PI);
 }
 
-static float RendomFloat()
+static float RandomFloat()
 {
     return dis(gen);
 }
 
 template<class T>
-T RendomObjectWithValues()
+T RandomObjectWithValues()
 {
     T r;
     int len = sizeof(r.value) / sizeof(r.value[0]);
     for (int i = 0; i < len; ++i)
     {
-        r.value[i] = RendomFloat();
+        r.value[i] = RandomFloat();
     }
     return r;
 }
 
 template<class T>
-void RendomObjectsWithValuesForEqualTest(T& a, T& b, T& c)
+void RandomObjectsWithValuesForEqualTest(T& a, T& b, T& c)
 {
-    a = RendomObjectWithValues<T>();
+    a = RandomObjectWithValues<T>();
     b = a;
-    c = RendomObjectWithValues<T>();
+    c = RandomObjectWithValues<T>();
     while (a.value[0] == c.value[0])
-        c = RendomObjectWithValues<T>();
+        c = RandomObjectWithValues<T>();
 }
 
 template<class T>

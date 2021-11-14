@@ -1,7 +1,4 @@
-#include "ZNMatrix2.h"
 #include "ZNMatrix3.h"
-#include "ZNVector2.h"
-#include "ZNVector3.h"
 #include "ZNLinearTransform2.h"
 #include "ZNAffineTransform2.h"
 

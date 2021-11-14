@@ -1,11 +1,11 @@
 #pragma once
-#include "ZNVector3.h"
 #include "ZNMatrix3.h"
-#include "ZNMatrix4.h"
-#include "ZNLinearTransform3.h"
+#include "ZNVector3.h"
 
 namespace ZNFramework
 {
+	class ZNMatrix4;
+	class ZNLinearTransform3;
 	class ZNAffineTransform3
 	{
 	public:

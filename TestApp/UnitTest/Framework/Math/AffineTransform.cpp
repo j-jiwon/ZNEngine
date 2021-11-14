@@ -1,5 +1,4 @@
 #include <algorithm>
-#include "../Libs/googletest/include/gtest/gtest.h"
 #include "Helper.h"
 #include "ZNFramework.h"
 using namespace ZNFramework;
@@ -11,7 +10,7 @@ TEST(AffineTransform, Equal)
         using AT = decltype(at);
         using M = decltype(m);
         M a, b, c;
-        RendomObjectsWithValuesForEqualTest<M>(a, b, c);
+        RandomObjectsWithValuesForEqualTest<M>(a, b, c);
         AT a2(a);
         AT b2(a);
         AT c2(c);
@@ -29,7 +28,7 @@ TEST(AffineTransform, NotEqual)
         using AT = decltype(at);
         using M = decltype(m);
         M a, b, c;
-        RendomObjectsWithValuesForEqualTest<M>(a, b, c);
+        RandomObjectsWithValuesForEqualTest<M>(a, b, c);
         AT a2(a);
         AT b2(a);
         AT c2(c);
@@ -47,8 +46,8 @@ TEST(AffineTransform, Translate)
         using AT = decltype(at);
         using M = decltype(m);
         using V = decltype(v);
-        m = RendomObjectWithValues<M>();
-        v = RendomObjectWithValues<V>();
+        m = RandomObjectWithValues<M>();
+        v = RandomObjectWithValues<V>();
         at = AT(m);
         at.Translate(v);
         auto r = AT(m);

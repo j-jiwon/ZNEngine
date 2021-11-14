@@ -1,4 +1,3 @@
-#include "../Libs/googletest/include/gtest/gtest.h"
 #include "Helper.h"
 #include "ZNFramework.h"
 using namespace ZNFramework;
@@ -9,7 +8,7 @@ TEST(Vector, Equal)
     {
         using V = decltype(v);
         V a, b, c;
-        RendomObjectsWithValuesForEqualTest<V>(a, b, c);
+        RandomObjectsWithValuesForEqualTest<V>(a, b, c);
         EXPECT_EQ(true, a == b);
         EXPECT_EQ(false, a == c);
     };
@@ -24,7 +23,7 @@ TEST(Vector, NotEqual)
     {
         using V = decltype(v);
         V a, b, c;
-        RendomObjectsWithValuesForEqualTest<V>(a, b, c);
+        RandomObjectsWithValuesForEqualTest<V>(a, b, c);
         EXPECT_EQ(false, a != b);
         EXPECT_EQ(true, a != c);
     };
@@ -38,8 +37,8 @@ TEST(Vector, Add)
     auto body = [](auto v)
     {
         using V = decltype(v);
-        V a = RendomObjectWithValues<V>();
-        V b = RendomObjectWithValues<V>();
+        V a = RandomObjectWithValues<V>();
+        V b = RandomObjectWithValues<V>();
         V r = SumEachValueOfObject<V>(a, b);
         EXPECT_EQ(r, a + b);
         a += b;
@@ -55,8 +54,8 @@ TEST(Vector, Sub)
     auto body = [](auto v)
     {
         using V = decltype(v);
-        V a = RendomObjectWithValues<V>();
-        V b = RendomObjectWithValues<V>();
+        V a = RandomObjectWithValues<V>();
+        V b = RandomObjectWithValues<V>();
         V r = SubEachValueOfObject<V>(a, b);
         EXPECT_EQ(r, a - b);
         a -= b;
@@ -72,8 +71,8 @@ TEST(Vector, ScalarMultiply)
     auto body = [](auto v)
     {
         using V = decltype(v);
-        V a = RendomObjectWithValues<V>();
-        float s = RendomFloat();
+        V a = RandomObjectWithValues<V>();
+        float s = RandomFloat();
         V r = MulEachValueOfObject<V>(a, s);
         EXPECT_EQ(r, a * s);
         a *= s;
@@ -89,8 +88,8 @@ TEST(Vector, Dot)
     auto body = [](auto v)
     {
         using V = decltype(v);
-        V a = RendomObjectWithValues<V>();
-        V b = RendomObjectWithValues<V>();
+        V a = RandomObjectWithValues<V>();
+        V b = RandomObjectWithValues<V>();
         int dimension = sizeof(a.value) / sizeof(a.value[0]);
         float r = 0.0f;
         for (int i = 0; i < dimension; ++i)
@@ -118,8 +117,8 @@ TEST(Vector, MulMatrix)
     {
         using V = decltype(v);
         using M = decltype(m);
-        v = RendomObjectWithValues<V>();
-        m = RendomObjectWithValues<M>();
+        v = RandomObjectWithValues<V>();
+        m = RandomObjectWithValues<M>();
         int vDimension = sizeof(v.value) / sizeof(v.value[0]);
         int mDimension = sizeof(m.m[0]) / sizeof(m.m[0][0]);
         V r;
@@ -142,7 +141,7 @@ TEST(Vector, Length)
     auto body = [](auto v)
     {
         using V = decltype(v);
-        v = RendomObjectWithValues<V>();
+        v = RandomObjectWithValues<V>();
         int dimension = sizeof(v.value) / sizeof(v.value[0]);
         float r = 0.0f;
         for (int i = 0; i < dimension; ++i)
@@ -161,7 +160,7 @@ TEST(Vector, LengthSq)
     auto body = [](auto v)
     {
         using V = decltype(v);
-        v = RendomObjectWithValues<V>();
+        v = RandomObjectWithValues<V>();
         int dimension = sizeof(v.value) / sizeof(v.value[0]);
         float r = 0.0f;
         for (int i = 0; i < dimension; ++i)
@@ -180,7 +179,7 @@ TEST(Vector, Normalize)
     auto body = [](auto v)
     {
         using V = decltype(v);
-        v = RendomObjectWithValues<V>();
+        v = RandomObjectWithValues<V>();
         V r = v;
 
         float lenSq = v.LengthSq();

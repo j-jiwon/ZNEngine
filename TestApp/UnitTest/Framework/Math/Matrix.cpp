@@ -1,5 +1,4 @@
 #include <algorithm>
-#include "../Libs/googletest/include/gtest/gtest.h"
 #include "Helper.h"
 #include "ZNFramework.h"
 using namespace ZNFramework;
@@ -10,7 +9,7 @@ TEST(Matrix, Equal)
     {
         using M = decltype(m);
         M a, b, c;
-        RendomObjectsWithValuesForEqualTest<M>(a, b, c);
+        RandomObjectsWithValuesForEqualTest<M>(a, b, c);
         EXPECT_EQ(true, a == b);
         EXPECT_EQ(false, a == c);
     };
@@ -25,7 +24,7 @@ TEST(Matrix, NotEqual)
     {
         using M = decltype(m);
         M a, b, c;
-        RendomObjectsWithValuesForEqualTest<M>(a, b, c);
+        RandomObjectsWithValuesForEqualTest<M>(a, b, c);
         EXPECT_EQ(false, a != b);
         EXPECT_EQ(true, a != c);
     };
@@ -39,8 +38,8 @@ TEST(Matrix, Add)
     auto body = [](auto m)
     {
         using M = decltype(m);
-        M a = RendomObjectWithValues<M>();
-        M b = RendomObjectWithValues<M>();
+        M a = RandomObjectWithValues<M>();
+        M b = RandomObjectWithValues<M>();
         M r = SumEachValueOfObject<M>(a, b);
         EXPECT_EQ(r, a + b);
         a += b;
@@ -56,8 +55,8 @@ TEST(Matrix, Sub)
     auto body = [](auto m)
     {
         using M = decltype(m);
-        M a = RendomObjectWithValues<M>();
-        M b = RendomObjectWithValues<M>();
+        M a = RandomObjectWithValues<M>();
+        M b = RandomObjectWithValues<M>();
         M r = SubEachValueOfObject<M>(a, b);
         EXPECT_EQ(r, a - b);
         a -= b;
@@ -73,8 +72,8 @@ TEST(Matrix, ScalarMultiply)
     auto body = [](auto m)
     {
         using M = decltype(m);
-        M a = RendomObjectWithValues<M>();
-        float s = RendomFloat();
+        M a = RandomObjectWithValues<M>();
+        float s = RandomFloat();
         M r = MulEachValueOfObject<M>(a, s);
         EXPECT_EQ(r, a * s);
         a *= s;
@@ -90,8 +89,8 @@ TEST(Matrix, Multiply)
     auto body = [](auto m)
     {
         using M = decltype(m);
-        M m1 = RendomObjectWithValues<M>();
-        M m2 = RendomObjectWithValues<M>();
+        M m1 = RandomObjectWithValues<M>();
+        M m2 = RandomObjectWithValues<M>();
         int dimension = sizeof(m1.m[0]) / sizeof(m1.m[0][0]);
         M r;
         for (int i = 0; i < dimension; ++i)
@@ -120,7 +119,7 @@ TEST(Matrix, Transpose)
     auto body = [](auto m)
     {
         using M = decltype(m);
-        m = RendomObjectWithValues<M>();
+        m = RandomObjectWithValues<M>();
         M r = m;
         int dimension = sizeof(m.m[0]) / sizeof(m.m[0][0]);
         for (int i = 0; i < dimension; ++i)
@@ -143,7 +142,7 @@ TEST(Matrix, Inverse)
     auto body = [](auto m)
     {
         using M = decltype(m);
-        m = RendomObjectWithValues<M>();
+        m = RandomObjectWithValues<M>();
         auto r = m * m.Inverse();
         int size = sizeof(m.value) / sizeof(m.value[0]);
         auto identity = M();
@@ -167,7 +166,7 @@ TEST(Matrix, Determinant)
     {
         // 어떤 행렬의 deteminant는 그 행렬의 전치행렬과 값이 같다.
         using M = decltype(m);
-        m = RendomObjectWithValues<M>();
+        m = RandomObjectWithValues<M>();
         M r = m.Transpose();
         EXPECT_EQ(true, ApproximatelyEqualAbsRel(r.Determinant(), 
                                                  m.Determinant(), 

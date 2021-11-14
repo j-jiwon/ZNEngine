@@ -165,10 +165,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="UnitTest\AffineTransform.cpp" />
-    <ClCompile Include="UnitTest\LinearTransform.cpp" />
-    <ClCompile Include="UnitTest\Matrix.cpp" />
-    <ClCompile Include="UnitTest\Vector.cpp" />
+    <ClCompile Include="UnitTest\Framework\Math\AffineTransform.cpp" />
+    <ClCompile Include="UnitTest\Framework\Math\LinearTransform.cpp" />
+    <ClCompile Include="UnitTest\Framework\Math\Matrix.cpp" />
+    <ClCompile Include="UnitTest\Framework\Math\Vector.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ZN\ZN.vcxproj">
@@ -213,7 +213,7 @@
     <ClInclude Include="Libs\googletest\include\gtest\internal\gtest-port.h" />
     <ClInclude Include="Libs\googletest\include\gtest\internal\gtest-string.h" />
     <ClInclude Include="Libs\googletest\include\gtest\internal\gtest-type-util.h" />
-    <ClInclude Include="UnitTest\Helper.h" />
+    <ClInclude Include="UnitTest\Framework\Math\Helper.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Libs\googletest\LICENSE" />
