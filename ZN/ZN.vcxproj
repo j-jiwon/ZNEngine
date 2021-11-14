@@ -105,6 +105,7 @@
       <ObjectFileName>$(IntDir)%(RelativeDir)</ObjectFileName>
       <AdditionalOptions>/Qpar %(AdditionalOptions)</AdditionalOptions>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -133,6 +134,7 @@
       <ObjectFileName>$(IntDir)%(RelativeDir)</ObjectFileName>
       <AdditionalOptions>/Qpar %(AdditionalOptions)</AdditionalOptions>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -162,6 +164,7 @@
       <AdditionalOptions>/Qpar %(AdditionalOptions)</AdditionalOptions>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -190,6 +193,7 @@
       <ObjectFileName>$(IntDir)%(RelativeDir)</ObjectFileName>
       <AdditionalOptions>/Qpar %(AdditionalOptions)</AdditionalOptions>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -204,9 +208,11 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="d3dx12.h" />
+    <ClInclude Include="ZNFramework\Direct3D12\d3dx12.h" />
     <ClInclude Include="ZN.h" />
     <ClInclude Include="ZNFramework.h" />
+    <ClInclude Include="ZNFramework\Direct3D12\stdafx.h" />
+    <ClInclude Include="ZNInclude.h" />
     <ClInclude Include="ZNFramework\Math\ZNAffineTransform2.h" />
     <ClInclude Include="ZNFramework\Math\ZNAffineTransform3.h" />
     <ClInclude Include="ZNFramework\Math\ZNLinearTransform2.h" />
@@ -217,6 +223,7 @@
     <ClInclude Include="ZNFramework\Math\ZNVector2.h" />
     <ClInclude Include="ZNFramework\Math\ZNVector3.h" />
     <ClInclude Include="ZNFramework\Math\ZNVector4.h" />
+    <ClInclude Include="ZNFramework\ZNApplication.h" />
     <ClInclude Include="ZNFramework\ZNWindow.h" />
   </ItemGroup>
   <ItemGroup>
@@ -230,6 +237,7 @@
     <ClCompile Include="ZNFramework\Math\ZNVector2.cpp" />
     <ClCompile Include="ZNFramework\Math\ZNVector3.cpp" />
     <ClCompile Include="ZNFramework\Math\ZNVector4.cpp" />
+    <ClCompile Include="ZNFramework\ZNApplication.cpp" />
     <ClCompile Include="ZNFramework\ZNWindow.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

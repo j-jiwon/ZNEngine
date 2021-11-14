@@ -27,7 +27,7 @@
     <ClInclude Include="ZNFramework.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="d3dx12.h">
+    <ClInclude Include="ZNFramework\Direct3D12\d3dx12.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ZN.h">
@@ -66,6 +66,15 @@
     <ClInclude Include="ZNFramework\ZNWindow.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ZNFramework\ZNApplication.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ZNInclude.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ZNFramework\Direct3D12\stdafx.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ZNFramework\Math\ZNMatrix2.cpp">
@@ -99,6 +108,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ZNFramework\ZNWindow.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ZNFramework\ZNApplication.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

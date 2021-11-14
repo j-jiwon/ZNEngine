@@ -3,12 +3,14 @@
 
 using namespace ZNFramework;
 
-TEST(Window, Create)
+TEST(Application, Create)
 {
 	try
 	{
 		auto window = new ZNWindow();
+		auto app = new ZNApplication();
 		window->Create();
+		app->Run();
 
 		EXPECT_EQ(true, true);
 	}

@@ -169,7 +169,7 @@
     <ClCompile Include="UnitTest\Framework\Math\LinearTransform.cpp" />
     <ClCompile Include="UnitTest\Framework\Math\Matrix.cpp" />
     <ClCompile Include="UnitTest\Framework\Math\Vector.cpp" />
-    <ClCompile Include="UnitTest\Framework\Window.cpp" />
+    <ClCompile Include="UnitTest\Framework\App.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ZN\ZN.vcxproj">

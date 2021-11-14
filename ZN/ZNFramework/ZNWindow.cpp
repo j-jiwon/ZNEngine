@@ -4,11 +4,14 @@
 
 #include <exception>
 #include "ZNWindow.h"
+#include "../ZNInclude.h"
 
 using namespace ZNFramework;
 
 ZNWindow::ZNWindow()
 	:hwnd(nullptr)
+    ,width(0)
+    ,height(0)
 {
 }
 
@@ -18,21 +21,18 @@ ZNWindow::~ZNWindow()
 
 void ZNWindow::Create()
 {
-    // window class setting
-    MSG msg;
-    const wchar_t CLASS_NAME[] = L"Sample Window Class";
-
+    // Register the window class
     WNDCLASS wc = { 0 };
-
     wc.lpfnWndProc = WindowProc;
     wc.hInstance = ::GetModuleHandle(NULL);
     wc.lpszClassName = CLASS_NAME;
     RegisterClass(&wc);
 
+    // Create window
     hwnd = CreateWindowEx(
         0,                              // Optional window styles.
         CLASS_NAME,                     // Window class
-        L"Learn to Program Windows",    // Window text
+        L"This is ZNEngine Window",    // Window text
         WS_OVERLAPPEDWINDOW,            // Window style
 
         // Size and position
@@ -50,14 +50,28 @@ void ZNWindow::Create()
     }
 
     ShowWindow(hwnd, 1);
-    while (GetMessage(&msg, (HWND)NULL, 0, 0))
+}
+
+void ZNWindow::Destroy()
+{
+    if (hwnd)
     {
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
+        ::PostMessage(hwnd, WM_CLOSE, 0, 0);
+        hwnd = nullptr;
     }
 }
 
-LRESULT ZNFramework::ZNWindow::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+void ZNWindow::AddEventHandler(EventHandler handler, ResizeEventCallback callback)
+{
+    handlers.emplace(handler, callback);
+}
+
+void ZNWindow::RemoveEventHandler(EventHandler handler)
+{
+    handlers.erase(handler);
+}
+
+LRESULT ZNWindow::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     ZNWindow* window = (ZNWindow*)::GetWindowLongPtr(hwnd, GWLP_USERDATA);
     if (window)
@@ -73,11 +87,22 @@ LRESULT ZNFramework::ZNWindow::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, L
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hwnd, &ps);
 
-
-
             FillRect(hdc, &ps.rcPaint, (HBRUSH)(COLOR_WINDOW + 1));
-
             EndPaint(hwnd, &ps);
+        }
+        case WM_SIZE:
+        {
+            int width = LOWORD(lParam);
+            int height = HIWORD(lParam);
+
+            if (width != window->width || height != window->height)
+            {
+                // broadcast.
+                for (const auto& [key, value] : window->handlers)
+                {
+                    value(window->width, window->height);
+                }
+            }
         }
         return 0;
         }

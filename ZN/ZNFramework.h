@@ -13,4 +13,5 @@
 #include "ZNFramework/Math/ZNAffineTransform2.h"
 #include "ZNFramework/Math/ZNAffineTransform3.h"
 
+#include "ZNFramework/ZNApplication.h"
 #include "ZNFramework/ZNWindow.h"
