@@ -1,3 +1,4 @@
+/*
 #include "gtest/gtest.h"
 #include "ZNFramework.h"
 
@@ -8,9 +9,9 @@ TEST(Application, Create)
 	try
 	{
 		auto window = new ZNWindow();
-		auto app = new ZNApplication();
+		//auto app = new ZNApplication();
 		window->Create();
-		app->Run();
+		//app->Run();
 
 		EXPECT_EQ(true, true);
 	}
@@ -19,3 +20,4 @@ TEST(Application, Create)
 		EXPECT_EQ(true, false);
 	}
 }
+*/

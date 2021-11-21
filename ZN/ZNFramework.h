@@ -15,3 +15,6 @@
 
 #include "ZNFramework/ZNApplication.h"
 #include "ZNFramework/ZNWindow.h"
+#include "ZNFramework/ZNTimer.h"
+
+#include "ZNFramework/Direct3D12/ZNUtils.h"

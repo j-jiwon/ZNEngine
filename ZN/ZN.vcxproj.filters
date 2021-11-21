@@ -72,7 +72,10 @@
     <ClInclude Include="ZNInclude.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ZNFramework\Direct3D12\stdafx.h">
+    <ClInclude Include="ZNFramework\Direct3D12\ZNUtils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ZNFramework\ZNTimer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -111,6 +114,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ZNFramework\ZNApplication.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ZNFramework\ZNTimer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

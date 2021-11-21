@@ -137,7 +137,7 @@
       <ObjectFileName>$(IntDir)%(RelativeDir)</ObjectFileName>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
+      <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)Build\$(Platform)_$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>./Libs/googletest/bin/$(PlatformTarget)-$(Configuration)/gmock_maind.lib;./Libs/googletest/bin/$(PlatformTarget)-$(Configuration)/gmockd.lib;./Libs/googletest/bin/$(PlatformTarget)-$(Configuration)/gtest_maind.lib;./Libs/googletest/bin/$(PlatformTarget)-$(Configuration)/gtestd.lib;%(AdditionalDependencies)</AdditionalDependencies>
