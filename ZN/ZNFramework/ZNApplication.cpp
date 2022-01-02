@@ -15,7 +15,6 @@ void ZNApplication::Run()
 }
 */
 
-
 #include "ZNApplication.h"
 #include <windows.h>
 
@@ -95,7 +94,7 @@ int ZNApplication::Run()
 		if (PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
 		{
 			TranslateMessage(&msg);
-			DispatchMessage(&msg);
+			DispatchMessageW(&msg);
 		}
 		// Otherwise, do animation/game stuff.
 		else
@@ -357,12 +356,16 @@ LRESULT ZNApplication::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
 		return 0;
 	}
 
-	return DefWindowProc(hwnd, msg, wParam, lParam);
+	return DefWindowProcW(hwnd, msg, wParam, lParam);
 }
 
 bool ZNApplication::InitMainWindow()
 {
-	WNDCLASSW wc;
+//	if (mhMainWnd)
+//		return false;
+
+	WNDCLASSEXW wc = { 0 };
+	wc.cbSize = sizeof(WNDCLASSEXW);
 	wc.style = CS_HREDRAW | CS_VREDRAW;
 	wc.lpfnWndProc = MainWndProc;
 	wc.cbClsExtra = 0;
@@ -371,23 +374,25 @@ bool ZNApplication::InitMainWindow()
 	wc.hIcon = LoadIcon(0, IDI_APPLICATION);
 	wc.hCursor = LoadCursor(0, IDC_ARROW);
 	wc.hbrBackground = (HBRUSH)GetStockObject(NULL_BRUSH);
-	wc.lpszMenuName = 0;
+	wc.lpszMenuName = L"asdfadsf";
 	wc.lpszClassName = L"MainWnd";
 
-	if (!RegisterClassW(&wc))
+	if (!RegisterClassExW(&wc))
 	{
 		MessageBoxW(0, L"RegisterClass Failed.", 0, 0);
 		return false;
 	}
 
 	// Compute window rectangle dimensions based on requested client area dimensions.
+    
 	RECT R = { 0, 0, mClientWidth, mClientHeight };
 	AdjustWindowRect(&R, WS_OVERLAPPEDWINDOW, false);
 	int width = R.right - R.left;
 	int height = R.bottom - R.top;
-
-	mhMainWnd = CreateWindowW(L"MainWnd", mMainWndCaption.c_str(),
+	
+	mhMainWnd = CreateWindowExW(0, L"MainWnd", CLASS_NAME,
 		WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, width, height, 0, 0, mhAppInst, 0);
+
 	if (!mhMainWnd)
 	{
 		MessageBoxW(0, L"CreateWindow Failed.", 0, 0);
@@ -581,11 +586,12 @@ void ZNApplication::CalculateFrameStats()
 		wstring fpsStr = to_wstring(fps);
 		wstring mspfStr = to_wstring(mspf);
 
-		wstring windowText = mMainWndCaption +
+		wstring windowText = CLASS_NAME;
+		windowText += 
 			L"    fps: " + fpsStr +
 			L"   mspf: " + mspfStr;
 
-		SetWindowTextW(mhMainWnd, windowText.c_str());
+		::SetWindowTextW(mhMainWnd, windowText.c_str());
 
 		// Reset for next average.
 		frameCnt = 0;

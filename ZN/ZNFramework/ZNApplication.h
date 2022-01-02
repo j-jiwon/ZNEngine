@@ -14,6 +14,7 @@ namespace ZNFramework
 
 #include "./Direct3D12/ZNUtils.h"
 #include "ZNTimer.h"
+#include "../ZNInclude.h"
 
 namespace ZNFramework
 {
