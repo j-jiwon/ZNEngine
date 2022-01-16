@@ -20,3 +20,4 @@
 #include "ZNFramework/ZNTimer.h"
 
 #include "ZNFramework/Direct3D12/ZNUtils.h"
+ #include "ZNFramework/ZNGeometry.h" 

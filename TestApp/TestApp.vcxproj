@@ -99,12 +99,24 @@
       <AdditionalIncludeDirectories>./Libs/googletest/include/;$(SolutionDir)\ZN;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <ObjectFileName>$(IntDir)%(RelativeDir)</ObjectFileName>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>./Libs/googletest/bin/$(PlatformTarget)-$(Configuration)/gmock_maind.lib;./Libs/googletest/bin/$(PlatformTarget)-$(Configuration)/gmockd.lib;./Libs/googletest/bin/$(PlatformTarget)-$(Configuration)/gtest_maind.lib;./Libs/googletest/bin/$(PlatformTarget)-$(Configuration)/gtestd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <FxCompile />
+    <FxCompile />
+    <FxCompile>
+      <EntryPointName>PS</EntryPointName>
+    </FxCompile>
+    <FxCompile>
+      <ShaderType>Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile>
+      <ShaderModel>5.0</ShaderModel>
+      <ObjectFileOutput>$(SolutionDir)Shaders\%$(Filename).cso</ObjectFileOutput>
+    </FxCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -117,14 +129,26 @@
       <AdditionalIncludeDirectories>./Libs/googletest/include/;$(SolutionDir)\ZN;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <ObjectFileName>$(IntDir)%(RelativeDir)</ObjectFileName>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>./Libs/googletest/bin/$(PlatformTarget)-$(Configuration)/gmock_maind.lib;./Libs/googletest/bin/$(PlatformTarget)-$(Configuration)/gmockd.lib;./Libs/googletest/bin/$(PlatformTarget)-$(Configuration)/gtest_maind.lib;./Libs/googletest/bin/$(PlatformTarget)-$(Configuration)/gtestd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <FxCompile />
+    <FxCompile />
+    <FxCompile>
+      <EntryPointName>PS</EntryPointName>
+    </FxCompile>
+    <FxCompile>
+      <ShaderType>Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile>
+      <ShaderModel>5.0</ShaderModel>
+      <ObjectFileOutput>$(SolutionDir)Shaders\%$(Filename).cso</ObjectFileOutput>
+    </FxCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -135,13 +159,25 @@
       <AdditionalIncludeDirectories>./Libs/googletest/include/;$(SolutionDir)ZN;$(ProjectDir)Libs\googletest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <ObjectFileName>$(IntDir)%(RelativeDir)</ObjectFileName>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
-      <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)Build\$(Platform)_$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>./Libs/googletest/bin/$(PlatformTarget)-$(Configuration)/gmock_maind.lib;./Libs/googletest/bin/$(PlatformTarget)-$(Configuration)/gmockd.lib;./Libs/googletest/bin/$(PlatformTarget)-$(Configuration)/gtest_maind.lib;./Libs/googletest/bin/$(PlatformTarget)-$(Configuration)/gtestd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <FxCompile />
+    <FxCompile />
+    <FxCompile>
+      <EntryPointName>PS</EntryPointName>
+    </FxCompile>
+    <FxCompile>
+      <ShaderType>Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile>
+      <ShaderModel>5.0</ShaderModel>
+      <ObjectFileOutput>$(SolutionDir)Shaders\%$(Filename).cso</ObjectFileOutput>
+    </FxCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -154,14 +190,26 @@
       <AdditionalIncludeDirectories>./Libs/googletest/include/;$(SolutionDir)\ZN;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <ObjectFileName>$(IntDir)%(RelativeDir)</ObjectFileName>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>./Libs/googletest/bin/$(PlatformTarget)-$(Configuration)/gmock_maind.lib;./Libs/googletest/bin/$(PlatformTarget)-$(Configuration)/gmockd.lib;./Libs/googletest/bin/$(PlatformTarget)-$(Configuration)/gtest_maind.lib;./Libs/googletest/bin/$(PlatformTarget)-$(Configuration)/gtestd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <FxCompile />
+    <FxCompile />
+    <FxCompile>
+      <EntryPointName>PS</EntryPointName>
+    </FxCompile>
+    <FxCompile>
+      <ShaderType>Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile>
+      <ShaderModel>5.0</ShaderModel>
+      <ObjectFileOutput>$(SolutionDir)Shaders\%$(Filename).cso</ObjectFileOutput>
+    </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
@@ -218,6 +266,31 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Libs\googletest\LICENSE" />
+    <None Include="Shaders\color_ps.cso" />
+    <None Include="Shaders\color_vs.cso" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Shaders\color.hlsl">
+      <FileType>Document</FileType>
+      <EnableDebuggingInformation Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</EnableDebuggingInformation>
+      <EnableDebuggingInformation Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</EnableDebuggingInformation>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+      </ObjectFileOutput>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+      </ObjectFileOutput>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ObjectFileOutput>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </ObjectFileOutput>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">PS</EntryPointName>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">PS</EntryPointName>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">PS</EntryPointName>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">PS</EntryPointName>
+    </FxCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

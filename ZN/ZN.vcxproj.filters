@@ -81,6 +81,15 @@
     <ClInclude Include="ZNFramework\ZNColor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ZNFramework\ZNCamera.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ZNFramework\UploadBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ZNFramework\ZNGeometry.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ZNFramework\Math\ZNMatrix2.cpp">
@@ -125,5 +134,12 @@
     <ClCompile Include="ZNFramework\ZNColor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ZNFramework\ZNCamera.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ZNFramework\Direct3D12\ZNUtils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
   </ItemGroup>
 </Project>

@@ -1,5 +1,6 @@
 #include "ZNApplication.h"
 #include <windows.h>
+#include <windowsx.h>
 
 using Microsoft::WRL::ComPtr;
 using namespace std;
@@ -159,7 +160,6 @@ void ZNApplication::OnResize()
 	currBackBuffer = 0;
 
 	// Create RTV(Render Target View)
-	// back buffer를 output merge 단계에 묶기 위해, back buffer에 대한 rtv 생성해야함
 	// swap chain의 버퍼에 대해서 rtv 생성
 	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHeapHandle(rtvHeap->GetCPUDescriptorHandleForHeapStart());
 	for (UINT i = 0; i < SwapChainBufferCount; i++)
@@ -289,15 +289,14 @@ LRESULT ZNApplication::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
 		}
 		return 0;
 
-		// WM_EXITSIZEMOVE is sent when the user grabs the resize bars.
+		// resize bar 잡고 있을 때 
 	case WM_ENTERSIZEMOVE:
 		isPaused = true;
 		isResizing = true;
 		timer.Stop();
 		return 0;
 
-		// WM_EXITSIZEMOVE is sent when the user releases the resize bars.
-		// Here we reset everything based on the new window dimensions.
+		// resize 끝났을때
 	case WM_EXITSIZEMOVE:
 		isPaused = false;
 		isResizing = false;
@@ -309,9 +308,31 @@ LRESULT ZNApplication::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
 		PostQuitMessage(0);
 		return 0;
 
-		// The WM_MENUCHAR message is sent when a menu is active and the user presses 
-		// a key that does not correspond to any mnemonic or accelerator key. 
+	case WM_GETMINMAXINFO:
+		((MINMAXINFO*)lParam)->ptMinTrackSize.x = 200;
+		((MINMAXINFO*)lParam)->ptMinTrackSize.y = 200;
+		return 0;
 
+	case WM_LBUTTONDOWN:
+	case WM_MBUTTONDOWN:
+	case WM_RBUTTONDOWN:
+		OnMouseDown(wParam, LOWORD(lParam), HIWORD(lParam));
+		return 0;
+	case WM_LBUTTONUP:
+	case WM_MBUTTONUP:
+	case WM_RBUTTONUP:
+		OnMouseUp(wParam, LOWORD(lParam), HIWORD(lParam));
+		return 0;
+	case WM_MOUSEMOVE:
+		OnMouseMove(wParam, LOWORD(lParam), HIWORD(lParam));
+		return 0;
+	case WM_KEYUP:
+		if (wParam == VK_ESCAPE)
+		{
+			PostQuitMessage(0);
+		}
+		else if ((int)wParam == VK_F2)
+			Set4xMsaaState(!_4xMsaaState);
 
 		return 0;
 	}
@@ -469,23 +490,16 @@ void ZNApplication::CreateSwapChain()
 
 void ZNApplication::FlushCommandQueue()
 {
-	// Advance the fence value to mark commands up to this fence point.
 	currentFence++;
 
-	// Add an instruction to the command queue to set a new fence point.  Because we 
-	// are on the GPU timeline, the new fence point won't be set until the GPU finishes
-	// processing all the commands prior to this Signal().
 	ThrowIfFailed(commandQueue->Signal(fence.Get(), currentFence));
 
-	// Wait until the GPU has completed commands up to this fence point.
 	if (fence->GetCompletedValue() < currentFence)
 	{
 		HANDLE eventHandle = CreateEventExW(nullptr, 0, 0, EVENT_ALL_ACCESS);
 
-		// Fire event when GPU hits current fence.  
 		ThrowIfFailed(fence->SetEventOnCompletion(currentFence, eventHandle));
 
-		// Wait until the GPU hits current fence event is fired.
 		WaitForSingleObject(eventHandle, INFINITE);
 		CloseHandle(eventHandle);
 	}

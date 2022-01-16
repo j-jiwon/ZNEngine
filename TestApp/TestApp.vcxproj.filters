@@ -152,5 +152,10 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Libs\googletest\LICENSE" />
+    <None Include="Shaders\color_vs.cso" />
+    <None Include="Shaders\color_ps.cso" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Shaders\color.hlsl" />
   </ItemGroup>
 </Project>

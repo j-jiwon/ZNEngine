@@ -211,7 +211,10 @@
     <ClInclude Include="ZNFramework\Direct3D12\d3dx12.h" />
     <ClInclude Include="ZN.h" />
     <ClInclude Include="ZNFramework.h" />
+    <ClInclude Include="ZNFramework\UploadBuffer.h" />
+    <ClInclude Include="ZNFramework\ZNCamera.h" />
     <ClInclude Include="ZNFramework\ZNColor.h" />
+    <ClInclude Include="ZNFramework\ZNGeometry.h" />
     <ClInclude Include="ZNFramework\ZNTimer.h" />
     <ClInclude Include="ZNFramework\Direct3D12\ZNUtils.h" />
     <ClInclude Include="ZNInclude.h" />
@@ -229,6 +232,8 @@
     <ClInclude Include="ZNFramework\ZNWindow.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="ZNFramework\Direct3D12\ZNUtils.cpp" />
+    <ClCompile Include="ZNFramework\ZNCamera.cpp" />
     <ClCompile Include="ZNFramework\ZNColor.cpp" />
     <ClCompile Include="ZNFramework\ZNTimer.cpp" />
     <ClCompile Include="ZNFramework\Math\ZNAffineTransform2.cpp" />

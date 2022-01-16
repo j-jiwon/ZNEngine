@@ -49,6 +49,11 @@ namespace ZNFramework
         virtual void Update(const ZNTimer& gt) = 0;
         virtual void Draw(const ZNTimer& gt) = 0;
 
+        // 마우스 입력 추가
+        virtual void OnMouseDown(WPARAM btnState, int x, int y) { }
+        virtual void OnMouseUp(WPARAM btnState, int x, int y) { }
+        virtual void OnMouseMove(WPARAM btnState, int x, int y) { }
+
     protected:
 
         bool InitMainWindow();
@@ -72,10 +77,10 @@ namespace ZNFramework
 
         static ZNApplication* mainApp;
 
-        HINSTANCE hInstance = nullptr; // application instance handle
-        HWND      hwnd = nullptr; // main window handle
+        HINSTANCE hInstance = nullptr;  // application instance handle
+        HWND      hwnd = nullptr;       // main window handle
 
-        bool      isPaused = false;  // is the application paused?
+        bool      isPaused = false;     // is the application paused?
         bool      isMinimized = false;  // is the application minimized?
         bool      isMaximized = false;  // is the application maximized?
         bool      isResizing = false;   // are the resize bars being dragged?
