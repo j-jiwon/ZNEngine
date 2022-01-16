@@ -70,54 +70,54 @@ namespace ZNFramework
 
     protected:
 
-        static ZNApplication* mApp;
+        static ZNApplication* mainApp;
 
-        HINSTANCE mhAppInst = nullptr; // application instance handle
-        HWND      mhMainWnd = nullptr; // main window handle
-        bool      mAppPaused = false;  // is the application paused?
-        bool      mMinimized = false;  // is the application minimized?
-        bool      mMaximized = false;  // is the application maximized?
-        bool      mResizing = false;   // are the resize bars being dragged?
-        bool      mFullscreenState = false;// fullscreen enabled
+        HINSTANCE hInstance = nullptr; // application instance handle
+        HWND      hwnd = nullptr; // main window handle
+
+        bool      isPaused = false;  // is the application paused?
+        bool      isMinimized = false;  // is the application minimized?
+        bool      isMaximized = false;  // is the application maximized?
+        bool      isResizing = false;   // are the resize bars being dragged?
+        bool      fullscreenState = false;// fullscreen enabled
 
         // Set true to use 4X MSAA (?.1.8).  The default is false.
-        bool      m4xMsaaState = false;    // 4X MSAA enabled
-        UINT      m4xMsaaQuality = 0;      // quality level of 4X MSAA
+        bool      _4xMsaaState = false;    // 4X MSAA enabled
+        UINT      _4xMsaaQuality = 0;      // quality level of 4X MSAA
 
-        ZNTimer mTimer;
+        ZNTimer timer;
 
-        Microsoft::WRL::ComPtr<IDXGIFactory4> mdxgiFactory;
-        Microsoft::WRL::ComPtr<IDXGISwapChain> mSwapChain;
-        Microsoft::WRL::ComPtr<ID3D12Device> md3dDevice;
+        Microsoft::WRL::ComPtr<IDXGIFactory4> factory;
+        Microsoft::WRL::ComPtr<IDXGISwapChain> swapChain;
+        Microsoft::WRL::ComPtr<ID3D12Device> graphicDevice;
 
-        Microsoft::WRL::ComPtr<ID3D12Fence> mFence;
-        UINT64 mCurrentFence = 0;
+        Microsoft::WRL::ComPtr<ID3D12Fence> fence;
+        UINT64 currentFence = 0;
 
-        Microsoft::WRL::ComPtr<ID3D12CommandQueue> mCommandQueue;
-        Microsoft::WRL::ComPtr<ID3D12CommandAllocator> mDirectCmdListAlloc;
-        Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> mCommandList;
+        Microsoft::WRL::ComPtr<ID3D12CommandQueue> commandQueue;
+        Microsoft::WRL::ComPtr<ID3D12CommandAllocator> commandAllocator;
+        Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> commandList;
 
-        static const int SwapChainBufferCount = 2;
-        int mCurrBackBuffer = 0;
-        Microsoft::WRL::ComPtr<ID3D12Resource> mSwapChainBuffer[SwapChainBufferCount];
-        Microsoft::WRL::ComPtr<ID3D12Resource> mDepthStencilBuffer;
+        static const int SwapChainBufferCount = 2; // double buffering
+        int currBackBuffer = 0;
+        Microsoft::WRL::ComPtr<ID3D12Resource> swapChainBuffer[SwapChainBufferCount];
+        Microsoft::WRL::ComPtr<ID3D12Resource> depthStencilBuffer;
 
-        Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mRtvHeap;
-        Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mDsvHeap;
+        Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> rtvHeap;
+        Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> dsvHeap;
 
-        D3D12_VIEWPORT mScreenViewport;
-        D3D12_RECT mScissorRect;
+        D3D12_VIEWPORT viewport;
+        D3D12_RECT scissorRect;
 
-        UINT mRtvDescriptorSize = 0;
-        UINT mDsvDescriptorSize = 0;
-        UINT mCbvSrvUavDescriptorSize = 0;
+        UINT rtvDescriptorSize = 0;
+        UINT dsvDescriptorSize = 0;
+        UINT cbvSrvUavDescriptorSize = 0;
 
         // Derived class should set these in derived constructor to customize starting values.
-        std::wstring mMainWndCaption = L"d3d App";
-        D3D_DRIVER_TYPE md3dDriverType = D3D_DRIVER_TYPE_HARDWARE;
-        DXGI_FORMAT mBackBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
-        DXGI_FORMAT mDepthStencilFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
-        int mClientWidth = 800;
-        int mClientHeight = 600;
+        D3D_DRIVER_TYPE d3dDriverType = D3D_DRIVER_TYPE_HARDWARE;
+        DXGI_FORMAT backBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+        DXGI_FORMAT depthStencilFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+        int width = 800;
+        int height = 600;
     };
 }
