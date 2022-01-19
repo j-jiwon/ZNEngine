@@ -11,11 +11,6 @@
 #include <DirectXCollision.h>
 #include <unordered_map>
 
-#pragma comment(lib, "d3dcompiler.lib")
-//#pragma comment(lib, "d3d12.lib")
-//#pragma comment(lib, "dxgi.lib")
-//#pragma comment(lib, "dxguid.lib")
-
 inline void ThrowIfFailed(HRESULT hr)
 {
     if (FAILED(hr))
@@ -107,10 +102,6 @@ namespace ZNUtils {
 		Microsoft::WRL::ComPtr<ID3D12Resource> uploadBuffer{};
 		BYTE* mappedData{ nullptr };
 	};
-
-	//static bool IsKeyDown(int vkeyCode);
-
-	//static Microsoft::WRL::ComPtr<ID3DBlob> LoadBinary(const std::wstring& filename);
 
 	Microsoft::WRL::ComPtr<ID3DBlob> CompileShader(
 		const std::wstring& filename,

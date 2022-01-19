@@ -1,145 +1,44 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Source Files">
-      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
-    </Filter>
-    <Filter Include="Header Files">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
-    </Filter>
-    <Filter Include="Resource Files">
-      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
-      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
-    </Filter>
-    <Filter Include="ZNFramework">
-      <UniqueIdentifier>{8e7cfb1e-45d4-460b-ad43-7d36a199dedf}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ZNFramework\Private">
-      <UniqueIdentifier>{5f800c62-b4d6-4748-9f72-abfe1bd6dd38}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ZNFramework\Public">
-      <UniqueIdentifier>{3460e644-ec2a-499d-b9aa-329a6814bf02}</UniqueIdentifier>
-    </Filter>
+    <ClCompile Include="ZNFramework\Direct3D12\ZNUtils.cpp" />
+    <ClCompile Include="ZNFramework\ZNCamera.cpp" />
+    <ClCompile Include="ZNFramework\ZNColor.cpp" />
+    <ClCompile Include="ZNFramework\ZNTimer.cpp" />
+    <ClCompile Include="ZNFramework\Math\ZNAffineTransform2.cpp" />
+    <ClCompile Include="ZNFramework\Math\ZNAffineTransform3.cpp" />
+    <ClCompile Include="ZNFramework\Math\ZNLinearTransform2.cpp" />
+    <ClCompile Include="ZNFramework\Math\ZNLinearTransform3.cpp" />
+    <ClCompile Include="ZNFramework\Math\ZNMatrix2.cpp" />
+    <ClCompile Include="ZNFramework\Math\ZNMatrix3.cpp" />
+    <ClCompile Include="ZNFramework\Math\ZNMatrix4.cpp" />
+    <ClCompile Include="ZNFramework\Math\ZNVector2.cpp" />
+    <ClCompile Include="ZNFramework\Math\ZNVector3.cpp" />
+    <ClCompile Include="ZNFramework\Math\ZNVector4.cpp" />
+    <ClCompile Include="ZNFramework\ZNApplication.cpp" />
+    <ClCompile Include="ZNFramework\ZNWindow.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ZNFramework.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ZNFramework\Direct3D12\d3dx12.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ZN.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ZNFramework\Math\ZNMatrix2.h">
-      <Filter>ZNFramework\Public</Filter>
-    </ClInclude>
-    <ClInclude Include="ZNFramework\Math\ZNVector2.h">
-      <Filter>ZNFramework\Public</Filter>
-    </ClInclude>
-    <ClInclude Include="ZNFramework\Math\ZNAffineTransform2.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ZNFramework\Math\ZNAffineTransform3.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ZNFramework\Math\ZNLinearTransform2.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ZNFramework\Math\ZNLinearTransform3.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ZNFramework\Math\ZNMatrix3.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ZNFramework\Math\ZNMatrix4.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ZNFramework\Math\ZNVector3.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ZNFramework\Math\ZNVector4.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ZNFramework\ZNWindow.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ZNFramework\ZNApplication.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ZNInclude.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ZNFramework\Direct3D12\ZNUtils.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ZNFramework\ZNTimer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ZNFramework\ZNColor.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ZNFramework\ZNCamera.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ZNFramework\UploadBuffer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ZNFramework\ZNGeometry.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="ZNFramework\Math\ZNMatrix2.cpp">
-      <Filter>ZNFramework\Private</Filter>
-    </ClCompile>
-    <ClCompile Include="ZNFramework\Math\ZNVector2.cpp">
-      <Filter>ZNFramework\Private</Filter>
-    </ClCompile>
-    <ClCompile Include="ZNFramework\Math\ZNAffineTransform2.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="ZNFramework\Math\ZNAffineTransform3.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="ZNFramework\Math\ZNLinearTransform2.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="ZNFramework\Math\ZNLinearTransform3.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="ZNFramework\Math\ZNMatrix3.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="ZNFramework\Math\ZNMatrix4.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="ZNFramework\Math\ZNVector3.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="ZNFramework\Math\ZNVector4.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="ZNFramework\ZNWindow.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="ZNFramework\ZNApplication.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="ZNFramework\ZNTimer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="ZNFramework\ZNColor.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="ZNFramework\ZNCamera.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="ZNFramework\Direct3D12\ZNUtils.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-  </ItemGroup>
+    <ClInclude Include="ZNFramework\Direct3D12\d3dx12.h" />
+    <ClInclude Include="ZN.h" />
+    <ClInclude Include="ZNFramework.h" />
+    <ClInclude Include="ZNFramework\ZNCamera.h" />
+    <ClInclude Include="ZNFramework\ZNColor.h" />
+    <ClInclude Include="ZNFramework\ZNGeometry.h" />
+    <ClInclude Include="ZNFramework\ZNTimer.h" />
+    <ClInclude Include="ZNFramework\Direct3D12\ZNUtils.h" />
+    <ClInclude Include="ZNInclude.h" />
+    <ClInclude Include="ZNFramework\Math\ZNAffineTransform2.h" />
+    <ClInclude Include="ZNFramework\Math\ZNAffineTransform3.h" />
+    <ClInclude Include="ZNFramework\Math\ZNLinearTransform2.h" />
+    <ClInclude Include="ZNFramework\Math\ZNLinearTransform3.h" />
+    <ClInclude Include="ZNFramework\Math\ZNMatrix2.h" />
+    <ClInclude Include="ZNFramework\Math\ZNMatrix3.h" />
+    <ClInclude Include="ZNFramework\Math\ZNMatrix4.h" />
+    <ClInclude Include="ZNFramework\Math\ZNVector2.h" />
+    <ClInclude Include="ZNFramework\Math\ZNVector3.h" />
+    <ClInclude Include="ZNFramework\Math\ZNVector4.h" />
+    <ClInclude Include="ZNFramework\ZNApplication.h" />
+    <ClInclude Include="ZNFramework\ZNWindow.h" />
   </ItemGroup>
 </Project>
