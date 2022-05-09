@@ -1,17 +1,17 @@
 #pragma once
-
-
 using namespace DirectX;
 
 struct Vertex
 {
-	XMFLOAT3 Pos;
-	XMFLOAT4 Color;
+	ZNVector3 Pos;
+	ZNVector4 Color;
+	//Vertex(ZNVector3 pos, ZNVector4 color) :Pos(pos), Color(color) {} 
+	//Vertex(ZNVector3 pos, ZNVector4 color) :Pos(pos), Color(color) {};
 };
 
 struct ObjectConstants
 {
-	XMFLOAT4X4 WorldViewProj{ VectorMath::Identity4X4() };
+	ZNMatrix4 WorldViewProj;  // identity
 };
 
 struct SubmeshGeometry

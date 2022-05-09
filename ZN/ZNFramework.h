@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ZNFramework/Math/ZNPoint.h"
 #include "ZNFramework/Math/ZNVector2.h"
 #include "ZNFramework/Math/ZNVector3.h"
 #include "ZNFramework/Math/ZNVector4.h"
@@ -14,6 +15,7 @@
 #include "ZNFramework/Math/ZNAffineTransform3.h"
 
 #include "ZNFramework/ZNColor.h"
+#include "ZNFramework/ZNCamera.h"
 
 #include "ZNFramework/ZNApplication.h"
 #include "ZNFramework/ZNWindow.h"

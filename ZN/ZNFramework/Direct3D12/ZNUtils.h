@@ -24,17 +24,17 @@ inline void ThrowIfFailed(HRESULT hr)
 #define ReleaseCom(x) { if(x){ x->Release(); x = 0; } }
 #endif
 
-namespace VectorMath {
-	constexpr DirectX::XMFLOAT4X4 Identity4X4() {
-		DirectX::XMFLOAT4X4 i{
-			1.0f, 0.0f, 0.0f, 0.0f,
-			0.0f, 1.0f, 0.0f, 0.0f,
-			0.0f, 0.0f, 1.0f, 0.0f,
-			0.0f, 0.0f, 0.0f, 1.0f };
-
-		return i;
-	}
-} 
+//namespace VectorMath {
+//	constexpr DirectX::XMFLOAT4X4 Identity4X4() {
+//		DirectX::XMFLOAT4X4 i{
+//			1.0f, 0.0f, 0.0f, 0.0f,
+//			0.0f, 1.0f, 0.0f, 0.0f,
+//			0.0f, 0.0f, 1.0f, 0.0f,
+//			0.0f, 0.0f, 0.0f, 1.0f };
+//
+//		return i;
+//	}
+//} 
 
 namespace ZNUtils {
     constexpr UINT CalcConstantBufferByteSize(UINT byteSize)

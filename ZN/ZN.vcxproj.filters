@@ -40,5 +40,6 @@
     <ClInclude Include="ZNFramework\Math\ZNVector4.h" />
     <ClInclude Include="ZNFramework\ZNApplication.h" />
     <ClInclude Include="ZNFramework\ZNWindow.h" />
+    <ClInclude Include="ZNFramework\Math\ZNPoint.h" />
   </ItemGroup>
 </Project>

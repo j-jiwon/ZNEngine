@@ -11,6 +11,7 @@ using namespace DirectX;
 using namespace ZNFramework;
 
 # define PI 3.1415926535f;
+# define PIDiv4 0.785398163f;
 # define clamp(x, low, high) ( x < low ? low : (x > high ? high : x))
 
 class TestApp : public ZNApplication
@@ -53,15 +54,16 @@ private:
 
     ComPtr<ID3D12PipelineState> PSO = nullptr;
 
-    XMFLOAT4X4 worldMatrix = VectorMath::Identity4X4();
-    XMFLOAT4X4 viewMatrix = VectorMath::Identity4X4();
-    XMFLOAT4X4 projectMatrix = VectorMath::Identity4X4();
+    ZNCamera camera;
+    ZNMatrix4 worldMatrix;
+    ZNMatrix4 viewMatrix;
+    ZNMatrix4 projectMatrix;
 
-    float theta = 1.5f * XM_PI;
-    float piDiv4 = XM_PIDIV4;
+    float theta = 1.5f * PI;
+    float piDiv4 = PIDiv4;
     float radius = 5.0f;
 
-    POINT lastMousePos;
+    ZNPoint lastMousePos;
 };
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance,
@@ -122,8 +124,11 @@ bool TestApp::Initialize()
 void TestApp::OnResize()
 {
     ZNApplication::OnResize();
-    XMMATRIX p{ XMMatrixPerspectiveFovLH(0.25f * XM_PI, AspectRatio(), 1.0f, 1000.0f) };
-    XMStoreFloat4x4(&projectMatrix, p);
+    camera.SetPerspective(piDiv4, AspectRatio(), 1.0f, 1000.0f);
+    //ZNMatrix4 p{ XMMatrixPerspectiveFovLH(0.25f * PI, AspectRatio(), 1.0f, 1000.0f) };
+    //projectMatrix = &p;
+    //XMStoreFloat4x4(&projectMatrix, p);
+    projectMatrix = camera.projectionMatrix;
 }
 
 void TestApp::Update(const ZNTimer& gt)
@@ -134,20 +139,23 @@ void TestApp::Update(const ZNTimer& gt)
     float y = radius * cosf(piDiv4);
 
     // Build the view matrix.
-    XMVECTOR pos = XMVectorSet(x, y, z, 1.0f);
-    XMVECTOR target = XMVectorZero();
-    XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+    ZNVector3 pos = ZNVector3(x, y, z);
+    ZNVector3 target = ZNVector3();
+    ZNVector3 up = ZNVector3(0.0f, 1.0f, 0.0f);
 
-    XMMATRIX view = XMMatrixLookAtLH(pos, target, up);
-    XMStoreFloat4x4(&viewMatrix, view);
+    //XMMATRIX view = XMMatrixLookAtLH(pos, target, up);
+    //XMStoreFloat4x4(&viewMatrix, view);
+    camera.SetView(pos, target, up);
 
-    XMMATRIX world = XMLoadFloat4x4(&worldMatrix);
-    XMMATRIX proj = XMLoadFloat4x4(&projectMatrix);
-    XMMATRIX worldViewProj = world * view * proj;
+    //XMMATRIX world = XMLoadFloat4x4(&worldMatrix);
+    //XMMATRIX proj = XMLoadFloat4x4(&projectMatrix);
+    //XMMATRIX worldViewProj = world * view * proj;
+    ZNMatrix4 worldViewProj = worldMatrix * camera.viewMatrix * projectMatrix;
 
     // Update the constant buffer with the latest worldViewProj matrix.
-    ObjectConstants objConstants;
-    XMStoreFloat4x4(&objConstants.WorldViewProj, XMMatrixTranspose(worldViewProj));
+    ObjectConstants objConstants = {worldViewProj.Transpose()};
+    //XMStoreFloat4x4(&objConstants.WorldViewProj, worldViewProj.Transpose());
+    //objConstants.WorldViewProj = &(worldViewProj.Transpose());
     objectConstantBuffer->CopyData(0, objConstants);
 }
 
@@ -165,7 +173,8 @@ void TestApp::Draw(const ZNTimer& gt)
     barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
     commandList->ResourceBarrier(1, &barrier);
 
-    commandList->ClearRenderTargetView(CurrentBackBufferView(), Colors::GreenYellow, 0, nullptr);
+    commandList->ClearRenderTargetView(CurrentBackBufferView(),
+        ZNColor(0.678431392f, 1.000000000f, 0.184313729f, 1.000000000f).value, 0, nullptr);
     commandList->ClearDepthStencilView(DepthStencilView(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
     
     auto currentBackBufferView = CurrentBackBufferView(); 
@@ -336,16 +345,18 @@ void TestApp::BuildShadersAndInputLayout()
   
 void TestApp::BuildBoxGeometry()
 {
+    Vertex v1, v2, v3, v4, v5, v6, v7, v8;
+    v1.Pos =ZNVector3(-1.0f, -1.0f, -1.0f); v1.Color = ZNVector4(1.f, 1.f, 1.f, 1.f); // white
+    v2.Pos =ZNVector3(-1.0f, +1.0f, -1.0f); v2.Color = ZNVector4(0.f, 0.f, 0.f, 1.f); // black
+    v3.Pos =ZNVector3(+1.0f, +1.0f, -1.0f); v3.Color = ZNVector4(1.f, 0.f, 0.f, 1.f); // red
+    v4.Pos =ZNVector3(+1.0f, -1.0f, -1.0f); v4.Color = ZNVector4(0.f, 1.f, 0.f, 1.f); // green
+    v5.Pos =ZNVector3(-1.0f, -1.0f, +1.0f); v5.Color = ZNVector4(0.f, 0.f, 1.f, 1.f); // blue
+    v6.Pos =ZNVector3(-1.0f, +1.0f, +1.0f); v6.Color = ZNVector4(1.f, 1.f, 0.f, 1.f); // yellow
+    v7.Pos =ZNVector3(+1.0f, +1.0f, +1.0f); v7.Color = ZNVector4(0.f, 1.f, 1.f, 1.f); // cyan
+    v8.Pos =ZNVector3(+1.0f, -1.0f, +1.0f); v8.Color = ZNVector4(1.f, 0.f, 1.f, 1.f); // magenta
     std::array<Vertex, 8> vertices =
     {
-        Vertex({ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT4(Colors::White) }),
-        Vertex({ XMFLOAT3(-1.0f, +1.0f, -1.0f), XMFLOAT4(Colors::Black) }),
-        Vertex({ XMFLOAT3(+1.0f, +1.0f, -1.0f), XMFLOAT4(Colors::Red) }),
-        Vertex({ XMFLOAT3(+1.0f, -1.0f, -1.0f), XMFLOAT4(Colors::Green) }),
-        Vertex({ XMFLOAT3(-1.0f, -1.0f, +1.0f), XMFLOAT4(Colors::Blue) }),
-        Vertex({ XMFLOAT3(-1.0f, +1.0f, +1.0f), XMFLOAT4(Colors::Yellow) }),
-        Vertex({ XMFLOAT3(+1.0f, +1.0f, +1.0f), XMFLOAT4(Colors::Cyan) }),
-        Vertex({ XMFLOAT3(+1.0f, -1.0f, +1.0f), XMFLOAT4(Colors::Magenta) })
+        v1, v2, v3, v4, v5, v6, v7, v8
     };
 
     std::array<std::uint16_t, 36> indices =
