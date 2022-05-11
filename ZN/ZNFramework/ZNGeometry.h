@@ -3,15 +3,13 @@ using namespace DirectX;
 
 struct Vertex
 {
-	ZNVector3 Pos;
-	ZNVector4 Color;
-	//Vertex(ZNVector3 pos, ZNVector4 color) :Pos(pos), Color(color) {} 
-	//Vertex(ZNVector3 pos, ZNVector4 color) :Pos(pos), Color(color) {};
+	ZNFramework::ZNVector3 Pos;
+	ZNFramework::ZNVector4 Color;
 };
 
 struct ObjectConstants
 {
-	ZNMatrix4 WorldViewProj;  // identity
+	ZNFramework::ZNMatrix4 WorldViewProj;  // identity
 };
 
 struct SubmeshGeometry
