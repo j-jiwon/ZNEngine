@@ -128,7 +128,7 @@ void TestApp::OnResize()
     //ZNMatrix4 p{ XMMatrixPerspectiveFovLH(0.25f * PI, AspectRatio(), 1.0f, 1000.0f) };
     //projectMatrix = &p;
     //XMStoreFloat4x4(&projectMatrix, p);
-    projectMatrix = camera.projectionMatrix;
+    projectMatrix = camera.ProjectionMatrix();
 }
 
 void TestApp::Update(const ZNTimer& gt)
@@ -150,7 +150,7 @@ void TestApp::Update(const ZNTimer& gt)
     //XMMATRIX world = XMLoadFloat4x4(&worldMatrix);
     //XMMATRIX proj = XMLoadFloat4x4(&projectMatrix);
     //XMMATRIX worldViewProj = world * view * proj;
-    ZNMatrix4 worldViewProj = worldMatrix * camera.viewMatrix * projectMatrix;
+    ZNMatrix4 worldViewProj = { worldMatrix * camera.ViewMatrix() * projectMatrix };
 
     // Update the constant buffer with the latest worldViewProj matrix.
     ObjectConstants objConstants = {worldViewProj.Transpose()};

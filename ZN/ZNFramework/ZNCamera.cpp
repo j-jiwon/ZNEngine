@@ -9,7 +9,9 @@ ZNFramework::ZNCamera::ZNCamera()
 
 void ZNFramework::ZNCamera::SetView(const ZNVector3& pos, const ZNVector3& target, const ZNVector3& up)
 {
-	ZNVector3 axisZ = ZNVector3(target).Normalize() * -1.f;
+	ZNVector3 direction = target - pos;
+
+	ZNVector3 axisZ = ZNVector3(direction).Normalize() * -1.f;
 	ZNVector3 axisX = ZNVector3::Cross(up, axisZ).Normalize();
 	ZNVector3 axisY = ZNVector3::Cross(axisZ, axisX).Normalize();
 

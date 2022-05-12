@@ -20,7 +20,11 @@ namespace ZNFramework
 		// projection matrix
 		void SetPerspective(float fov, float aspect, float nearZ, float farZ);
 		void SetOrthographic(float width, float height, float nearZ, float farZ);
+		
+		ZNMatrix4 ViewMatrix() const { return this->viewMatrix; };
+		ZNMatrix4 ProjectionMatrix() const { return this->projectionMatrix; };
 
+	private:
 		ZNMatrix4 viewMatrix;
 		ZNMatrix4 projectionMatrix;
 
