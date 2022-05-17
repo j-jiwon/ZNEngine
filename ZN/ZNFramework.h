@@ -14,10 +14,10 @@
 #include "ZNFramework/Math/ZNAffineTransform3.h"
 
 #include "ZNFramework/ZNColor.h"
-
-#include "ZNFramework/ZNApplication.h"
-#include "ZNFramework/ZNWindow.h"
 #include "ZNFramework/ZNTimer.h"
 
+#include "ZNFramework/Application/ZNApplication.h"
+#include "ZNFramework/Window/ZNWindow.h"
+
 #include "ZNFramework/Direct3D12/ZNUtils.h"
- #include "ZNFramework/ZNGeometry.h" 
+#include "ZNFramework/ZNGeometry.h" 

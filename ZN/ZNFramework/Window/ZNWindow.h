@@ -1,5 +1,5 @@
 #pragma once
-#include "../ZNFramework.h"
+#include "../../ZNFramework.h"
 #include <windows.h>
 #include <map>
 #include <functional>
