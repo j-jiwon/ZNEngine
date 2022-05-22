@@ -13,8 +13,8 @@ namespace ZNFramework
 		int Run();		// process message
 
 	protected:
-		virtual void Initialize() = 0;
-		virtual void Terminate() = 0;
+		virtual void OnInitialize() = 0;
+		virtual void OnTerminate() = 0;
 
 	private:
 		ZNApplicationContextInterface* context;

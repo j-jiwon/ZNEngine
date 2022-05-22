@@ -1,19 +1,27 @@
 #include "ZNApplication.h"
+#include "Platform/ApplicationPlatform.h"
 
 using namespace ZNFramework;
 
 ZNFramework::ZNApplication::ZNApplication()
     :context(nullptr)
 {
+    context = CreateContext();
 }
 
 ZNFramework::ZNApplication::~ZNApplication()
 {
+    delete context;
+    context = nullptr;
 }
 
 int ZNFramework::ZNApplication::Run()
 {
-    return 0;
+    OnInitialize();
+    // process message loop - exit when exitcode is 0
+    int exitcode = context->MessageLoop();
+    OnTerminate();
+    return exitcode;
 }
 
 
@@ -166,7 +174,7 @@ int ZNFramework::ZNApplication::Run()
 //
 //	// 자원 해제
 //	for (int i = 0; i < SwapChainBufferCount; ++i)
-//		swapChainBuffer[i].Reset();
+//		swapChainBuffer[i].Reset();  // colorTexture 이고 
 //	depthStencilBuffer.Reset();
 //
 //	// Resize the swap chain.

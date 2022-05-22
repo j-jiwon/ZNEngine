@@ -8,10 +8,10 @@ namespace ZNFramework
 	{
 	public:
 		ApplicationContext() {};
-		// ApplicationContext(Window window, GraphicDevice device);
+		~ApplicationContext() {};
 		int MessageLoop() override;
 	private:
-		// TODO: window, graphicdevice, handle 
+		int exitCode = 0;
 	};
 }
 

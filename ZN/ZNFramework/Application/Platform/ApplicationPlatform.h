@@ -1,7 +1,8 @@
 #pragma once
 #include "../ZNApplicationContextInterface.h"
+#include "Win32/ApplicationContext.h"
 
 ZNFramework::ZNApplicationContextInterface* CreateContext()
 {
-	return new AppicationContext();
+	return new ZNFramework::ApplicationContext();
 }
