@@ -7,11 +7,9 @@ namespace ZNFramework
 	class ApplicationContext : public ZNApplicationContextInterface
 	{
 	public:
-		ApplicationContext() {};
-		~ApplicationContext() {};
+		ApplicationContext() = default;
+		~ApplicationContext() = default;
 		int MessageLoop() override;
-	private:
-		int exitCode = 0;
 	};
 }
 

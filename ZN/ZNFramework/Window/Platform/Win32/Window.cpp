@@ -1,35 +1,29 @@
-#ifndef UNICODE
-#define UNICODE
-#endif 
-
-#include <exception>
-#include "ZNWindow.h"
-#include "../ZNInclude.h"
+#pragma once
+#include "Window.h"
 
 using namespace ZNFramework;
 
-ZNWindow::ZNWindow()
-	:hwnd(nullptr)
+Window::Window()
+    :hwnd(nullptr)
     ,width(0)
     ,height(0)
 {
 }
 
-ZNWindow::~ZNWindow()
-{
-}
-
-void ZNWindow::Create()
+void Window::Create()
 {
     // Register the window class
-    WNDCLASS wc = { 0 };
+    WNDCLASSEXW wc = { 0 };
     wc.lpfnWndProc = WindowProc;
-    wc.hInstance = ::GetModuleHandle(NULL);
+    wc.hInstance = ::GetModuleHandleW(NULL);
     wc.lpszClassName = CLASS_NAME;
-    RegisterClass(&wc);
+    wc.cbSize = sizeof(wc);
+    wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);
+    wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+    RegisterClassExW(&wc);
 
     // Create window
-    hwnd = CreateWindowEx(
+    hwnd = CreateWindowExW(
         0,                              // Optional window styles.
         CLASS_NAME,                     // Window class
         L"This is ZNEngine Window",    // Window text
@@ -44,15 +38,14 @@ void ZNWindow::Create()
         NULL        // Additional application data
     );
 
-    if (hwnd == NULL)
-    {
-        throw std::exception("hwnd is null");
-    }
+    //if (hwnd == NULL)
+    //{
+    //    throw std::exception("hwnd is null");
+    //}
 
-    ShowWindow(hwnd, 1);
 }
 
-void ZNWindow::Destroy()
+void Window::Destroy()
 {
     if (hwnd)
     {
@@ -61,19 +54,25 @@ void ZNWindow::Destroy()
     }
 }
 
-void ZNWindow::AddEventHandler(EventHandler handler, ResizeEventCallback callback)
+void Window::Show()
 {
-    handlers.emplace(handler, callback);
+    if (hwnd)
+    {
+        ShowWindow(hwnd, SW_SHOW);
+    }
 }
 
-void ZNWindow::RemoveEventHandler(EventHandler handler)
+void Window::Hide()
 {
-    handlers.erase(handler);
+    if (hwnd)
+    {
+        ShowWindow(hwnd, SW_HIDE);
+    }
 }
 
-LRESULT ZNWindow::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+LRESULT Window::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-    ZNWindow* window = (ZNWindow*)::GetWindowLongPtr(hwnd, GWLP_USERDATA);
+    Window* window = (Window*)::GetWindowLongPtr(hwnd, GWLP_USERDATA);
     if (window)
     {
         switch (uMsg)
@@ -98,10 +97,12 @@ LRESULT ZNWindow::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             if (width != window->width || height != window->height)
             {
                 // broadcast.
-                for (const auto& [key, value] : window->handlers)
+                /*for (const auto& [key, value] : window->handlers)
                 {
                     value(window->width, window->height);
-                }
+                }*/
+                window->width = width;
+                window->height = height;
             }
         }
         return 0;
@@ -109,3 +110,13 @@ LRESULT ZNWindow::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     }
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
+
+//void Window::AddEventHandler(EventHandler handler, ResizeEventCallback callback)
+//{
+//    handlers.emplace(handler, callback);
+//}
+//
+//void Window::RemoveEventHandler(EventHandler handler)
+//{
+//    handlers.erase(handler);
+//}

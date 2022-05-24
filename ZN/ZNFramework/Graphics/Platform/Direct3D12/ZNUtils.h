@@ -3,13 +3,15 @@
 #include <windows.h>
 #include <wrl.h>
 #include <dxgi1_4.h>
-#include "../Direct3D12/d3dx12.h"
+#include "d3dx12.h"
 #include <system_error>
 #include <assert.h>
 #include <D3Dcompiler.h>
-#include <DirectXMath.h>
-#include <DirectXCollision.h>
-#include <unordered_map>
+//#include <DirectXMath.h>
+//#include <DirectXCollision.h>
+//#include <unordered_map>
+
+using namespace Microsoft::WRL;
 
 inline void ThrowIfFailed(HRESULT hr)
 {
@@ -24,6 +26,7 @@ inline void ThrowIfFailed(HRESULT hr)
 #define ReleaseCom(x) { if(x){ x->Release(); x = 0; } }
 #endif
 
+/*
 namespace VectorMath {
 	constexpr DirectX::XMFLOAT4X4 Identity4X4() {
 		DirectX::XMFLOAT4X4 i{
@@ -116,3 +119,4 @@ namespace ZNUtils {
 		UINT64 byteSize,
 		Microsoft::WRL::ComPtr<ID3D12Resource>& uploadBuffer);
 }
+*/

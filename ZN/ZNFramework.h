@@ -19,5 +19,5 @@
 #include "ZNFramework/Application/ZNApplication.h"
 #include "ZNFramework/Window/ZNWindow.h"
 
-#include "ZNFramework/Direct3D12/ZNUtils.h"
-#include "ZNFramework/ZNGeometry.h" 
+#include "ZNFramework/Graphics/Platform/Direct3D12/ZNUtils.h"
+//#include "ZNFramework/ZNGeometry.h" 

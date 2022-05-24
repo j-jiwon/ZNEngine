@@ -1,21 +1,22 @@
+#pragma once
 #include "ZNApplication.h"
 #include "Platform/ApplicationPlatform.h"
 
 using namespace ZNFramework;
 
-ZNFramework::ZNApplication::ZNApplication()
+ZNApplication::ZNApplication()
     :context(nullptr)
 {
     context = CreateContext();
 }
 
-ZNFramework::ZNApplication::~ZNApplication()
+ZNApplication::~ZNApplication()
 {
     delete context;
     context = nullptr;
 }
 
-int ZNFramework::ZNApplication::Run()
+int ZNApplication::Run()
 {
     OnInitialize();
     // process message loop - exit when exitcode is 0

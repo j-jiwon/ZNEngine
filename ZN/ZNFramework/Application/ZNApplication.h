@@ -1,4 +1,5 @@
 #pragma once
+#include "../../ZNInclude.h"
 #include "ZNApplicationContextInterface.h"
 
 namespace ZNFramework
@@ -9,10 +10,8 @@ namespace ZNFramework
 	public:
 		ZNApplication();
 		~ZNApplication();
-
 		int Run();		// process message
 
-	protected:
 		virtual void OnInitialize() = 0;
 		virtual void OnTerminate() = 0;
 

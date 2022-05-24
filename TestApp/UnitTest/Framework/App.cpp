@@ -1,44 +1,54 @@
-
 #include "gtest/gtest.h"
 #include "ZNFramework.h"
+#include "ZNFramework/Window/Platform/WindowPlatform.h"
 
 using namespace ZNFramework;
 
 class TestApp : public ZNApplication
 {
 public:
-    TestApp(HINSTANCE hInstance);
-    TestApp(const TestApp& rhs) = delete;
-    TestApp& operator=(const TestApp& rhs) = delete;
-    ~TestApp();
+    TestApp()
+        : window(nullptr)
+    {}
 
-    virtual bool Initialize()override;
+    void OnInitialize() override
+    {
+        window = ZNFramework::WindowPlatform::Create();
+        window->Create();
+        window->Show();
+
+    };
+
+    void OnTerminate() override
+    {
+    };
 
 private:
-    virtual void OnResize()override;
-    virtual void Update(const ZNTimer& gt)override;
-    virtual void Draw(const ZNTimer& gt)override;
-
-    virtual void OnMouseDown(WPARAM btnState, int x, int y)override;
-    virtual void OnMouseUp(WPARAM btnState, int x, int y)override;
-    virtual void OnMouseMove(WPARAM btnState, int x, int y)override;
+    ZNWindow* window = nullptr;
+    // ZNGraphicDevice = device;
 };
 
 
-TEST(Application, Create)
+int main()
 {
-	try
-	{
-        TestApp app;
-        app.Run();
-
-		EXPECT_EQ(true, true);
-	}
-	catch(...)
-	{
-		EXPECT_EQ(true, false);
-	}
+    TestApp app;
+    app.Run();
 }
+
+//TEST(Application, Run)
+//{
+//	try
+//	{
+//        TestApp app;
+//        app.Run();
+//
+//		EXPECT_EQ(true, true);
+//	}
+//	catch(...)
+//	{
+//		EXPECT_EQ(true, false);
+//	}
+//}
 
 
 /*

@@ -1,11 +1,11 @@
+#pragma once
 #ifdef _WIN32
-#include <WinUser.h>
+#include <Windows.h>
 #include "ApplicationContext.h"
 using namespace ZNFramework;
 
 int ApplicationContext::MessageLoop()
 {
-    exitCode = 0;
     MSG msg;
     // loop while message is not WM_QUIT 
     // GetMessage returns Message.wParam when message loop is terminated.
@@ -22,8 +22,7 @@ int ApplicationContext::MessageLoop()
         }
     }   
 
-    exitCode = static_cast<int>(msg.wParam);
-    return exitCode;
+    return static_cast<int>(msg.wParam);
 }
 
 #endif
