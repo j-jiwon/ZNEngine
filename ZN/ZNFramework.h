@@ -16,10 +16,10 @@
 
 #include "ZNFramework/ZNColor.h"
 #include "ZNFramework/ZNCamera.h"
-
-#include "ZNFramework/ZNApplication.h"
-#include "ZNFramework/ZNWindow.h"
 #include "ZNFramework/ZNTimer.h"
 
-#include "ZNFramework/Direct3D12/ZNUtils.h"
- #include "ZNFramework/ZNGeometry.h" 
+#include "ZNFramework/Application/ZNApplication.h"
+#include "ZNFramework/Window/ZNWindow.h"
+
+#include "ZNFramework/Graphics/Platform/Direct3D12/ZNUtils.h"
+//#include "ZNFramework/ZNGeometry.h" 

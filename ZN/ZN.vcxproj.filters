@@ -1,7 +1,7 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="ZNFramework\Direct3D12\ZNUtils.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\ZNUtils.cpp" />
     <ClCompile Include="ZNFramework\ZNCamera.cpp" />
     <ClCompile Include="ZNFramework\ZNColor.cpp" />
     <ClCompile Include="ZNFramework\ZNTimer.cpp" />
@@ -15,18 +15,26 @@
     <ClCompile Include="ZNFramework\Math\ZNVector2.cpp" />
     <ClCompile Include="ZNFramework\Math\ZNVector3.cpp" />
     <ClCompile Include="ZNFramework\Math\ZNVector4.cpp" />
-    <ClCompile Include="ZNFramework\ZNApplication.cpp" />
-    <ClCompile Include="ZNFramework\ZNWindow.cpp" />
+    <ClCompile Include="ZNFramework\Application\ZNApplication.cpp" />
+    <ClCompile Include="ZNFramework\Application\Platform\Win32\ApplicationContext.cpp" />
+    <ClCompile Include="ZNFramework\Application\Platform\ApplicationPlatform.h" />
+    <ClCompile Include="ZNFramework\Application\Platform\Win32\ApplicationContext.h" />
+    <ClCompile Include="ZNFramework\Window\Platform\Win32\Window.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\ZNGraphicsDevice.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\CommandList.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\CommandQueue.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\GraphicsDevice.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\SwapChain.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ZNFramework\Direct3D12\d3dx12.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\d3dx12.h" />
     <ClInclude Include="ZN.h" />
     <ClInclude Include="ZNFramework.h" />
     <ClInclude Include="ZNFramework\ZNCamera.h" />
     <ClInclude Include="ZNFramework\ZNColor.h" />
     <ClInclude Include="ZNFramework\ZNGeometry.h" />
     <ClInclude Include="ZNFramework\ZNTimer.h" />
-    <ClInclude Include="ZNFramework\Direct3D12\ZNUtils.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\ZNUtils.h" />
     <ClInclude Include="ZNInclude.h" />
     <ClInclude Include="ZNFramework\Math\ZNAffineTransform2.h" />
     <ClInclude Include="ZNFramework\Math\ZNAffineTransform3.h" />
@@ -38,8 +46,20 @@
     <ClInclude Include="ZNFramework\Math\ZNVector2.h" />
     <ClInclude Include="ZNFramework\Math\ZNVector3.h" />
     <ClInclude Include="ZNFramework\Math\ZNVector4.h" />
-    <ClInclude Include="ZNFramework\ZNApplication.h" />
-    <ClInclude Include="ZNFramework\ZNWindow.h" />
     <ClInclude Include="ZNFramework\Math\ZNPoint.h" />
+    <ClInclude Include="ZNFramework\Window\ZNWindow.h" />
+    <ClInclude Include="ZNFramework\Application\ZNApplicationContextInterface.h" />
+    <ClInclude Include="ZNFramework\Application\ZNApplication.h" />
+    <ClInclude Include="ZNFramework\Window\Platform\Win32\Window.h" />
+    <ClInclude Include="ZNFramework\Window\Platform\WindowPlatform.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\GraphicsAPI.h" />
+    <ClInclude Include="ZNFramework\Graphics\ZNCommandList.h" />
+    <ClInclude Include="ZNFramework\Graphics\ZNCommandQueue.h" />
+    <ClInclude Include="ZNFramework\Graphics\ZNGraphicsDevice.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\CommandList.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\CommandQueue.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\GraphicsDevice.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\SwapChain.h" />
+    <ClInclude Include="ZNFramework\Graphics\ZNSwapChain.h" />
   </ItemGroup>
 </Project>
