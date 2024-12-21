@@ -10,8 +10,7 @@ ZNFramework::ZNCamera::ZNCamera()
 void ZNFramework::ZNCamera::SetView(const ZNVector3& pos, const ZNVector3& target, const ZNVector3& up)
 {
 	ZNVector3 direction = target - pos;
-
-	ZNVector3 axisZ = ZNVector3(direction).Normalize() * -1.f;
+	ZNVector3 axisZ = ZNVector3(direction).Normalize();
 	ZNVector3 axisX = ZNVector3::Cross(up, axisZ).Normalize();
 	ZNVector3 axisY = ZNVector3::Cross(axisZ, axisX).Normalize();
 
@@ -41,11 +40,13 @@ void ZNFramework::ZNCamera::SetProjection(const ZNMatrix4& m)
 void ZNFramework::ZNCamera::SetPerspective(float fov, float aspect, float nearZ, float farZ)
 {
 	float f = 1.0f / tan(fov / 2.0f);
+	float fRange = farZ / (farZ - nearZ);
+
 	ZNMatrix4 mat(
 		f / aspect, 0.0f, 0.0f, 0.0f,
 		0.0f, f, 0.0f, 0.0f,
-		0.0f, 0.0f, (farZ + nearZ) / (nearZ - farZ), -1.0f,
-		0.0f, 0.0f, (2.0f * farZ * nearZ) / (nearZ - farZ), 0.0f);
+		0.0f, 0.0f, fRange, 1.0f,
+		0.0f, 0.0f, -fRange * nearZ, 0.0f);
 
 	SetProjection(mat);
 }

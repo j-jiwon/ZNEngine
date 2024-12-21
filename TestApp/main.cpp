@@ -125,37 +125,23 @@ void TestApp::OnResize()
 {
     ZNApplication::OnResize();
     camera.SetPerspective(piDiv4, AspectRatio(), 1.0f, 1000.0f);
-    //ZNMatrix4 p{ XMMatrixPerspectiveFovLH(0.25f * PI, AspectRatio(), 1.0f, 1000.0f) };
-    //projectMatrix = &p;
-    //XMStoreFloat4x4(&projectMatrix, p);
     projectMatrix = camera.ProjectionMatrix();
 }
 
 void TestApp::Update(const ZNTimer& gt)
 {
-    // Convert Spherical to Cartesian coordinates.
     float x = radius * sinf(piDiv4) * cosf(theta);
     float z = radius * sinf(piDiv4) * sinf(theta);
     float y = radius * cosf(piDiv4);
 
-    // Build the view matrix.
     ZNVector3 pos = ZNVector3(x, y, z);
     ZNVector3 target = ZNVector3();
     ZNVector3 up = ZNVector3(0.0f, 1.0f, 0.0f);
-
-    //XMMATRIX view = XMMatrixLookAtLH(pos, target, up);
-    //XMStoreFloat4x4(&viewMatrix, view);
     camera.SetView(pos, target, up);
 
-    //XMMATRIX world = XMLoadFloat4x4(&worldMatrix);
-    //XMMATRIX proj = XMLoadFloat4x4(&projectMatrix);
-    //XMMATRIX worldViewProj = world * view * proj;
     ZNMatrix4 worldViewProj = { worldMatrix * camera.ViewMatrix() * projectMatrix };
 
-    // Update the constant buffer with the latest worldViewProj matrix.
     ObjectConstants objConstants = {worldViewProj.Transpose()};
-    //XMStoreFloat4x4(&objConstants.WorldViewProj, worldViewProj.Transpose());
-    //objConstants.WorldViewProj = &(worldViewProj.Transpose());
     objectConstantBuffer->CopyData(0, objConstants);
 }
 
