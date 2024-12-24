@@ -10,6 +10,12 @@ namespace ZNFramework
 		ZNCommandQueue() = default;
 		virtual ~ZNCommandQueue() noexcept = default;
 
-		virtual ZNSwapChain* CreateSwapChain(const ZNWindow*) = 0;
+		virtual class ZNSwapChain* CreateSwapChain(const ZNWindow*) = 0;
+		//virtual class ZNCommandList* CreateCommandList(const ZNWindow*) = 0;
+		
+		virtual void Init() = 0;
+		virtual void RenderBegin() = 0;
+		virtual void RenderEnd() = 0;
+		virtual void OnResize(size_t width, size_t height) = 0;
 	};
 }

@@ -1,5 +1,6 @@
 #pragma once
 #include "../ZNGraphicsDevice.h"
+#include "../ZNTexture.h"
 
 namespace ZNFramework::Platform
 {
@@ -7,11 +8,18 @@ namespace ZNFramework::Platform
 	namespace Direct3D
 	{
 		ZNGraphicsDevice* CreateGraphicsDevice();
+
+		ZNTexture* CreateTexture();
 	}
 #endif
 
-	ZNGraphicsDevice* CreateGraphicsDevice()
+	inline ZNGraphicsDevice* CreateGraphicsDevice()
 	{
 		return Direct3D::CreateGraphicsDevice();
+	}
+
+	inline ZNTexture* CreateTexture()
+	{
+		return Direct3D::CreateTexture();
 	}
 }

@@ -14,8 +14,17 @@ namespace ZNFramework::Platform::Direct3D
 
 GraphicsDevice::GraphicsDevice()
 {
+#ifdef _DEBUG
+    ::D3D12GetDebugInterface(IID_PPV_ARGS(&debugController));
+    debugController->EnableDebugLayer();
+#endif
+
+    device.Reset();
+    fence.Reset();
+
     CreateDXGIFactory1(IID_PPV_ARGS(&factory));
-    D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&device));
+    ThrowIfFailed(D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&device)));
+    //ThrowIfFailed(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence)));
 }
 
 
@@ -28,6 +37,7 @@ ZNCommandQueue* GraphicsDevice::CreateCommandQueue()
         desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
         ThrowIfFailed(device->CreateCommandQueue(&desc, IID_PPV_ARGS(&queue)));
     }
+
     return new CommandQueue(this, queue.Get());
 }
 
@@ -39,5 +49,10 @@ ZNCommandList* GraphicsDevice::CreateCommandList()
     ComPtr<ID3D12GraphicsCommandList> commandList;
     ThrowIfFailed(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, commandAllocator.Get(), nullptr, IID_PPV_ARGS(&commandList)));
 
-    return new CommandList(commandAllocator.Get(), commandList.Get(), D3D12_COMMAND_LIST_TYPE_DIRECT);
+    return new CommandList(this, commandAllocator.Get(), commandList.Get(), D3D12_COMMAND_LIST_TYPE_DIRECT);
+}
+
+void GraphicsDevice::UpdateCurrentFence()
+{
+    currentFence++;
 }

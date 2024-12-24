@@ -4,6 +4,8 @@
 
 namespace ZNFramework
 {
+	class ZNCommandQueue;
+	class ZNCommandList;
 	class ZNGraphicsDevice
 	{
 	public:
@@ -13,6 +15,6 @@ namespace ZNFramework
 		virtual ZNCommandQueue* CreateCommandQueue() = 0;
 		virtual ZNCommandList* CreateCommandList() = 0;
 
-		static ZNGraphicsDevice* CreateGraphicsDevice();
+		inline static ZNGraphicsDevice* CreateGraphicsDevice();
 	};
 }

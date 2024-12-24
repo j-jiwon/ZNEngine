@@ -2,6 +2,10 @@
 #include "../../ZNWindow.h"
 #include "../../../../ZN.h"
 #include <Windows.h>
+#include <functional>
+#include <map>
+
+using namespace std;
 
 namespace ZNFramework
 {
@@ -19,11 +23,6 @@ namespace ZNFramework
 		uint32_t Height() const override { return height; }
 		void* PlatformHandle() const override { return hwnd; };
 
-		//using EventHandler = const void*;
-		//using ResizeEventCallback = std::function<void(size_t, size_t)>;
-		//void AddEventHandler(EventHandler handler, ResizeEventCallback callback);
-		//void RemoveEventHandler(EventHandler handler);
-
 	protected:
 		static LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
@@ -31,7 +30,5 @@ namespace ZNFramework
 		HWND hwnd; // win32
 		uint32_t width;
 		uint32_t height;
-
-		//std::map<EventHandler, ResizeEventCallback> handlers;
 	};
 }

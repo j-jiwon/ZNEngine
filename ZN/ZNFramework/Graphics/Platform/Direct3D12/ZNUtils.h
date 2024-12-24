@@ -18,9 +18,15 @@ inline void ThrowIfFailed(HRESULT hr)
     if (FAILED(hr))
     {
         auto msg = std::system_category().message(hr);
+		printf("RESULT: 0x%08X\n", hr);
         throw std::exception(msg.c_str());
     }
 }
+
+enum
+{
+	SWAP_CHAIN_BUFFER_COUNT = 2
+};
 
 #ifndef ReleaseCom
 #define ReleaseCom(x) { if(x){ x->Release(); x = 0; } }

@@ -15,7 +15,7 @@ void Window::Create()
     // Register the window class
     WNDCLASSEXW wc = { 0 };
     wc.lpfnWndProc = WindowProc;
-    wc.hInstance = ::GetModuleHandleW(NULL);
+    wc.hInstance = ::GetModuleHandleA(NULL);
     wc.lpszClassName = CLASS_NAME;
     wc.cbSize = sizeof(wc);
     wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);
@@ -35,14 +35,15 @@ void Window::Create()
         NULL,       // Parent window    
         NULL,       // Menu
         ::GetModuleHandle(NULL),  // Instance handle
-        NULL        // Additional application data
+        this        // Additional application data
     );
 
-    //if (hwnd == NULL)
-    //{
-    //    throw std::exception("hwnd is null");
-    //}
+    if (hwnd == NULL)
+    {
+        throw std::exception("hwnd is null");
+    }
 
+    ::SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)this);
 }
 
 void Window::Destroy()
@@ -77,6 +78,18 @@ LRESULT Window::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     {
         switch (uMsg)
         {
+        case WM_ACTIVATE:
+            if (LOWORD(wParam) == WA_INACTIVE)
+            {
+                window->isPaused = true;
+                window->timer.Stop();
+            }
+            else
+            {
+                window->isPaused = false;
+                window->timer.Start();
+            }
+            return 0;
         case WM_DESTROY:
             PostQuitMessage(0);
             return 0;
@@ -97,10 +110,10 @@ LRESULT Window::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             if (width != window->width || height != window->height)
             {
                 // broadcast.
-                /*for (const auto& [key, value] : window->handlers)
+                for (const auto& [key, value] : window->handlers)
                 {
                     value(window->width, window->height);
-                }*/
+                }
                 window->width = width;
                 window->height = height;
             }
@@ -110,13 +123,3 @@ LRESULT Window::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     }
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
-
-//void Window::AddEventHandler(EventHandler handler, ResizeEventCallback callback)
-//{
-//    handlers.emplace(handler, callback);
-//}
-//
-//void Window::RemoveEventHandler(EventHandler handler)
-//{
-//    handlers.erase(handler);
-//}

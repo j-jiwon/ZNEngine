@@ -25,6 +25,9 @@
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\CommandQueue.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\GraphicsDevice.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\SwapChain.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\Texture.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\ZNTexture.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\DescriptorHeap.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\d3dx12.h" />
@@ -61,5 +64,9 @@
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\GraphicsDevice.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\SwapChain.h" />
     <ClInclude Include="ZNFramework\Graphics\ZNSwapChain.h" />
+    <ClInclude Include="ZNFramework\Graphics\ZNTexture.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Texture.h" />
+    <ClInclude Include="ZNFramework\Graphics\ZNDescriptorHeap.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\DescriptorHeap.h" />
   </ItemGroup>
 </Project>

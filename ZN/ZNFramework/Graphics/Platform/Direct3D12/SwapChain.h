@@ -7,6 +7,7 @@ namespace ZNFramework
 {
 	class ZNWindow;
 	class CommandQueue;
+	class Texture;
 
 	class SwapChain : public ZNSwapChain
 	{
@@ -14,21 +15,31 @@ namespace ZNFramework
 		SwapChain(GraphicsDevice*, CommandQueue*, const ZNWindow*);
 		~SwapChain() noexcept = default;
 
+		void Init() override;
+
+		void Present();
+		void SwapIndex();
+
+		ComPtr<IDXGISwapChain3> GetSwapChain() { return swapChain; }
+		ComPtr<ID3D12Resource> GetRenderTarget(int index) { return renderTargets[index]; }
+
+		UINT GetCurrentBackBufferIndex() { return backBufferIndex; }
+		ComPtr<ID3D12Resource> GetCurrentBackBufferResource() { return renderTargets[backBufferIndex]; }
+
 		uint32_t Width() override { return width; }
 		uint32_t Height() override { return height; }
 
-		void Resize(uint32_t width, uint32_t height) override;
+		void Resize(uint32_t inWidth, uint32_t inHeight) override;
 
-	private:
 		uint32_t width;
 		uint32_t height;
 
-		UINT currentColorTextureIndex;
-		mutable ComPtr<ID3D12Resource> colorTexture[FRAME_BUFFER_COUNT];
-		mutable ComPtr<ID3D12Resource> depthStencilTexture;
-
 		ComPtr<IDXGISwapChain3> swapChain;
+		ComPtr<ID3D12Resource> renderTargets[SWAP_CHAIN_BUFFER_COUNT];
+		UINT backBufferIndex = 0;
 
 		GraphicsDevice* device;
+		CommandQueue* queue;
+		HWND window1;
 	};
 }
