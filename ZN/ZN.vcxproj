@@ -210,22 +210,23 @@
   <ItemGroup>
     <ClInclude Include="ZNFramework\Application\ZNApplication.h" />
     <ClInclude Include="ZNFramework\Application\ZNApplicationContextInterface.h" />
-    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\CommandList.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\CommandQueue.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\d3dx12.h" />
     <ClInclude Include="ZN.h" />
     <ClInclude Include="ZNFramework.h" />
-    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\DescriptorHeap.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\GraphicsDevice.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Mesh.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\RootSignature.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Shader.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\SwapChain.h" />
-    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Texture.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\GraphicsAPI.h" />
+    <ClInclude Include="ZNFramework\Graphics\ZNGraphicsContext.h" />
+    <ClInclude Include="ZNFramework\Graphics\ZNMesh.h" />
+    <ClInclude Include="ZNFramework\Graphics\ZNRootSignature.h" />
+    <ClInclude Include="ZNFramework\Graphics\ZNShader.h" />
     <ClInclude Include="ZNFramework\Graphics\ZNSwapChain.h" />
-    <ClInclude Include="ZNFramework\Graphics\ZNCommandList.h" />
     <ClInclude Include="ZNFramework\Graphics\ZNCommandQueue.h" />
     <ClInclude Include="ZNFramework\Graphics\ZNGraphicsDevice.h" />
-    <ClInclude Include="ZNFramework\Graphics\ZNTexture.h" />
-    <ClInclude Include="ZNFramework\Graphics\ZNDescriptorHeap.h" />
     <ClInclude Include="ZNFramework\Window\Platform\WindowPlatform.h" />
     <ClInclude Include="ZNFramework\Window\Platform\Win32\Window.h" />
     <ClInclude Include="ZNFramework\ZNCamera.h" />
@@ -252,15 +253,14 @@
     <ClCompile Include="ZNFramework\Application\Platform\Win32\ApplicationContext.cpp" />
     <ClCompile Include="ZNFramework\Application\Platform\Win32\ApplicationContext.h" />
     <ClCompile Include="ZNFramework\Application\ZNApplication.cpp" />
-    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\CommandList.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\CommandQueue.cpp" />
-    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\DescriptorHeap.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\GraphicsDevice.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\Mesh.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\RootSignature.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\Shader.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\SwapChain.cpp" />
-    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\Texture.cpp" />
     <ClCompile Include="ZNFramework\Graphics\ZNGraphicsDevice.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\ZNUtils.cpp" />
-    <ClCompile Include="ZNFramework\Graphics\ZNTexture.cpp" />
     <ClCompile Include="ZNFramework\Window\Platform\Win32\Window.cpp" />
     <ClCompile Include="ZNFramework\ZNCamera.cpp" />
     <ClCompile Include="ZNFramework\ZNColor.cpp" />
@@ -275,6 +275,9 @@
     <ClCompile Include="ZNFramework\Math\ZNVector2.cpp" />
     <ClCompile Include="ZNFramework\Math\ZNVector3.cpp" />
     <ClCompile Include="ZNFramework\Math\ZNVector4.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ZNFramework\Shaders\default.hlsli" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

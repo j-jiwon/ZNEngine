@@ -42,4 +42,32 @@ namespace ZNFramework
 
 		std::map<EventHandler, ResizeEventCallback> handlers;
 	};
+
+	class WindowContext
+	{
+	public:
+		static WindowContext& GetInstance()
+		{
+			static WindowContext instance;
+			return instance;
+		}
+
+		void SetWindow(ZNWindow* inWindow)
+		{
+			window = inWindow;
+		}
+
+		ZNWindow* GetWindow() const
+		{
+			return window;
+		}
+
+	private:
+		ZNWindow* window = nullptr;
+
+		WindowContext() = default;
+		~WindowContext() = default;
+		WindowContext(const WindowContext&) = delete;
+		WindowContext& operator=(const WindowContext&) = delete;
+	};
 }

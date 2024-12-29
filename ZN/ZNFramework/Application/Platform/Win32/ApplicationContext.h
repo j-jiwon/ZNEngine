@@ -31,6 +31,10 @@ namespace ZNFramework
 		class ZNGraphicsDevice* device = nullptr;
 		class ZNCommandQueue* commandQueue = nullptr;
 		class ZNSwapChain* swapChain = nullptr;
+		class ZNRootSignature* rootSignature = nullptr;
+
+		class ZNShader* defaultShader = nullptr;
+		class ZNMesh* defaultMesh = nullptr;
 	};
 }
 

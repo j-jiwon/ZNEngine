@@ -7,39 +7,45 @@ namespace ZNFramework
 {
 	class ZNWindow;
 	class CommandQueue;
-	class Texture;
 
 	class SwapChain : public ZNSwapChain
 	{
 	public:
-		SwapChain(GraphicsDevice*, CommandQueue*, const ZNWindow*);
+		SwapChain() = default;
 		~SwapChain() noexcept = default;
 
-		void Init() override;
-
-		void Present();
-		void SwapIndex();
+		void Init(class ZNCommandQueue* inQueue) override;
+		void Resize(uint32_t inWidth, uint32_t inHeight) override;
 
 		ComPtr<IDXGISwapChain3> GetSwapChain() { return swapChain; }
-		ComPtr<ID3D12Resource> GetRenderTarget(int index) { return renderTargets[index]; }
+		ComPtr<ID3D12Resource> GetRenderTarget(int index) { return rtvBuffer[index]; }
 
 		UINT GetCurrentBackBufferIndex() { return backBufferIndex; }
-		ComPtr<ID3D12Resource> GetCurrentBackBufferResource() { return renderTargets[backBufferIndex]; }
+		ComPtr<ID3D12Resource> GetBackRTVBuffer() { return rtvBuffer[backBufferIndex]; }
+		D3D12_CPU_DESCRIPTOR_HANDLE GetBackRTV() { return rtvHandle[backBufferIndex]; }
 
 		uint32_t Width() override { return width; }
 		uint32_t Height() override { return height; }
 
-		void Resize(uint32_t inWidth, uint32_t inHeight) override;
+		void Present();
+		void SwapIndex();
 
-		uint32_t width;
-		uint32_t height;
+	private:
+		void CreateSwapChainInternal();
+		void CreateRTV();
 
+	private:
 		ComPtr<IDXGISwapChain3> swapChain;
-		ComPtr<ID3D12Resource> renderTargets[SWAP_CHAIN_BUFFER_COUNT];
+		ComPtr<ID3D12Resource> rtvBuffer[SWAP_CHAIN_BUFFER_COUNT];
+		ComPtr<ID3D12DescriptorHeap> rtvHeap;
+		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle[SWAP_CHAIN_BUFFER_COUNT];
 		UINT backBufferIndex = 0;
+		int rtvHeapSize;
 
 		GraphicsDevice* device;
 		CommandQueue* queue;
-		HWND window1;
+		HWND hwnd;
+		uint32_t width;
+		uint32_t height;
 	};
 }

@@ -2,7 +2,6 @@
 #include "ZNFramework.h"
 #include "ZNFramework/Window/Platform/WindowPlatform.h"
 #include "ZNFramework/Graphics/Platform/GraphicsAPI.h"
-#include "ZNFramework/Graphics/Platform/Direct3D12/GraphicsDevice.h"
 
 using namespace ZNFramework;
 

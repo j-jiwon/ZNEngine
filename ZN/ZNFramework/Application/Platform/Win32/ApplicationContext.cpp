@@ -2,12 +2,10 @@
 #ifdef _WIN32
 #include <Windows.h>
 #include "ApplicationContext.h"
-#include "../../../Graphics/ZNTexture.h"
+#include "../../../Graphics/ZNGraphicsContext.h"
 #include "../../../Graphics/Platform/GraphicsAPI.h"
+#include "../../../Window/ZNWindow.h"
 #include "../../../../ZNFramework.h"
-#include "../../../Graphics/Platform/Direct3D12/CommandQueue.h"
-#include "../../../Graphics/Platform/Direct3D12/CommandList.h"
-#include "../../../Graphics/Platform/Direct3D12/SwapChain.h"
 
 using namespace ZNFramework;
 
@@ -45,14 +43,28 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
     if (inWindow == nullptr || inDevice == nullptr)
     {
         return;
-    }    
+    }
+
+    GraphicsContext::GetInstance().SetDevice(inDevice);
+    WindowContext::GetInstance().SetWindow(inWindow);
 
     device = inDevice;
-    commandQueue = device->CreateCommandQueue();
-    swapChain = commandQueue->CreateSwapChain(inWindow);
-    commandQueue->Init();
-    //swapChain->Init();
+    commandQueue = ZNFramework::Platform::CreateCommandQueue();
+    GraphicsContext::GetInstance().SetCommandQueue(commandQueue);
+
+    swapChain = ZNFramework::Platform::CreateSwapChain();
+    rootSignature = ZNFramework::Platform::CreateRootSignature();
+    GraphicsContext::GetInstance().SetRootSignature(rootSignature);
+
+    defaultShader = ZNFramework::Platform::CreateShader();
+    defaultMesh = ZNFramework::Platform::CreateMesh();
     
+    // initialize
+    commandQueue->Init(swapChain);
+    swapChain->Init(commandQueue);
+    rootSignature->Init();
+    
+    // resize
     void* handler = static_cast<void*>(swapChain);
     auto HandlerResizeEvent = [=](size_t width, size_t height) {
         OnResize(width, height);
@@ -60,23 +72,38 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
     inWindow->AddEventHandler(handler, HandlerResizeEvent);
 
     OnResize(inWindow->Width(), inWindow->Height());
+
+    // TEST 
+    {
+        std::filesystem::path shaderPath = GetExecutablePath().parent_path().parent_path() / L"Shaders" / L"default.hlsli";
+        defaultShader->Load(shaderPath);
+
+        std::vector<Vertex> vertices = {
+            {ZNVector3(0.f, 0.5f, 0.5f), ZNVector4(1.f, 0.f, 0.f, 1.f)},
+            {ZNVector3(0.5f, -0.5f, 0.5f), ZNVector4(0.f, 1.0f, 0.f, 1.f)},
+            {ZNVector3(-0.5f, -0.5f, 0.5f), ZNVector4(0.f, 0.f, 1.f, 1.f)}
+        };
+        defaultMesh->Init(vertices);
+        defaultMesh->Render();
+    }
 }
 
 void ApplicationContext::OnResize(size_t width, size_t height)
 {
     swapChain->Resize(width, height);
-    commandQueue->OnResize(width, height);
 }
 
 void ApplicationContext::Update()
 {
-
 }
 
 void ApplicationContext::Render()
 {
     RenderBegin();
-    // TODO 나머지 물체들 그려준다
+
+    defaultShader->Bind();
+    defaultMesh->Render();
+
     RenderEnd();
 }
 
