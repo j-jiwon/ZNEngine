@@ -1,12 +1,5 @@
 #pragma once
-#include "../ZNGraphicsDevice.h"
-#include "../ZNCommandQueue.h"
-#include "../ZNSwapChain.h"
-#include "../ZNRootSignature.h"
-#include "Direct3D12/GraphicsDevice.h"
-#include "../ZNGraphicsContext.h"
-#include "../ZNShader.h"
-#include "../ZNMesh.h"
+#include "ZNFramework.h"
 
 namespace ZNFramework::Platform
 {
@@ -19,6 +12,8 @@ namespace ZNFramework::Platform
 		ZNRootSignature* CreateRootSignature();
 		ZNShader* CreateShader();
 		ZNMesh* CreateMesh();
+		ZNConstantBuffer* CreateConstantBuffer();
+		ZNTableDescriptorHeap* CreateTableDescriptorHeap();
 	}
 #endif
 
@@ -45,5 +40,13 @@ namespace ZNFramework::Platform
 	inline ZNMesh* CreateMesh()
 	{
 		return Direct3D::CreateMesh();
+	}
+	inline ZNConstantBuffer* CreateConstantBuffer()
+	{
+		return Direct3D::CreateConstantBuffer();
+	}
+	inline ZNTableDescriptorHeap* CreateTableDescriptorHeap()
+	{
+		return Direct3D::CreateTableDescriptorHeap();
 	}
 }

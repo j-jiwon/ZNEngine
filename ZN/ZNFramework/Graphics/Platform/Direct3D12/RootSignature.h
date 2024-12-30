@@ -1,6 +1,6 @@
 #pragma once
+#include "Graphics/ZNRootSignature.h"
 #include "ZNUtils.h"
-#include "../../ZNRootSignature.h"
 
 namespace ZNFramework
 {

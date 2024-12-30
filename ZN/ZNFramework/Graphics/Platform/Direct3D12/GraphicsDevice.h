@@ -1,5 +1,5 @@
 #pragma once
-#include "../../ZNGraphicsDevice.h"
+#include "Graphics/ZNGraphicsDevice.h"
 #include "ZNUtils.h"
 
 namespace ZNFramework

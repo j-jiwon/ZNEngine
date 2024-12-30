@@ -1,6 +1,6 @@
 #pragma once
+#include "Graphics/ZNMesh.h"
 #include "ZNUtils.h"
-#include "../../ZNMesh.h"
 
 using namespace std;
 
@@ -9,12 +9,23 @@ namespace ZNFramework
 	class Mesh : public ZNMesh
 	{
 	public:
-		void Init(const std::vector<Vertex>& vec) override;
+		void Init(const vector<Vertex>& vertrexBuffer, const vector<uint32>& indexBuffer) override;
 		void Render() override;
+		void SetTransform(const Transform& t) override { transform = t; }
+
+	private:
+		void CreateVertexBuffer(const vector<Vertex>& buffer);
+		void CreateIndexBuffer(const vector<uint32>& buffer);
 
 	private:
 		ComPtr<ID3D12Resource>		vertexBuffer;
 		D3D12_VERTEX_BUFFER_VIEW	vertexBufferView = {};
-		UINT vertexCount = 0;
+		uint32 vertexCount = 0;
+
+		ComPtr<ID3D12Resource>		indexBuffer;
+		D3D12_INDEX_BUFFER_VIEW		indexBufferView = {};
+		uint32 indexCount = 0;
+
+		Transform transform = {};
 	};
 }

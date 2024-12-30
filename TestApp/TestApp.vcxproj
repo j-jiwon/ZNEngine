@@ -264,7 +264,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Libs\googletest\LICENSE" />
-    <None Include="Shaders\default.hlsli" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\color.hlsl">

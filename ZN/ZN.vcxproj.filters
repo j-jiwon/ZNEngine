@@ -27,6 +27,8 @@
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\RootSignature.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\Mesh.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\Shader.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\ConstantBuffer.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\TableDescriptorHeap.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\d3dx12.h" />
@@ -68,8 +70,9 @@
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Shader.h" />
     <ClInclude Include="ZNFramework\Graphics\ZNShader.h" />
     <ClInclude Include="ZNFramework\Graphics\ZNMesh.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="ZNFramework\Shaders\default.hlsli" />
+    <ClInclude Include="ZNFramework\Graphics\ZNConstantBuffer.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\ConstantBuffer.h" />
+    <ClInclude Include="ZNFramework\Graphics\ZNTableDescriptorHeap.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\TableDescriptorHeap.h" />
   </ItemGroup>
 </Project>

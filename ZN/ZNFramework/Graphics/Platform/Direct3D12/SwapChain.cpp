@@ -1,7 +1,8 @@
 #include "SwapChain.h"
-#include "../../../Window/ZNWindow.h"
-#include "../../ZNCommandQueue.h"
+
+#include "ZNFramework.h"
 #include "CommandQueue.h"
+#include "GraphicsDevice.h"
 
 using namespace ZNFramework;
 

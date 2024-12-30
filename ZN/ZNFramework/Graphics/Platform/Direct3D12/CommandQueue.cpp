@@ -1,6 +1,10 @@
 #include "CommandQueue.h"
 #include "SwapChain.h"
-#include "../../ZNGraphicsContext.h"
+#include "RootSignature.h"
+#include "ConstantBuffer.h"
+#include "GraphicsDevice.h"
+#include "TableDescriptorHeap.h"
+#include "ZNFramework.h"
 
 using namespace ZNFramework;
 
@@ -42,6 +46,15 @@ void CommandQueue::RenderBegin()
 		swapChain->GetBackRTVBuffer().Get(),
 		D3D12_RESOURCE_STATE_PRESENT,
 		D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+	RootSignature* rootSignature = GraphicsContext::GetInstance().GetAs<RootSignature>();
+	commandList->SetGraphicsRootSignature(rootSignature->GetSignature().Get());
+	ConstantBuffer* constantBuffer = GraphicsContext::GetInstance().GetAs<ConstantBuffer>();
+	constantBuffer->Clear();
+	TableDescriptorHeap* tableDescHeap = GraphicsContext::GetInstance().GetAs<TableDescriptorHeap>();
+	tableDescHeap->Clear();
+	ID3D12DescriptorHeap* descHeap = tableDescHeap->GetDescriptorHeap().Get();
+	commandList->SetDescriptorHeaps(1, &descHeap);
 
 	commandList->ResourceBarrier(1, &barrier);
 

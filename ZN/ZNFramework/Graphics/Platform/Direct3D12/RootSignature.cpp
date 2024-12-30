@@ -1,7 +1,6 @@
 #include "RootSignature.h"
 #include "GraphicsDevice.h"
-#include "../../ZNGraphicsContext.h"
-#include "../../../../ZNFramework.h"
+#include "ZNFramework.h"
 
 using namespace ZNFramework;
 
@@ -17,7 +16,14 @@ void RootSignature::Init()
 {
 	GraphicsDevice* device = GraphicsContext::GetInstance().GetAs<GraphicsDevice>();
 
-	D3D12_ROOT_SIGNATURE_DESC signatureDesc = CD3DX12_ROOT_SIGNATURE_DESC(D3D12_DEFAULT);
+	CD3DX12_DESCRIPTOR_RANGE ranges[] =
+	{
+		CD3DX12_DESCRIPTOR_RANGE(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, CBV_REGISTER_COUNT, 0), // b0~b4
+	};
+
+	CD3DX12_ROOT_PARAMETER param[1];
+	param[0].InitAsDescriptorTable(_countof(ranges), ranges);
+	D3D12_ROOT_SIGNATURE_DESC signatureDesc = CD3DX12_ROOT_SIGNATURE_DESC(_countof(param), param);
 	signatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 
 	ComPtr<ID3DBlob> blobSignature;

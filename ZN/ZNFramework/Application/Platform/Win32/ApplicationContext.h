@@ -32,9 +32,11 @@ namespace ZNFramework
 		class ZNCommandQueue* commandQueue = nullptr;
 		class ZNSwapChain* swapChain = nullptr;
 		class ZNRootSignature* rootSignature = nullptr;
+		class ZNTableDescriptorHeap* tableDescriptorHeap = nullptr;
 
 		class ZNShader* defaultShader = nullptr;
 		class ZNMesh* defaultMesh = nullptr;
+		class ZNConstantBuffer* constantBuffer = nullptr;
 	};
 }
 

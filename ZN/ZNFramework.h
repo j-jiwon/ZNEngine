@@ -1,5 +1,14 @@
 #pragma once
 
+using int8 = __int8;
+using int16 = __int16;
+using int32 = __int32;
+using int64 = __int64;
+using uint8 = unsigned __int8;
+using uint16 = unsigned __int16;
+using uint32 = unsigned __int32;
+using uint64 = unsigned __int64;
+
 #include <filesystem>
 
 #include "ZNFramework/Math/ZNPoint.h"
@@ -28,11 +37,14 @@
 #include "ZNFramework/Graphics/ZNRootSignature.h"
 #include "ZNFramework/Graphics/ZNMesh.h"
 #include "ZNFramework/Graphics/ZNShader.h"
+#include "ZNFramework/Graphics/ZNConstantBuffer.h"
+#include "ZNFramework/Graphics/ZNTableDescriptorHeap.h"
 
 #include "ZNFramework/Graphics/ZNGraphicsContext.h"
 
 #include "ZNFramework/Graphics/Platform/Direct3D12/ZNUtils.h"
 //#include "ZNFramework/ZNGeometry.h" 
+
 
 namespace ZNFramework
 {
@@ -47,6 +59,11 @@ namespace ZNFramework
 	
 		ZNVector3 pos;
 		ZNVector4 color;
+	};
+
+	struct Transform
+	{
+		ZNVector4 offset;
 	};
 }
 

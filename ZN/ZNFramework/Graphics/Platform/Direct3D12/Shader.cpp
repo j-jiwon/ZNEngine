@@ -2,7 +2,7 @@
 #include "GraphicsDevice.h"
 #include "RootSignature.h"
 #include "CommandQueue.h"
-#include "../../ZNGraphicsContext.h"
+#include "ZNFramework.h"
 
 using namespace ZNFramework;
 
@@ -51,7 +51,7 @@ void Shader::Bind()
 
 void Shader::CreateShader(const wstring& path, const string& name, const string& version, ComPtr<ID3DBlob>& blob, D3D12_SHADER_BYTECODE& shaderByteCode)
 {
-	UINT compileFlag = 0;
+	uint32 compileFlag = 0;
 #ifdef _DEBUG
 	compileFlag = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
 #endif

@@ -2,10 +2,8 @@
 #ifdef _WIN32
 #include <Windows.h>
 #include "ApplicationContext.h"
-#include "../../../Graphics/ZNGraphicsContext.h"
-#include "../../../Graphics/Platform/GraphicsAPI.h"
-#include "../../../Window/ZNWindow.h"
-#include "../../../../ZNFramework.h"
+#include "ZNFramework.h"
+#include "ZNFramework/Graphics/Platform/GraphicsAPI.h"
 
 using namespace ZNFramework;
 
@@ -58,11 +56,19 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
 
     defaultShader = ZNFramework::Platform::CreateShader();
     defaultMesh = ZNFramework::Platform::CreateMesh();
+
+    constantBuffer = ZNFramework::Platform::CreateConstantBuffer();
+    GraphicsContext::GetInstance().SetConstantBuffer(constantBuffer);
     
+    tableDescriptorHeap = ZNFramework::Platform::CreateTableDescriptorHeap();
+    GraphicsContext::GetInstance().SetTableDescriptorHeap(tableDescriptorHeap);
+
     // initialize
     commandQueue->Init(swapChain);
     swapChain->Init(commandQueue);
     rootSignature->Init();
+    constantBuffer->Init(sizeof(Transform), 256);
+    tableDescriptorHeap->Init(256);
     
     // resize
     void* handler = static_cast<void*>(swapChain);
@@ -83,7 +89,18 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
             {ZNVector3(0.5f, -0.5f, 0.5f), ZNVector4(0.f, 1.0f, 0.f, 1.f)},
             {ZNVector3(-0.5f, -0.5f, 0.5f), ZNVector4(0.f, 0.f, 1.f, 1.f)}
         };
-        defaultMesh->Init(vertices);
+        std::vector<uint32> indexVec;
+        {
+            indexVec.push_back(0);
+            indexVec.push_back(1);
+            indexVec.push_back(2);
+        }
+        {
+            indexVec.push_back(0);
+            indexVec.push_back(2);
+            indexVec.push_back(3);
+        }
+        defaultMesh->Init(vertices, indexVec);
         defaultMesh->Render();
     }
 }
@@ -102,7 +119,13 @@ void ApplicationContext::Render()
     RenderBegin();
 
     defaultShader->Bind();
-    defaultMesh->Render();
+    {
+        Transform t;
+        t.offset = ZNVector4(0.0f, 0.f, 0.f, 0.f);
+        defaultMesh->SetTransform(t);
+
+        defaultMesh->Render();
+    }
 
     RenderEnd();
 }

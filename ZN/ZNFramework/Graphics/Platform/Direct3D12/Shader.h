@@ -1,6 +1,6 @@
 #pragma once
+#include "Graphics/ZNShader.h"
 #include "ZNUtils.h"
-#include "../../ZNShader.h"
 
 using namespace std;
 

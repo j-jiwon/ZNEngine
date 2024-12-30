@@ -5,6 +5,8 @@ namespace ZNFramework
     class ZNGraphicsDevice;
     class ZNCommandQueue;
     class ZNRootSignature;
+    class ZNConstantBuffer;
+    class ZNTableDescriptorHeap;
 
     class GraphicsContext
     {
@@ -30,6 +32,14 @@ namespace ZNFramework
             {
                 return dynamic_cast<T*>(rootSignature);
             }
+            else if constexpr (std::is_base_of_v<ZNConstantBuffer, T>)
+            {
+                return dynamic_cast<T*>(constantBuffer);
+            }
+            else if constexpr (std::is_base_of_v<ZNTableDescriptorHeap, T>)
+            {
+                return dynamic_cast<T*>(descHeap);
+            }
             else
             {
                 static_assert(std::is_same_v<T, void>, "Unsupported type for GetAs");
@@ -49,10 +59,20 @@ namespace ZNFramework
         void SetRootSignature(ZNRootSignature* inSignature) { rootSignature = inSignature; }
         ZNRootSignature* GetRootSignature() const { return rootSignature; }
 
+        // ConstantBuffer
+        void SetConstantBuffer(ZNConstantBuffer* inConstantBuffer) { constantBuffer = inConstantBuffer; }
+        ZNConstantBuffer* GetConstantBuffer() const { return constantBuffer; }
+
+        // TableDescriptorHeap
+        void SetTableDescriptorHeap(ZNTableDescriptorHeap* inDescHeap) { descHeap = inDescHeap; }
+        ZNTableDescriptorHeap* GetTableDescriptorHeap() const { return descHeap; }
+
     private:
         ZNGraphicsDevice* device = nullptr;
         ZNCommandQueue* queue = nullptr;
         ZNRootSignature* rootSignature = nullptr;
+        ZNConstantBuffer* constantBuffer = nullptr;
+        ZNTableDescriptorHeap* descHeap = nullptr;
 
         GraphicsContext() = default;
         ~GraphicsContext() = default;

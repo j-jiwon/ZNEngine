@@ -1,11 +1,11 @@
 #pragma once
-#include "../../ZNCommandQueue.h"
+#include "Graphics/ZNCommandQueue.h"
 #include "ZNUtils.h"
-#include "GraphicsDevice.h"
 
 namespace ZNFramework
 {
     class GraphicsDevice;
+    class SwapChain;
     class CommandQueue : public ZNCommandQueue
     {
     public:
@@ -27,10 +27,10 @@ namespace ZNFramework
         ComPtr<ID3D12GraphicsCommandList> commandList;
 
         ComPtr<ID3D12Fence> fence;
-        UINT fenceValue = 0;
+        uint32 fenceValue = 0;
         HANDLE fenceEvent = INVALID_HANDLE_VALUE;
 
         GraphicsDevice* device;
-        class SwapChain* swapChain;
+        SwapChain* swapChain;
     };
 }
