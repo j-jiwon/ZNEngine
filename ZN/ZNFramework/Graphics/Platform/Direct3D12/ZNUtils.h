@@ -18,14 +18,44 @@ inline void ThrowIfFailed(HRESULT hr)
     if (FAILED(hr))
     {
         auto msg = std::system_category().message(hr);
+		printf("RESULT: 0x%08X\n", hr);
         throw std::exception(msg.c_str());
     }
 }
+
+enum class CBV_REGISTER
+{
+	b0,
+	b1,
+	b2,
+	b3,
+	b4,
+
+	END
+};
+
+enum
+{
+	SWAP_CHAIN_BUFFER_COUNT = 2,
+	CBV_REGISTER_COUNT = CBV_REGISTER::END,
+	REGISTER_COUNT = CBV_REGISTER::END
+};
 
 #ifndef ReleaseCom
 #define ReleaseCom(x) { if(x){ x->Release(); x = 0; } }
 #endif
 
+//namespace VectorMath {
+//	constexpr DirectX::XMFLOAT4X4 Identity4X4() {
+//		DirectX::XMFLOAT4X4 i{
+//			1.0f, 0.0f, 0.0f, 0.0f,
+//			0.0f, 1.0f, 0.0f, 0.0f,
+//			0.0f, 0.0f, 1.0f, 0.0f,
+//			0.0f, 0.0f, 0.0f, 1.0f };
+//
+//		return i;
+//	}
+//} 
 /*
 namespace VectorMath {
 	constexpr DirectX::XMFLOAT4X4 Identity4X4() {

@@ -1,18 +1,15 @@
 #pragma once
-#include "ZNCommandQueue.h"
-#include "ZNCommandList.h"
 
 namespace ZNFramework
 {
+	class ZNCommandQueue;
+	class ZNSwapChain;
 	class ZNGraphicsDevice
 	{
 	public:
 		ZNGraphicsDevice() = default;
 		virtual ~ZNGraphicsDevice() noexcept = default;
 
-		virtual ZNCommandQueue* CreateCommandQueue() = 0;
-		virtual ZNCommandList* CreateCommandList() = 0;
-
-		static ZNGraphicsDevice* CreateGraphicsDevice();
+		inline static ZNGraphicsDevice* CreateGraphicsDevice();
 	};
 }

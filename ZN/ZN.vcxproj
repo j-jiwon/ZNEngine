@@ -162,7 +162,7 @@
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <ObjectFileName>$(IntDir)%(RelativeDir)</ObjectFileName>
       <AdditionalOptions>/Qpar %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)ZNFramework;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
@@ -192,7 +192,7 @@
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <ObjectFileName>$(IntDir)%(RelativeDir)</ObjectFileName>
       <AdditionalOptions>/Qpar %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)ZNFramework;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
@@ -210,18 +210,27 @@
   <ItemGroup>
     <ClInclude Include="ZNFramework\Application\ZNApplication.h" />
     <ClInclude Include="ZNFramework\Application\ZNApplicationContextInterface.h" />
-    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\CommandList.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\CommandQueue.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\ConstantBuffer.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\d3dx12.h" />
     <ClInclude Include="ZN.h" />
     <ClInclude Include="ZNFramework.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\GraphicsDevice.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Mesh.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\RootSignature.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Shader.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\SwapChain.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\TableDescriptorHeap.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\GraphicsAPI.h" />
+    <ClInclude Include="ZNFramework\Graphics\ZNConstantBuffer.h" />
+    <ClInclude Include="ZNFramework\Graphics\ZNGraphicsContext.h" />
+    <ClInclude Include="ZNFramework\Graphics\ZNMesh.h" />
+    <ClInclude Include="ZNFramework\Graphics\ZNRootSignature.h" />
+    <ClInclude Include="ZNFramework\Graphics\ZNShader.h" />
     <ClInclude Include="ZNFramework\Graphics\ZNSwapChain.h" />
-    <ClInclude Include="ZNFramework\Graphics\ZNCommandList.h" />
     <ClInclude Include="ZNFramework\Graphics\ZNCommandQueue.h" />
     <ClInclude Include="ZNFramework\Graphics\ZNGraphicsDevice.h" />
+    <ClInclude Include="ZNFramework\Graphics\ZNTableDescriptorHeap.h" />
     <ClInclude Include="ZNFramework\Window\Platform\WindowPlatform.h" />
     <ClInclude Include="ZNFramework\Window\Platform\Win32\Window.h" />
     <ClInclude Include="ZNFramework\ZNCamera.h" />
@@ -230,6 +239,7 @@
     <ClInclude Include="ZNFramework\ZNTimer.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\ZNUtils.h" />
     <ClInclude Include="ZNInclude.h" />
+    <ClInclude Include="ZNFramework\Math\ZNPoint.h" />
     <ClInclude Include="ZNFramework\Math\ZNAffineTransform2.h" />
     <ClInclude Include="ZNFramework\Math\ZNAffineTransform3.h" />
     <ClInclude Include="ZNFramework\Math\ZNLinearTransform2.h" />
@@ -247,10 +257,14 @@
     <ClCompile Include="ZNFramework\Application\Platform\Win32\ApplicationContext.cpp" />
     <ClCompile Include="ZNFramework\Application\Platform\Win32\ApplicationContext.h" />
     <ClCompile Include="ZNFramework\Application\ZNApplication.cpp" />
-    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\CommandList.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\CommandQueue.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\ConstantBuffer.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\GraphicsDevice.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\Mesh.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\RootSignature.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\Shader.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\SwapChain.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\TableDescriptorHeap.cpp" />
     <ClCompile Include="ZNFramework\Graphics\ZNGraphicsDevice.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\ZNUtils.cpp" />
     <ClCompile Include="ZNFramework\Window\Platform\Win32\Window.cpp" />
