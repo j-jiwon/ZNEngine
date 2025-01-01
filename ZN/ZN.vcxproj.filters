@@ -31,6 +31,7 @@
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\TableDescriptorHeap.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\Texture.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\DDSTextureLoader12.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\DepthStencilBuffer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\d3dx12.h" />
@@ -79,5 +80,7 @@
     <ClInclude Include="ZNFramework\Graphics\ZNTexture.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Texture.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\DDSTextureLoader12.h" />
+    <ClInclude Include="ZNFramework\Graphics\ZNDepthStencilBuffer.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\DepthStencilBuffer.h" />
   </ItemGroup>
 </Project>

@@ -64,12 +64,16 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
     tableDescriptorHeap = ZNFramework::Platform::CreateTableDescriptorHeap();
     GraphicsContext::GetInstance().SetTableDescriptorHeap(tableDescriptorHeap);
 
+    depthStencilBuffer = ZNFramework::Platform::CreateDepthStencilBuffer();
+    GraphicsContext::GetInstance().SetDepthStencilBuffer(depthStencilBuffer);
+
     // initialize
     commandQueue->Init(swapChain);
     swapChain->Init(commandQueue);
     rootSignature->Init();
     constantBuffer->Init(sizeof(Transform), 256);
     tableDescriptorHeap->Init(256);
+    depthStencilBuffer->Init();
     
     // resize
     void* handler = static_cast<void*>(swapChain);
@@ -124,6 +128,7 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
 void ApplicationContext::OnResize(uint32 width, uint32 height)
 {
     swapChain->Resize(width, height);
+    depthStencilBuffer->Init();
 }
 
 void ApplicationContext::Update()
@@ -136,11 +141,17 @@ void ApplicationContext::Render()
 
     defaultShader->Bind();
     {
+        Transform t1;
+        t1.offset = ZNVector4(0.25f, 0.25f, 0.2f, 0.f);
+        defaultMesh->SetTransform(t1);
+        defaultMesh->SetTexture(defaultTexture);
+        defaultMesh->Render();
+    }
+    {
         Transform t;
-        t.offset = ZNVector4(0.0f, 0.f, 0.f, 0.f);
+        t.offset = ZNVector4(0.0f, 0.f, 0.3f, 0.f);
         defaultMesh->SetTransform(t);
         defaultMesh->SetTexture(defaultTexture);
-
         defaultMesh->Render();
     }
 

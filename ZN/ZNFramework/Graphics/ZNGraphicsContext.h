@@ -6,6 +6,7 @@ namespace ZNFramework
     class ZNCommandQueue;
     class ZNRootSignature;
     class ZNConstantBuffer;
+    class ZNDepthStencilBuffer;
     class ZNTableDescriptorHeap;
 
     class GraphicsContext
@@ -40,6 +41,10 @@ namespace ZNFramework
             {
                 return dynamic_cast<T*>(descHeap);
             }
+            else if constexpr (std::is_base_of_v<ZNDepthStencilBuffer, T>)
+            {
+                return dynamic_cast<T*>(depthStencilBuffer);
+            }
             else
             {
                 static_assert(std::is_same_v<T, void>, "Unsupported type for GetAs");
@@ -63,6 +68,10 @@ namespace ZNFramework
         void SetConstantBuffer(ZNConstantBuffer* inConstantBuffer) { constantBuffer = inConstantBuffer; }
         ZNConstantBuffer* GetConstantBuffer() const { return constantBuffer; }
 
+        // DepthStencilBuffer
+        void SetDepthStencilBuffer(ZNDepthStencilBuffer* inDepthStencilBuffer) { depthStencilBuffer = inDepthStencilBuffer; }
+        ZNDepthStencilBuffer* GetDepthStencilBuffer() const { return depthStencilBuffer; }
+
         // TableDescriptorHeap
         void SetTableDescriptorHeap(ZNTableDescriptorHeap* inDescHeap) { descHeap = inDescHeap; }
         ZNTableDescriptorHeap* GetTableDescriptorHeap() const { return descHeap; }
@@ -72,6 +81,7 @@ namespace ZNFramework
         ZNCommandQueue* queue = nullptr;
         ZNRootSignature* rootSignature = nullptr;
         ZNConstantBuffer* constantBuffer = nullptr;
+        ZNDepthStencilBuffer* depthStencilBuffer = nullptr;
         ZNTableDescriptorHeap* descHeap = nullptr;
 
         GraphicsContext() = default;

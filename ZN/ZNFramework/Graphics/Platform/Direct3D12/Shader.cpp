@@ -2,6 +2,7 @@
 #include "GraphicsDevice.h"
 #include "RootSignature.h"
 #include "CommandQueue.h"
+#include "DepthStencilBuffer.h"
 #include "ZNFramework.h"
 
 using namespace ZNFramework;
@@ -32,13 +33,14 @@ void Shader::Load(const wstring& path)
 
 	pipelineDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 	pipelineDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-	pipelineDesc.DepthStencilState.DepthEnable = FALSE;
-	pipelineDesc.DepthStencilState.StencilEnable = FALSE;
+	pipelineDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 	pipelineDesc.SampleMask = UINT_MAX;
 	pipelineDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 	pipelineDesc.NumRenderTargets = 1;
 	pipelineDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 	pipelineDesc.SampleDesc.Count = 1;
+	DepthStencilBuffer* dsBuffer = GraphicsContext::GetInstance().GetAs<DepthStencilBuffer>();
+	pipelineDesc.DSVFormat = dsBuffer->GetDSVFormat();
 
 	GraphicsDevice* device = GraphicsContext::GetInstance().GetAs<GraphicsDevice>();
 	device->Device()->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&pipelineState));

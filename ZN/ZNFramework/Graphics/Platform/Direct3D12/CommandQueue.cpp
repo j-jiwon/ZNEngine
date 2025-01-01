@@ -4,6 +4,7 @@
 #include "ConstantBuffer.h"
 #include "GraphicsDevice.h"
 #include "TableDescriptorHeap.h"
+#include "DepthStencilBuffer.h"
 #include "ZNFramework.h"
 
 using namespace ZNFramework;
@@ -72,6 +73,12 @@ void CommandQueue::RenderBegin()
 	float lightSteelBlue[4] = { 0.6902, 0.7686, 0.8706, 1.0 };
 	commandList->ClearRenderTargetView(backBufferView, lightSteelBlue, 0, nullptr);
 	commandList->OMSetRenderTargets(1, &backBufferView, FALSE, nullptr);
+
+	// depth stencil
+	DepthStencilBuffer* dsBuffer = GraphicsContext::GetInstance().GetAs<DepthStencilBuffer>();
+	D3D12_CPU_DESCRIPTOR_HANDLE depthStencilView = dsBuffer->GetDSVCpuHandle();
+	commandList->OMSetRenderTargets(1, &backBufferView, FALSE, &depthStencilView);
+	commandList->ClearDepthStencilView(depthStencilView, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 }
 
 void CommandQueue::RenderEnd()

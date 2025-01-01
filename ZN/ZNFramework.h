@@ -40,6 +40,7 @@ using uint64 = unsigned __int64;
 #include "ZNFramework/Graphics/ZNConstantBuffer.h"
 #include "ZNFramework/Graphics/ZNTableDescriptorHeap.h"
 #include "ZNFramework/Graphics/ZNTexture.h"
+#include "ZNFramework/Graphics/ZNDepthStencilBuffer.h"
 
 #include "ZNFramework/Graphics/ZNGraphicsContext.h"
 
