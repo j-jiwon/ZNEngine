@@ -84,11 +84,13 @@
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)Build\$(Platform)_$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)Build\Intermediates\$(ProjectName)_$(Platform)_$(Configuration)\</IntDir>
+    <LibraryPath>$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)Build\$(Platform)_$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)Build\Intermediates\$(ProjectName)_$(Platform)_$(Configuration)\</IntDir>
+    <LibraryPath>$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -162,7 +164,7 @@
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <ObjectFileName>$(IntDir)%(RelativeDir)</ObjectFileName>
       <AdditionalOptions>/Qpar %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(ProjectDir)ZNFramework;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Library\Include;$(ProjectDir)ZNFramework;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
@@ -172,8 +174,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalDependencies>d3d12.lib;dxgi.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>d3d12.lib;dxgi.lib;d3dcompiler.lib;DirectXTex.lib;</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)Library\Lib\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -192,7 +194,7 @@
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <ObjectFileName>$(IntDir)%(RelativeDir)</ObjectFileName>
       <AdditionalOptions>/Qpar %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(ProjectDir)ZNFramework;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Library\Include;$(ProjectDir)ZNFramework;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
@@ -203,8 +205,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalDependencies>d3d12.lib;dxgi.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>d3d12.lib;dxgi.lib;d3dcompiler.lib;DirectXTex.lib;</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)Library\Lib\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -215,12 +217,14 @@
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\d3dx12.h" />
     <ClInclude Include="ZN.h" />
     <ClInclude Include="ZNFramework.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\DDSTextureLoader12.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\GraphicsDevice.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Mesh.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\RootSignature.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Shader.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\SwapChain.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\TableDescriptorHeap.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Texture.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\GraphicsAPI.h" />
     <ClInclude Include="ZNFramework\Graphics\ZNConstantBuffer.h" />
     <ClInclude Include="ZNFramework\Graphics\ZNGraphicsContext.h" />
@@ -231,6 +235,7 @@
     <ClInclude Include="ZNFramework\Graphics\ZNCommandQueue.h" />
     <ClInclude Include="ZNFramework\Graphics\ZNGraphicsDevice.h" />
     <ClInclude Include="ZNFramework\Graphics\ZNTableDescriptorHeap.h" />
+    <ClInclude Include="ZNFramework\Graphics\ZNTexture.h" />
     <ClInclude Include="ZNFramework\Window\Platform\WindowPlatform.h" />
     <ClInclude Include="ZNFramework\Window\Platform\Win32\Window.h" />
     <ClInclude Include="ZNFramework\ZNCamera.h" />
@@ -259,12 +264,14 @@
     <ClCompile Include="ZNFramework\Application\ZNApplication.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\CommandQueue.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\ConstantBuffer.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\DDSTextureLoader12.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\GraphicsDevice.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\Mesh.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\RootSignature.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\Shader.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\SwapChain.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\TableDescriptorHeap.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\Texture.cpp" />
     <ClCompile Include="ZNFramework\Graphics\ZNGraphicsDevice.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\ZNUtils.cpp" />
     <ClCompile Include="ZNFramework\Window\Platform\Win32\Window.cpp" />

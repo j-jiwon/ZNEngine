@@ -3,6 +3,7 @@
 #include "CommandQueue.h"
 #include "ConstantBuffer.h"
 #include "TableDescriptorHeap.h"
+#include "Texture.h"
 
 using namespace ZNFramework;
 
@@ -25,16 +26,23 @@ void Mesh::Render()
 	CommandQueue* queue = GraphicsContext::GetInstance().GetAs<CommandQueue>();
 	queue->CommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	queue->CommandList()->IASetVertexBuffers(0, 1, &vertexBufferView); // Slot: (0~15)
+	queue->CommandList()->IASetIndexBuffer(&indexBufferView);
 
 	ConstantBuffer* constantBuffer = GraphicsContext::GetInstance().GetAs<ConstantBuffer>();
 	TableDescriptorHeap* tableDescHeap = GraphicsContext::GetInstance().GetAs<TableDescriptorHeap>();
 	{
 		D3D12_CPU_DESCRIPTOR_HANDLE handle1 = constantBuffer->PushData(0, &transform, sizeof(transform));
 		tableDescHeap->SetCBV(handle1, CBV_REGISTER::b1);
+		tableDescHeap->SetSRV(texture->GetCpuHandle(), SRV_REGISTER::t0);
 	}
 	tableDescHeap->CommitTable();
 
-	queue->CommandList()->DrawInstanced(vertexCount, 1, 0, 0);
+	queue->CommandList()->DrawIndexedInstanced(indexCount, 1, 0, 0, 0);
+}
+
+void Mesh::SetTexture(ZNTexture* inTexture)
+{
+	texture = dynamic_cast<Texture*>(inTexture);
 }
 
 void Mesh::CreateVertexBuffer(const vector<Vertex>& buffer)

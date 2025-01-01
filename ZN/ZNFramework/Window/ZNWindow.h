@@ -14,12 +14,12 @@ namespace ZNFramework
 		virtual void Show() = 0;
 		virtual void Hide() = 0;
 
-		virtual uint32_t Width() const = 0;
-		virtual uint32_t Height() const = 0;
+		virtual uint32 Width() const = 0;
+		virtual uint32 Height() const = 0;
 		virtual void* PlatformHandle() const = 0;
 
 		using EventHandler = const void*;
-		using ResizeEventCallback = std::function<void(size_t, size_t)>;
+		using ResizeEventCallback = std::function<void(uint32, uint32)>;
 
 		void AddEventHandler(EventHandler handler, ResizeEventCallback callback)
 		{

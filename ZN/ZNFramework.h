@@ -39,6 +39,7 @@ using uint64 = unsigned __int64;
 #include "ZNFramework/Graphics/ZNShader.h"
 #include "ZNFramework/Graphics/ZNConstantBuffer.h"
 #include "ZNFramework/Graphics/ZNTableDescriptorHeap.h"
+#include "ZNFramework/Graphics/ZNTexture.h"
 
 #include "ZNFramework/Graphics/ZNGraphicsContext.h"
 
@@ -52,13 +53,14 @@ namespace ZNFramework
 	{
 		Vertex() {}
 
-		Vertex(ZNVector3 p, ZNVector4 c)
-			: pos(p), color(c)
+		Vertex(ZNVector3 p, ZNVector4 c, ZNVector2 u)
+			: pos(p), color(c), uv(u)
 		{
 		}
 	
 		ZNVector3 pos;
 		ZNVector4 color;
+		ZNVector2 uv;
 	};
 
 	struct Transform
@@ -73,4 +75,10 @@ inline std::filesystem::path GetExecutablePath()
 	GetModuleFileNameW(nullptr, buffer, MAX_PATH);
 	std::filesystem::path exePath(buffer);
 	return exePath.parent_path();
+}
+
+inline std::filesystem::path GetResourcePath()
+{
+	std::filesystem::path ResourcePath = GetExecutablePath().parent_path().parent_path() / L"Resources";
+	return ResourcePath;
 }

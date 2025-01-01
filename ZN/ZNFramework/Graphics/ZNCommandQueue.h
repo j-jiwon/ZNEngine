@@ -14,5 +14,6 @@ namespace ZNFramework
 		virtual void Init(ZNSwapChain* inSwapChain) = 0;
 		virtual void RenderBegin() = 0;
 		virtual void RenderEnd() = 0;
+		virtual void FlushResourceQueue() = 0;
 	};
 }

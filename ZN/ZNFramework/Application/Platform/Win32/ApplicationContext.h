@@ -15,7 +15,7 @@ namespace ZNFramework
 
 		void Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevice) override;
 
-		void OnResize(size_t width, size_t height);
+		void OnResize(uint32 width, uint32 height);
 		void Update();
 		
 		void Render();
@@ -36,6 +36,7 @@ namespace ZNFramework
 
 		class ZNShader* defaultShader = nullptr;
 		class ZNMesh* defaultMesh = nullptr;
+		class ZNTexture* defaultTexture = nullptr;
 		class ZNConstantBuffer* constantBuffer = nullptr;
 	};
 }

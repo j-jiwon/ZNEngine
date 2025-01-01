@@ -6,12 +6,14 @@ using namespace std;
 
 namespace ZNFramework
 {
+	class Texture;
 	class Mesh : public ZNMesh
 	{
 	public:
 		void Init(const vector<Vertex>& vertrexBuffer, const vector<uint32>& indexBuffer) override;
 		void Render() override;
 		void SetTransform(const Transform& t) override { transform = t; }
+		void SetTexture(ZNTexture* inTexture) override;
 
 	private:
 		void CreateVertexBuffer(const vector<Vertex>& buffer);
@@ -27,5 +29,6 @@ namespace ZNFramework
 		uint32 indexCount = 0;
 
 		Transform transform = {};
+		Texture* texture = {};
 	};
 }

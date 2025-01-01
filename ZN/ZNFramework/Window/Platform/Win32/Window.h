@@ -19,8 +19,8 @@ namespace ZNFramework
 		void Destroy() override;
 		void Show() override;
 		void Hide() override;
-		uint32_t Width() const override { return width; }
-		uint32_t Height() const override { return height; }
+		uint32 Width() const override { return width; }
+		uint32 Height() const override { return height; }
 		void* PlatformHandle() const override { return hwnd; };
 
 	protected:
@@ -28,7 +28,7 @@ namespace ZNFramework
 
 	private:
 		HWND hwnd; // win32
-		uint32_t width;
-		uint32_t height;
+		uint32 width;
+		uint32 height;
 	};
 }

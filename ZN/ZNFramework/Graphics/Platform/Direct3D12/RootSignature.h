@@ -12,6 +12,11 @@ namespace ZNFramework
 		ComPtr<ID3D12RootSignature> GetSignature() { return signature; }
 
 	private:
+		void CreateRootSignature();
+		void CreateSamplerDesc();
+
+	private:
 		ComPtr<ID3D12RootSignature> signature;
+		D3D12_STATIC_SAMPLER_DESC samplerDesc;
 	};
 }

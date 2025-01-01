@@ -12,6 +12,7 @@ namespace ZNFramework::Platform
 		ZNRootSignature* CreateRootSignature();
 		ZNShader* CreateShader();
 		ZNMesh* CreateMesh();
+		ZNTexture* CreateTexture();
 		ZNConstantBuffer* CreateConstantBuffer();
 		ZNTableDescriptorHeap* CreateTableDescriptorHeap();
 	}
@@ -40,6 +41,10 @@ namespace ZNFramework::Platform
 	inline ZNMesh* CreateMesh()
 	{
 		return Direct3D::CreateMesh();
+	}
+	inline ZNTexture* CreateTexture()
+	{
+		return Direct3D::CreateTexture();
 	}
 	inline ZNConstantBuffer* CreateConstantBuffer()
 	{

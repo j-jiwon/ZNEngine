@@ -7,6 +7,12 @@
 #include <system_error>
 #include <assert.h>
 #include <D3Dcompiler.h>
+
+#include <DirectXTex/DirectXTex.h>
+#include <DirectXTex/DirectXTex.inl>
+
+#include "ZNFramework.h"
+
 //#include <DirectXMath.h>
 //#include <DirectXCollision.h>
 //#include <unordered_map>
@@ -34,10 +40,27 @@ enum class CBV_REGISTER
 	END
 };
 
+enum class SRV_REGISTER : uint8
+{
+	t0 = static_cast<uint8>(CBV_REGISTER::END),
+	t1,
+	t2,
+	t3,
+	t4,
+	t5,
+	t6,
+	t7,
+	t8,
+	t9,
+
+	END
+};
+
 enum
 {
 	SWAP_CHAIN_BUFFER_COUNT = 2,
 	CBV_REGISTER_COUNT = CBV_REGISTER::END,
+	SRV_REGISTER_COUNT = SRV_REGISTER::END,
 	REGISTER_COUNT = CBV_REGISTER::END
 };
 

@@ -29,6 +29,8 @@
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\Shader.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\ConstantBuffer.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\TableDescriptorHeap.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\Texture.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\DDSTextureLoader12.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\d3dx12.h" />
@@ -74,5 +76,8 @@
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\ConstantBuffer.h" />
     <ClInclude Include="ZNFramework\Graphics\ZNTableDescriptorHeap.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\TableDescriptorHeap.h" />
+    <ClInclude Include="ZNFramework\Graphics\ZNTexture.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Texture.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\DDSTextureLoader12.h" />
   </ItemGroup>
 </Project>

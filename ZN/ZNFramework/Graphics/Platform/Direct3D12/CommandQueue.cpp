@@ -33,6 +33,9 @@ void CommandQueue::Init(ZNSwapChain* inSwapChain)
 
 	commandList->Close();
 
+	device->Device()->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&resourceCommandAllocator));
+	device->Device()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, resourceCommandAllocator.Get(), nullptr, IID_PPV_ARGS(&resourceCommandList));
+
 	device->Device()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence));
 	fenceEvent = ::CreateEvent(nullptr, FALSE, FALSE, nullptr);
 }
@@ -89,6 +92,19 @@ void CommandQueue::RenderEnd()
 	WaitSync();
 
 	swapChain->SwapIndex();
+}
+
+void CommandQueue::FlushResourceQueue()
+{
+	resourceCommandList->Close();
+
+	ID3D12CommandList* commandListArray[] = {resourceCommandList.Get()};
+	queue->ExecuteCommandLists(_countof(commandListArray), commandListArray);
+
+	WaitSync();
+
+	resourceCommandAllocator->Reset();
+	resourceCommandList->Reset(resourceCommandAllocator.Get(), nullptr);
 }
 
 void CommandQueue::WaitSync()

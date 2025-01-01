@@ -29,7 +29,7 @@ void SwapChain::Init(ZNCommandQueue* inQueue)
     CreateRTV();
 }
 
-void SwapChain::Resize(uint32_t inWidth, uint32_t inHeight)
+void SwapChain::Resize(uint32 inWidth, uint32 inHeight)
 {
     if (width != inWidth || height != inHeight)
     {

@@ -56,6 +56,7 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
 
     defaultShader = ZNFramework::Platform::CreateShader();
     defaultMesh = ZNFramework::Platform::CreateMesh();
+    defaultTexture = ZNFramework::Platform::CreateTexture();
 
     constantBuffer = ZNFramework::Platform::CreateConstantBuffer();
     GraphicsContext::GetInstance().SetConstantBuffer(constantBuffer);
@@ -72,7 +73,7 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
     
     // resize
     void* handler = static_cast<void*>(swapChain);
-    auto HandlerResizeEvent = [=](size_t width, size_t height) {
+    auto HandlerResizeEvent = [=](uint32 width, uint32 height) {
         OnResize(width, height);
     };
     inWindow->AddEventHandler(handler, HandlerResizeEvent);
@@ -81,14 +82,20 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
 
     // TEST 
     {
-        std::filesystem::path shaderPath = GetExecutablePath().parent_path().parent_path() / L"Shaders" / L"default.hlsli";
-        defaultShader->Load(shaderPath);
+        std::vector<Vertex> vertices(4);
+        vertices[0].pos = ZNVector3(-0.5f, 0.5f, 0.5f);
+        vertices[0].color = ZNVector4(1.f, 0.f, 0.f, 1.f);
+        vertices[0].uv = ZNVector2(0.f, 0.f);
+        vertices[1].pos = ZNVector3(0.5f, 0.5f, 0.5f);
+        vertices[1].color = ZNVector4(0.f, 1.f, 0.f, 1.f);
+        vertices[1].uv = ZNVector2(1.f, 0.f);
+        vertices[2].pos = ZNVector3(0.5f, -0.5f, 0.5f);
+        vertices[2].color = ZNVector4(0.f, 0.f, 1.f, 1.f);
+        vertices[2].uv = ZNVector2(1.f, 1.f);
+        vertices[3].pos = ZNVector3(-0.5f, -0.5f, 0.5f);
+        vertices[3].color = ZNVector4(0.f, 1.f, 0.f, 1.f);
+        vertices[3].uv = ZNVector2(0.f, 1.f);
 
-        std::vector<Vertex> vertices = {
-            {ZNVector3(0.f, 0.5f, 0.5f), ZNVector4(1.f, 0.f, 0.f, 1.f)},
-            {ZNVector3(0.5f, -0.5f, 0.5f), ZNVector4(0.f, 1.0f, 0.f, 1.f)},
-            {ZNVector3(-0.5f, -0.5f, 0.5f), ZNVector4(0.f, 0.f, 1.f, 1.f)}
-        };
         std::vector<uint32> indexVec;
         {
             indexVec.push_back(0);
@@ -100,12 +107,21 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
             indexVec.push_back(2);
             indexVec.push_back(3);
         }
+
+        std::filesystem::path shaderPath = GetResourcePath() / L"Shaders" / L"default.hlsli";
+        defaultShader->Load(shaderPath);
+
         defaultMesh->Init(vertices, indexVec);
+
+        std::filesystem::path texturePath = GetResourcePath() / L"Textures" / L"lutz.png";
+        defaultTexture->Init(texturePath);
+
+        defaultMesh->SetTexture(defaultTexture);
         defaultMesh->Render();
     }
 }
 
-void ApplicationContext::OnResize(size_t width, size_t height)
+void ApplicationContext::OnResize(uint32 width, uint32 height)
 {
     swapChain->Resize(width, height);
 }
@@ -123,6 +139,7 @@ void ApplicationContext::Render()
         Transform t;
         t.offset = ZNVector4(0.0f, 0.f, 0.f, 0.f);
         defaultMesh->SetTransform(t);
+        defaultMesh->SetTexture(defaultTexture);
 
         defaultMesh->Render();
     }
