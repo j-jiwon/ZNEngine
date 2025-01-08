@@ -1,15 +1,19 @@
 #pragma once
 #ifdef _WIN32
 #include <Windows.h>
+#include <iostream>
 #include "ApplicationContext.h"
 #include "ZNFramework.h"
 #include "ZNFramework/Graphics/Platform/GraphicsAPI.h"
 
 using namespace ZNFramework;
+using namespace std;
 
 int ApplicationContext::MessageLoop()
 {
     MSG msg;
+    timer = new ZNTimer();
+    timer->Reset();
     // loop while message is not WM_QUIT 
     // GetMessage returns Message.wParam when message loop is terminated.
     while (auto ret = GetMessage(&msg, NULL, 0, 0))
@@ -27,6 +31,7 @@ int ApplicationContext::MessageLoop()
             }
             else
             {
+                timer->Tick();
                 Update();
                 Render();
             }
@@ -44,7 +49,7 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
     }
 
     GraphicsContext::GetInstance().SetDevice(inDevice);
-    WindowContext::GetInstance().SetWindow(inWindow);
+    //WindowContext::GetInstance().SetWindow(inWindow);
 
     device = inDevice;
     commandQueue = ZNFramework::Platform::CreateCommandQueue();
@@ -80,7 +85,13 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
     auto HandlerResizeEvent = [=](uint32 width, uint32 height) {
         OnResize(width, height);
     };
-    inWindow->AddEventHandler(handler, HandlerResizeEvent);
+    auto HandlerMouseEvent = [=](MouseEvent event) {
+        OnMouseEvent(event);
+    };
+    auto HandlerKeyboardEvent = [=](KeyboardEvent event) {
+        OnKeyboardEvent(event);
+    };
+    inWindow->AddEventHandler(handler, HandlerResizeEvent, HandlerMouseEvent, HandlerKeyboardEvent);
 
     OnResize(inWindow->Width(), inWindow->Height());
 
@@ -129,6 +140,15 @@ void ApplicationContext::OnResize(uint32 width, uint32 height)
 {
     swapChain->Resize(width, height);
     depthStencilBuffer->Init();
+}
+
+void ApplicationContext::OnMouseEvent(MouseEvent event)
+{
+}
+
+void ApplicationContext::OnKeyboardEvent(KeyboardEvent event)
+{
+    std::cout << static_cast<int>(event.type) << std::endl;
 }
 
 void ApplicationContext::Update()

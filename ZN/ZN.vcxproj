@@ -238,8 +238,10 @@
     <ClInclude Include="ZNFramework\Graphics\ZNGraphicsDevice.h" />
     <ClInclude Include="ZNFramework\Graphics\ZNTableDescriptorHeap.h" />
     <ClInclude Include="ZNFramework\Graphics\ZNTexture.h" />
+    <ClInclude Include="ZNFramework\Math\ZNMath.h" />
     <ClInclude Include="ZNFramework\Window\Platform\WindowPlatform.h" />
     <ClInclude Include="ZNFramework\Window\Platform\Win32\Window.h" />
+    <ClInclude Include="ZNFramework\ZNInputDef.h" />
     <ClInclude Include="ZNFramework\ZNCamera.h" />
     <ClInclude Include="ZNFramework\ZNColor.h" />
     <ClInclude Include="ZNFramework\ZNGeometry.h" />

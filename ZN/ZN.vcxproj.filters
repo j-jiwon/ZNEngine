@@ -82,5 +82,7 @@
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\DDSTextureLoader12.h" />
     <ClInclude Include="ZNFramework\Graphics\ZNDepthStencilBuffer.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\DepthStencilBuffer.h" />
+    <ClInclude Include="ZNFramework\ZNInputDef.h" />
+    <ClInclude Include="ZNFramework\Math\ZNMath.h" />
   </ItemGroup>
 </Project>

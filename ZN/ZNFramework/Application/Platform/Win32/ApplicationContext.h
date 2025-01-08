@@ -1,7 +1,7 @@
 #pragma once
 #ifdef _WIN32
-#include "../../ZNApplicationContextInterface.h"
-#include "../../../../ZNFramework.h"
+#include "Application/ZNApplicationContextInterface.h"
+#include "ZNFramework.h"
 
 
 namespace ZNFramework
@@ -16,6 +16,8 @@ namespace ZNFramework
 		void Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevice) override;
 
 		void OnResize(uint32 width, uint32 height);
+		void OnMouseEvent(struct MouseEvent event);
+		void OnKeyboardEvent(struct KeyboardEvent event);
 		void Update();
 		
 		void Render();
@@ -26,6 +28,7 @@ namespace ZNFramework
 		// window
 		D3D12_VIEWPORT viewport = {};
 		D3D12_RECT scissorRect = {};
+		class ZNTimer* timer;
 
 		// render
 		class ZNGraphicsDevice* device = nullptr;
