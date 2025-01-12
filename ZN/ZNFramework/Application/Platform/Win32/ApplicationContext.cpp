@@ -97,19 +97,19 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
 
     // TEST 
     {
-        std::vector<Vertex> vertices(4);
-        vertices[0].pos = ZNVector3(-0.5f, 0.5f, 0.5f);
-        vertices[0].color = ZNVector4(1.f, 0.f, 0.f, 1.f);
-        vertices[0].uv = ZNVector2(0.f, 0.f);
-        vertices[1].pos = ZNVector3(0.5f, 0.5f, 0.5f);
-        vertices[1].color = ZNVector4(0.f, 1.f, 0.f, 1.f);
-        vertices[1].uv = ZNVector2(1.f, 0.f);
-        vertices[2].pos = ZNVector3(0.5f, -0.5f, 0.5f);
-        vertices[2].color = ZNVector4(0.f, 0.f, 1.f, 1.f);
-        vertices[2].uv = ZNVector2(1.f, 1.f);
-        vertices[3].pos = ZNVector3(-0.5f, -0.5f, 0.5f);
-        vertices[3].color = ZNVector4(0.f, 1.f, 0.f, 1.f);
-        vertices[3].uv = ZNVector2(0.f, 1.f);
+        std::vector<Vertex> vec(4);
+        vec[0].pos = ZNVector3(-0.5f, 0.5f, 0.f);
+        vec[0].color = ZNVector4(1.f, 0.f, 0.f, 1.f);
+        vec[0].uv = ZNVector2(0.f, 0.f);
+        vec[1].pos = ZNVector3(0.5f, 0.5f, 0.f);
+        vec[1].color = ZNVector4(0.f, 1.f, 0.f, 1.f);
+        vec[1].uv = ZNVector2(1.f, 0.f);
+        vec[2].pos = ZNVector3(0.5f, -0.5f, 0.f);
+        vec[2].color = ZNVector4(0.f, 0.f, 1.f, 1.f);
+        vec[2].uv = ZNVector2(1.f, 1.f);
+        vec[3].pos = ZNVector3(-0.5f, -0.5f, 0.f);
+        vec[3].color = ZNVector4(0.f, 1.f, 0.f, 1.f);
+        vec[3].uv = ZNVector2(0.f, 1.f);
 
         std::vector<uint32> indexVec;
         {
@@ -122,18 +122,15 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
             indexVec.push_back(2);
             indexVec.push_back(3);
         }
+        defaultMesh->Init(vec, indexVec);
 
         std::filesystem::path shaderPath = GetResourcePath() / L"Shaders" / L"default.hlsli";
         defaultShader->Load(shaderPath);
 
-        defaultMesh->Init(vertices, indexVec);
-
-        std::filesystem::path texturePath = GetResourcePath() / L"Textures" / L"lutz.png";
+        std::filesystem::path texturePath = GetResourcePath() / L"Textures" / L"lutz.webp";
         defaultTexture->Init(texturePath);
-
-        defaultMesh->SetTexture(defaultTexture);
-        defaultMesh->Render();
     }
+    commandQueue->WaitSync();
 }
 
 void ApplicationContext::OnResize(uint32 width, uint32 height)
@@ -162,18 +159,19 @@ void ApplicationContext::Render()
     defaultShader->Bind();
     {
         Transform t1;
-        t1.offset = ZNVector4(0.25f, 0.25f, 0.2f, 0.f);
+        t1.offset = ZNVector4(0.25f, 0.25f, 0.3f, 0.f);
         defaultMesh->SetTransform(t1);
         defaultMesh->SetTexture(defaultTexture);
         defaultMesh->Render();
     }
     {
         Transform t;
-        t.offset = ZNVector4(0.0f, 0.f, 0.3f, 0.f);
+        t.offset = ZNVector4(0.0f, 0.f, 0.2f, 0.f);
         defaultMesh->SetTransform(t);
         defaultMesh->SetTexture(defaultTexture);
         defaultMesh->Render();
     }
+
 
     RenderEnd();
 }

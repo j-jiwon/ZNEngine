@@ -15,5 +15,6 @@ namespace ZNFramework
 		virtual void RenderBegin() = 0;
 		virtual void RenderEnd() = 0;
 		virtual void FlushResourceQueue() = 0;
+		virtual void WaitSync() = 0;
 	};
 }

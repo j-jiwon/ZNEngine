@@ -16,8 +16,7 @@ namespace ZNFramework
         void RenderBegin() override;
         void RenderEnd() override;
         void FlushResourceQueue() override;
-
-        void WaitSync();
+        void WaitSync() override;
 
         ID3D12CommandQueue* Queue() const { return queue.Get(); }
         ID3D12GraphicsCommandList* CommandList() { return commandList.Get(); }

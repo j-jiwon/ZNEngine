@@ -19,8 +19,8 @@ GraphicsDevice::GraphicsDevice()
     debugController->EnableDebugLayer();
 #endif
 
-    device.Reset();
-    fence.Reset();
+    //device.Reset();
+    //fence.Reset();
 
     CreateDXGIFactory1(IID_PPV_ARGS(&factory));
     ThrowIfFailed(D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&device)));

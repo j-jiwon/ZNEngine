@@ -32,7 +32,7 @@ void Mesh::Render()
 	TableDescriptorHeap* tableDescHeap = GraphicsContext::GetInstance().GetAs<TableDescriptorHeap>();
 	{
 		D3D12_CPU_DESCRIPTOR_HANDLE handle1 = constantBuffer->PushData(0, &transform, sizeof(transform));
-		tableDescHeap->SetCBV(handle1, CBV_REGISTER::b1);
+		tableDescHeap->SetCBV(handle1, CBV_REGISTER::b0);
 		tableDescHeap->SetSRV(texture->GetCpuHandle(), SRV_REGISTER::t0);
 	}
 	tableDescHeap->CommitTable();

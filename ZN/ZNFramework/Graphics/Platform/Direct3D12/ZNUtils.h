@@ -8,8 +8,8 @@
 #include <assert.h>
 #include <D3Dcompiler.h>
 
-#include <DirectXTex/DirectXTex.h>
-#include <DirectXTex/DirectXTex.inl>
+#include "DirectXTex/DirectXTex.h"
+#include "DirectXTex/DirectXTex.inl"
 
 #include "ZNFramework.h"
 
@@ -29,7 +29,7 @@ inline void ThrowIfFailed(HRESULT hr)
     }
 }
 
-enum class CBV_REGISTER
+enum class CBV_REGISTER : uint8
 {
 	b0,
 	b1,
@@ -47,11 +47,6 @@ enum class SRV_REGISTER : uint8
 	t2,
 	t3,
 	t4,
-	t5,
-	t6,
-	t7,
-	t8,
-	t9,
 
 	END
 };
@@ -60,8 +55,8 @@ enum
 {
 	SWAP_CHAIN_BUFFER_COUNT = 2,
 	CBV_REGISTER_COUNT = CBV_REGISTER::END,
-	SRV_REGISTER_COUNT = SRV_REGISTER::END,
-	REGISTER_COUNT = CBV_REGISTER::END
+	SRV_REGISTER_COUNT = static_cast<uint8>(SRV_REGISTER::END) - CBV_REGISTER_COUNT,
+	REGISTER_COUNT = CBV_REGISTER_COUNT + SRV_REGISTER_COUNT,
 };
 
 #ifndef ReleaseCom

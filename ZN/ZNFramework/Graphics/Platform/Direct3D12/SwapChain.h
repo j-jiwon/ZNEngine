@@ -16,7 +16,7 @@ namespace ZNFramework
 		void Init(class ZNCommandQueue* inQueue) override;
 		void Resize(uint32 inWidth, uint32 inHeight) override;
 
-		ComPtr<IDXGISwapChain3> GetSwapChain() { return swapChain; }
+		ComPtr<IDXGISwapChain> GetSwapChain() { return swapChain; }
 		ComPtr<ID3D12Resource> GetRenderTarget(int index) { return rtvBuffer[index]; }
 
 		UINT GetCurrentBackBufferIndex() { return backBufferIndex; }
@@ -34,7 +34,7 @@ namespace ZNFramework
 		void CreateRTV();
 
 	private:
-		ComPtr<IDXGISwapChain3> swapChain;
+		ComPtr<IDXGISwapChain>	swapChain;
 		ComPtr<ID3D12Resource> rtvBuffer[SWAP_CHAIN_BUFFER_COUNT];
 		ComPtr<ID3D12DescriptorHeap> rtvHeap;
 		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle[SWAP_CHAIN_BUFFER_COUNT];

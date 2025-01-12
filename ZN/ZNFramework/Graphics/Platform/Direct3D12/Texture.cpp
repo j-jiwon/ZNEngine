@@ -40,44 +40,14 @@ void Texture::CreateTexture(const std::wstring& path)
 
 	GraphicsDevice* device = GraphicsContext::GetInstance().GetAs<GraphicsDevice>();
 
-    // 이미지 크기와 포맷을 가져옵니다.
-    UINT width = static_cast<UINT>(image.GetMetadata().width);
-    UINT height = static_cast<UINT>(image.GetMetadata().height);
-    DXGI_FORMAT format = image.GetMetadata().format;
-
-    // D3D12 리소스 생성
-    D3D12_RESOURCE_DESC textureDesc = {};
-    textureDesc.MipLevels = 1;
-    textureDesc.Format = format;	// ex) DXGI_FORMAT_R8G8B8A8_UNORM, etc...
-    textureDesc.Width = width;
-    textureDesc.Height = height;
-    textureDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-    textureDesc.DepthOrArraySize = 1;
-    textureDesc.SampleDesc.Count = 1;
-    textureDesc.SampleDesc.Quality = 0;
-    textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-
-    D3D12_HEAP_PROPERTIES texHeap = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-    HRESULT hr = device->Device()->CreateCommittedResource(
-        &texHeap,
-        D3D12_HEAP_FLAG_NONE,
-        &textureDesc,
-        D3D12_RESOURCE_STATE_COMMON,
-        nullptr,
-        IID_PPV_ARGS(&tex2d));
-
+    HRESULT hr = ::CreateTexture(device->Device().Get(), image.GetMetadata(), &tex2d);
     if (FAILED(hr))
-    {
         assert(nullptr);
-        return;
-    }
 
     std::vector<D3D12_SUBRESOURCE_DATA> subResources;
-    D3D12_SUBRESOURCE_DATA subResData = {};
-    subResData.pData = image.GetImages()->pixels;
-    subResData.RowPitch = static_cast<LONG_PTR>(width * 4);  // assuming 4 bytes per pixel (RGBA)
-    subResData.SlicePitch = subResData.RowPitch * height;
-    subResources.push_back(subResData);
+    hr = ::PrepareUpload(device->Device().Get(), image.GetImages(), image.GetImageCount(), image.GetMetadata(), subResources);
+    if (FAILED(hr))
+        assert(nullptr);
 
     const uint64 bufferSize = ::GetRequiredIntermediateSize(tex2d.Get(), 0, static_cast<uint32>(subResources.size()));
 
