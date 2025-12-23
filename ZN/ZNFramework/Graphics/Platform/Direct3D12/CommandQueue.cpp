@@ -62,7 +62,7 @@ void CommandQueue::RenderBegin()
 
 	commandList->ResourceBarrier(1, &barrier);
 
-	D3D12_VIEWPORT vp = { 0, 0, static_cast<FLOAT>(swapChain->Width()), static_cast<FLOAT>(swapChain->Height()) };
+	D3D12_VIEWPORT vp = { 0, 0, static_cast<FLOAT>(swapChain->Width()), static_cast<FLOAT>(swapChain->Height()), 0.f, 1.f };
 	D3D12_RECT rect = CD3DX12_RECT(0, 0, swapChain->Width(), swapChain->Height());
 
 	commandList->RSSetViewports(1, &vp);
