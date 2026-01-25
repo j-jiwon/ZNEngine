@@ -28,10 +28,13 @@ void Mesh::Render()
 	queue->CommandList()->IASetVertexBuffers(0, 1, &vertexBufferView); // Slot: (0~15)
 	queue->CommandList()->IASetIndexBuffer(&indexBufferView);
 
+	// Calculate world matrix from transform
+	ZNMatrix4 worldMatrix = transform.GetWorldMatrix();
+
 	ConstantBuffer* constantBuffer = GraphicsContext::GetInstance().GetAs<ConstantBuffer>();
 	TableDescriptorHeap* tableDescHeap = GraphicsContext::GetInstance().GetAs<TableDescriptorHeap>();
 	{
-		D3D12_CPU_DESCRIPTOR_HANDLE handle1 = constantBuffer->PushData(0, &transform, sizeof(transform));
+		D3D12_CPU_DESCRIPTOR_HANDLE handle1 = constantBuffer->PushData(0, &worldMatrix, sizeof(worldMatrix));
 		tableDescHeap->SetCBV(handle1, CBV_REGISTER::b0);
 		tableDescHeap->SetSRV(texture->GetCpuHandle(), SRV_REGISTER::t0);
 	}

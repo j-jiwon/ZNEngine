@@ -159,14 +159,14 @@ void ApplicationContext::Render()
     defaultShader->Bind();
     {
         Transform t1;
-        t1.offset = ZNVector4(0.25f, 0.25f, 0.3f, 0.f);
+        t1.position = ZNVector3(0.25f, 0.25f, 0.3f);
         defaultMesh->SetTransform(t1);
         defaultMesh->SetTexture(defaultTexture);
         defaultMesh->Render();
     }
     {
         Transform t;
-        t.offset = ZNVector4(0.0f, 0.f, 0.2f, 0.f);
+        t.position = ZNVector3(0.0f, 0.f, 0.2f);
         defaultMesh->SetTransform(t);
         defaultMesh->SetTexture(defaultTexture);
         defaultMesh->Render();
