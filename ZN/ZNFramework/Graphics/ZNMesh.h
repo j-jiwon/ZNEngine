@@ -7,6 +7,7 @@ namespace ZNFramework
 	struct Vertex;
 	struct Transform;
 	class ZNTexture;
+	class ZNMaterial;
 	class ZNMesh
 	{
 	public:
@@ -17,5 +18,6 @@ namespace ZNFramework
 		virtual void Render() = 0;
 		virtual void SetTransform(const Transform& t) = 0;
 		virtual void SetTexture(ZNTexture* inTexture) = 0;
+		virtual void SetMaterial(ZNMaterial* inMaterial) = 0;
 	};
 }

@@ -62,6 +62,7 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
     defaultShader = ZNFramework::Platform::CreateShader();
     defaultMesh = ZNFramework::Platform::CreateMesh();
     defaultTexture = ZNFramework::Platform::CreateTexture();
+    defaultMaterial = ZNFramework::Platform::CreateMaterial();
 
     constantBuffer = ZNFramework::Platform::CreateConstantBuffer();
     GraphicsContext::GetInstance().SetConstantBuffer(constantBuffer);
@@ -76,7 +77,7 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
     commandQueue->Init(swapChain);
     swapChain->Init(commandQueue);
     rootSignature->Init();
-    constantBuffer->Init(sizeof(Transform), 256);
+    constantBuffer->Init(sizeof(ZNMatrix4), 256); // Use ZNMatrix4 size for world matrix
     tableDescriptorHeap->Init(256);
     depthStencilBuffer->Init();
     
@@ -129,6 +130,18 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
 
         std::filesystem::path texturePath = GetResourcePath() / L"Textures" / L"lutz.webp";
         defaultTexture->Init(texturePath);
+
+        // Setup Material
+        defaultMaterial->Init();
+        defaultMaterial->SetShader(defaultShader);
+        defaultMaterial->SetTexture(TextureType::Albedo, defaultTexture);
+
+        MaterialParams params;
+        params.albedoColor = ZNVector4(1.f, 0.f, 0.f, 1.f);
+        params.metallic = 0.0f;
+        params.roughness = 0.5f;
+        params.ao = 1.0f;
+        defaultMaterial->SetParams(params);
     }
     commandQueue->WaitSync();
 }
@@ -156,22 +169,21 @@ void ApplicationContext::Render()
 {
     RenderBegin();
 
-    defaultShader->Bind();
+    // Use Material instead of manual Shader + Texture binding
+    defaultMesh->SetMaterial(defaultMaterial);
+
     {
         Transform t1;
         t1.position = ZNVector3(0.25f, 0.25f, 0.3f);
         defaultMesh->SetTransform(t1);
-        defaultMesh->SetTexture(defaultTexture);
         defaultMesh->Render();
     }
     {
         Transform t;
         t.position = ZNVector3(0.0f, 0.f, 0.2f);
         defaultMesh->SetTransform(t);
-        defaultMesh->SetTexture(defaultTexture);
         defaultMesh->Render();
     }
-
 
     RenderEnd();
 }

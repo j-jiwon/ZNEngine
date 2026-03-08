@@ -43,6 +43,7 @@ using uint64 = unsigned __int64;
 #include "ZNFramework/Graphics/ZNTableDescriptorHeap.h"
 #include "ZNFramework/Graphics/ZNTexture.h"
 #include "ZNFramework/Graphics/ZNDepthStencilBuffer.h"
+#include "ZNFramework/Graphics/ZNMaterial.h"
 
 #include "ZNFramework/Graphics/ZNGraphicsContext.h"
 
@@ -108,6 +109,25 @@ namespace ZNFramework
 			// Combine: Scale -> Rotation -> Translation (SRT)
 			return scaleMatrix * rotMatrix * translationMatrix;
 		}
+	};
+
+	enum class TextureType : uint8
+	{
+		Albedo = 0,
+		Normal = 1,
+		Metallic = 2,
+		Roughness = 3,
+		AO = 4,
+		Count = 5
+	};
+
+	struct MaterialParams
+	{
+		ZNVector4 albedoColor = ZNVector4(1.f, 1.f, 1.f, 1.f);
+		float metallic = 0.0f;
+		float roughness = 0.5f;
+		float ao = 1.0f;
+		float padding = 0.0f; // 16-byte alignment
 	};
 }
 

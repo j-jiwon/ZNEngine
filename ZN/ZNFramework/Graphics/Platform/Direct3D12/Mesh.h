@@ -7,6 +7,7 @@ using namespace std;
 namespace ZNFramework
 {
 	class Texture;
+	class Material;
 	class Mesh : public ZNMesh
 	{
 	public:
@@ -14,6 +15,7 @@ namespace ZNFramework
 		void Render() override;
 		void SetTransform(const Transform& t) override { transform = t; }
 		void SetTexture(ZNTexture* inTexture) override;
+		void SetMaterial(ZNMaterial* inMaterial) override;
 
 	private:
 		void CreateVertexBuffer(const vector<Vertex>& buffer);
@@ -30,5 +32,6 @@ namespace ZNFramework
 
 		Transform transform = {};
 		Texture* texture = {};
+		Material* material = nullptr;
 	};
 }

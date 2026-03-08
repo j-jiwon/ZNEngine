@@ -4,6 +4,7 @@
 #include "ConstantBuffer.h"
 #include "TableDescriptorHeap.h"
 #include "Texture.h"
+#include "Material.h"
 
 using namespace ZNFramework;
 
@@ -33,11 +34,21 @@ void Mesh::Render()
 
 	ConstantBuffer* constantBuffer = GraphicsContext::GetInstance().GetAs<ConstantBuffer>();
 	TableDescriptorHeap* tableDescHeap = GraphicsContext::GetInstance().GetAs<TableDescriptorHeap>();
+
+	// Set world matrix (b0)
+	D3D12_CPU_DESCRIPTOR_HANDLE handle1 = constantBuffer->PushData(0, &worldMatrix, sizeof(worldMatrix));
+	tableDescHeap->SetCBV(handle1, CBV_REGISTER::b0);
+
+	// Use Material if available, otherwise fallback to legacy texture path
+	if (material)
 	{
-		D3D12_CPU_DESCRIPTOR_HANDLE handle1 = constantBuffer->PushData(0, &worldMatrix, sizeof(worldMatrix));
-		tableDescHeap->SetCBV(handle1, CBV_REGISTER::b0);
+		material->Bind();
+	}
+	else if (texture)
+	{
 		tableDescHeap->SetSRV(texture->GetCpuHandle(), SRV_REGISTER::t0);
 	}
+
 	tableDescHeap->CommitTable();
 
 	queue->CommandList()->DrawIndexedInstanced(indexCount, 1, 0, 0, 0);
@@ -46,6 +57,11 @@ void Mesh::Render()
 void Mesh::SetTexture(ZNTexture* inTexture)
 {
 	texture = dynamic_cast<Texture*>(inTexture);
+}
+
+void Mesh::SetMaterial(ZNMaterial* inMaterial)
+{
+	material = dynamic_cast<Material*>(inMaterial);
 }
 
 void Mesh::CreateVertexBuffer(const vector<Vertex>& buffer)

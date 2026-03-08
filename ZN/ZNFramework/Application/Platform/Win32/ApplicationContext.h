@@ -40,6 +40,7 @@ namespace ZNFramework
 		class ZNShader* defaultShader = nullptr;
 		class ZNMesh* defaultMesh = nullptr;
 		class ZNTexture* defaultTexture = nullptr;
+		class ZNMaterial* defaultMaterial = nullptr;
 		class ZNConstantBuffer* constantBuffer = nullptr;
 		class ZNDepthStencilBuffer* depthStencilBuffer = nullptr;
 	};
