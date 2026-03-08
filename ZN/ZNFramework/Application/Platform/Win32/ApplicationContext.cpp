@@ -137,7 +137,7 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
         defaultMaterial->SetTexture(TextureType::Albedo, defaultTexture);
 
         MaterialParams params;
-        params.albedoColor = ZNVector4(1.f, 0.f, 0.f, 1.f);
+        params.albedoColor = ZNVector4(1.f, 1.f, 1.f, 1.f);
         params.metallic = 0.0f;
         params.roughness = 0.5f;
         params.ao = 1.0f;

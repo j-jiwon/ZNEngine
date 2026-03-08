@@ -44,6 +44,7 @@ using uint64 = unsigned __int64;
 #include "ZNFramework/Graphics/ZNTexture.h"
 #include "ZNFramework/Graphics/ZNDepthStencilBuffer.h"
 #include "ZNFramework/Graphics/ZNMaterial.h"
+#include "ZNFramework/Graphics/ZNModelLoader.h"
 
 #include "ZNFramework/Graphics/ZNGraphicsContext.h"
 
@@ -128,6 +129,25 @@ namespace ZNFramework
 		float roughness = 0.5f;
 		float ao = 1.0f;
 		float padding = 0.0f; // 16-byte alignment
+	};
+
+	struct MeshData
+	{
+		std::vector<Vertex> vertices;
+		std::vector<uint32> indices;
+		uint32 materialIndex = 0;
+	};
+
+	struct MaterialData
+	{
+		MaterialParams params;
+		std::wstring texturePaths[static_cast<size_t>(TextureType::Count)];
+	};
+
+	struct ModelData
+	{
+		std::vector<MeshData> meshes;
+		std::vector<MaterialData> materials;
 	};
 }
 
