@@ -43,6 +43,12 @@ namespace ZNFramework
 		class ZNMaterial* defaultMaterial = nullptr;
 		class ZNConstantBuffer* constantBuffer = nullptr;
 		class ZNDepthStencilBuffer* depthStencilBuffer = nullptr;
+		class ZNCamera* camera = nullptr;
+
+		// FBX Model test
+		std::vector<class ZNMesh*> loadedMeshes;
+		std::vector<class ZNMaterial*> loadedMaterials;
+		std::vector<class ZNTexture*> loadedTextures;
 	};
 }
 

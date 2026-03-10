@@ -187,7 +187,7 @@ LRESULT Window::WindowProc(HWND inHwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         OnMouseEvent(mouseEvent);
         break;
     case WM_MOUSEMOVE:
-        mouseEvent.state = MOUSE_STATE::UP;
+        mouseEvent.state = MOUSE_STATE::MOVE;
         mouseEvent.type = mouseType;
         mouseEvent.x = LOWORD(lParam);
         mouseEvent.y = HIWORD(lParam);
@@ -197,13 +197,15 @@ LRESULT Window::WindowProc(HWND inHwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     case WM_KEYDOWN:
     case WM_SYSKEYDOWN:
         keyboardEvent.type = keyType;
-        keyboardEvent.state = KEY_STATE::DOWN;
+        // Check if this is a repeated key press (lParam bit 30)
+        keyboardEvent.state = (lParam & (1 << 30)) ? KEY_STATE::PRESS : KEY_STATE::DOWN;
         OnKeyboardEvent(keyboardEvent);
         return 0;
     case WM_KEYUP:
     case WM_SYSKEYUP:
         keyboardEvent.type = keyType;
         keyboardEvent.state = KEY_STATE::UP;
+        OnKeyboardEvent(keyboardEvent);
         return 0;
     default:
         break;

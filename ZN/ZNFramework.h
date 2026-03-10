@@ -112,6 +112,14 @@ namespace ZNFramework
 		}
 	};
 
+	// Transform matrices for shader (cbTransform : register(b0))
+	struct TransformMatrices
+	{
+		ZNMatrix4 world;
+		ZNMatrix4 view;
+		ZNMatrix4 projection;
+	};
+
 	enum class TextureType : uint8
 	{
 		Albedo = 0,
@@ -124,7 +132,7 @@ namespace ZNFramework
 
 	struct MaterialParams
 	{
-		ZNVector4 albedoColor = ZNVector4(1.f, 1.f, 1.f, 1.f);
+		ZNVector4 albedoColor = ZNVector4(1.f, 0.f, 0.f, 1.f);
 		float metallic = 0.0f;
 		float roughness = 0.5f;
 		float ao = 1.0f;

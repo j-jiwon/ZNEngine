@@ -29,14 +29,20 @@ void Mesh::Render()
 	queue->CommandList()->IASetVertexBuffers(0, 1, &vertexBufferView); // Slot: (0~15)
 	queue->CommandList()->IASetIndexBuffer(&indexBufferView);
 
-	// Calculate world matrix from transform
-	ZNMatrix4 worldMatrix = transform.GetWorldMatrix();
+	// Get camera from GraphicsContext
+	ZNCamera* camera = GraphicsContext::GetInstance().GetCamera();
+
+	// Build TransformMatrices (cbTransform : register(b0))
+	TransformMatrices transformMatrices;
+	transformMatrices.world = transform.GetWorldMatrix();
+	transformMatrices.view = camera ? camera->ViewMatrix() : ZNMatrix4(); // Identity if no camera
+	transformMatrices.projection = camera ? camera->ProjectionMatrix() : ZNMatrix4(); // Identity if no camera
 
 	ConstantBuffer* constantBuffer = GraphicsContext::GetInstance().GetAs<ConstantBuffer>();
 	TableDescriptorHeap* tableDescHeap = GraphicsContext::GetInstance().GetAs<TableDescriptorHeap>();
 
-	// Set world matrix (b0)
-	D3D12_CPU_DESCRIPTOR_HANDLE handle1 = constantBuffer->PushData(0, &worldMatrix, sizeof(worldMatrix));
+	// Set MVP matrices (b0)
+	D3D12_CPU_DESCRIPTOR_HANDLE handle1 = constantBuffer->PushData(0, &transformMatrices, sizeof(TransformMatrices));
 	tableDescHeap->SetCBV(handle1, CBV_REGISTER::b0);
 
 	// Use Material if available, otherwise fallback to legacy texture path
