@@ -16,6 +16,8 @@ namespace ZNFramework::Platform
 		ZNConstantBuffer* CreateConstantBuffer();
 		ZNTableDescriptorHeap* CreateTableDescriptorHeap();
 		ZNDepthStencilBuffer* CreateDepthStencilBuffer();
+		ZNMaterial* CreateMaterial();
+		ZNModelLoader* CreateModelLoader();
 	}
 #endif
 
@@ -58,5 +60,13 @@ namespace ZNFramework::Platform
 	inline ZNDepthStencilBuffer* CreateDepthStencilBuffer()
 	{
 		return Direct3D::CreateDepthStencilBuffer();
+	}
+	inline ZNMaterial* CreateMaterial()
+	{
+		return Direct3D::CreateMaterial();
+	}
+	inline ZNModelLoader* CreateModelLoader()
+	{
+		return Direct3D::CreateModelLoader();
 	}
 }

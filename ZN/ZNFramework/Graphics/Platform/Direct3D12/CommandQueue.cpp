@@ -70,8 +70,8 @@ void CommandQueue::RenderBegin()
 
 	// Specify the buffers we are going to render to.
 	D3D12_CPU_DESCRIPTOR_HANDLE backBufferView = swapChain->GetBackRTV();
-	float lightSteelBlue[4] = { 0.6902, 0.7686, 0.8706, 1.0 };
-	commandList->ClearRenderTargetView(backBufferView, lightSteelBlue, 0, nullptr);
+	float clearColor[4] = { 0.2f, 0.3f, 0.4f, 1.0f }; // Dark blue-gray background
+	commandList->ClearRenderTargetView(backBufferView, clearColor, 0, nullptr);
 	commandList->OMSetRenderTargets(1, &backBufferView, FALSE, nullptr);
 
 	// depth stencil

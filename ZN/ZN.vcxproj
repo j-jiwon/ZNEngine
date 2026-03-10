@@ -174,7 +174,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalDependencies>d3d12.lib;dxgi.lib;d3dcompiler.lib;DirectXTex.lib;</AdditionalDependencies>
+      <AdditionalDependencies>d3d12.lib;dxgi.lib;d3dcompiler.lib;DirectXTex.lib;assimp-vc143-mt.lib;</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)Library\Lib\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
@@ -205,7 +205,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalDependencies>d3d12.lib;dxgi.lib;d3dcompiler.lib;DirectXTex.lib;</AdditionalDependencies>
+      <AdditionalDependencies>d3d12.lib;dxgi.lib;d3dcompiler.lib;DirectXTex.lib;assimp-vc143-mt.lib;</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)Library\Lib\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
@@ -220,7 +220,9 @@
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\DDSTextureLoader12.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\DepthStencilBuffer.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\GraphicsDevice.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Material.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Mesh.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\AssimpLoader.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\RootSignature.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Shader.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\SwapChain.h" />
@@ -230,7 +232,9 @@
     <ClInclude Include="ZNFramework\Graphics\ZNConstantBuffer.h" />
     <ClInclude Include="ZNFramework\Graphics\ZNDepthStencilBuffer.h" />
     <ClInclude Include="ZNFramework\Graphics\ZNGraphicsContext.h" />
+    <ClInclude Include="ZNFramework\Graphics\ZNMaterial.h" />
     <ClInclude Include="ZNFramework\Graphics\ZNMesh.h" />
+    <ClInclude Include="ZNFramework\Graphics\ZNModelLoader.h" />
     <ClInclude Include="ZNFramework\Graphics\ZNRootSignature.h" />
     <ClInclude Include="ZNFramework\Graphics\ZNShader.h" />
     <ClInclude Include="ZNFramework\Graphics\ZNSwapChain.h" />
@@ -271,7 +275,9 @@
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\DDSTextureLoader12.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\DepthStencilBuffer.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\GraphicsDevice.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\Material.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\Mesh.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\AssimpLoader.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\RootSignature.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\Shader.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\SwapChain.cpp" />

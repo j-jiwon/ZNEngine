@@ -4,6 +4,7 @@
 #include "ConstantBuffer.h"
 #include "TableDescriptorHeap.h"
 #include "Texture.h"
+#include "Material.h"
 
 using namespace ZNFramework;
 
@@ -28,13 +29,32 @@ void Mesh::Render()
 	queue->CommandList()->IASetVertexBuffers(0, 1, &vertexBufferView); // Slot: (0~15)
 	queue->CommandList()->IASetIndexBuffer(&indexBufferView);
 
+	// Get camera from GraphicsContext
+	ZNCamera* camera = GraphicsContext::GetInstance().GetCamera();
+
+	// Build TransformMatrices (cbTransform : register(b0))
+	TransformMatrices transformMatrices;
+	transformMatrices.world = transform.GetWorldMatrix();
+	transformMatrices.view = camera ? camera->ViewMatrix() : ZNMatrix4(); // Identity if no camera
+	transformMatrices.projection = camera ? camera->ProjectionMatrix() : ZNMatrix4(); // Identity if no camera
+
 	ConstantBuffer* constantBuffer = GraphicsContext::GetInstance().GetAs<ConstantBuffer>();
 	TableDescriptorHeap* tableDescHeap = GraphicsContext::GetInstance().GetAs<TableDescriptorHeap>();
+
+	// Set MVP matrices (b0)
+	D3D12_CPU_DESCRIPTOR_HANDLE handle1 = constantBuffer->PushData(0, &transformMatrices, sizeof(TransformMatrices));
+	tableDescHeap->SetCBV(handle1, CBV_REGISTER::b0);
+
+	// Use Material if available, otherwise fallback to legacy texture path
+	if (material)
 	{
-		D3D12_CPU_DESCRIPTOR_HANDLE handle1 = constantBuffer->PushData(0, &transform, sizeof(transform));
-		tableDescHeap->SetCBV(handle1, CBV_REGISTER::b0);
+		material->Bind();
+	}
+	else if (texture)
+	{
 		tableDescHeap->SetSRV(texture->GetCpuHandle(), SRV_REGISTER::t0);
 	}
+
 	tableDescHeap->CommitTable();
 
 	queue->CommandList()->DrawIndexedInstanced(indexCount, 1, 0, 0, 0);
@@ -43,6 +63,11 @@ void Mesh::Render()
 void Mesh::SetTexture(ZNTexture* inTexture)
 {
 	texture = dynamic_cast<Texture*>(inTexture);
+}
+
+void Mesh::SetMaterial(ZNMaterial* inMaterial)
+{
+	material = dynamic_cast<Material*>(inMaterial);
 }
 
 void Mesh::CreateVertexBuffer(const vector<Vertex>& buffer)

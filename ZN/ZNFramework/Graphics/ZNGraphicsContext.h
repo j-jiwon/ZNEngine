@@ -8,6 +8,7 @@ namespace ZNFramework
     class ZNConstantBuffer;
     class ZNDepthStencilBuffer;
     class ZNTableDescriptorHeap;
+    class ZNCamera;
 
     class GraphicsContext
     {
@@ -76,6 +77,10 @@ namespace ZNFramework
         void SetTableDescriptorHeap(ZNTableDescriptorHeap* inDescHeap) { descHeap = inDescHeap; }
         ZNTableDescriptorHeap* GetTableDescriptorHeap() const { return descHeap; }
 
+        // Camera
+        void SetCamera(ZNCamera* inCamera) { camera = inCamera; }
+        ZNCamera* GetCamera() const { return camera; }
+
     private:
         ZNGraphicsDevice* device = nullptr;
         ZNCommandQueue* queue = nullptr;
@@ -83,6 +88,7 @@ namespace ZNFramework
         ZNConstantBuffer* constantBuffer = nullptr;
         ZNDepthStencilBuffer* depthStencilBuffer = nullptr;
         ZNTableDescriptorHeap* descHeap = nullptr;
+        ZNCamera* camera = nullptr;
 
         GraphicsContext() = default;
         ~GraphicsContext() = default;
