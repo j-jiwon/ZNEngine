@@ -9,6 +9,7 @@ namespace ZNFramework
     class ZNDepthStencilBuffer;
     class ZNTableDescriptorHeap;
     class ZNCamera;
+    class ZNLight;
 
     class GraphicsContext
     {
@@ -81,6 +82,14 @@ namespace ZNFramework
         void SetCamera(ZNCamera* inCamera) { camera = inCamera; }
         ZNCamera* GetCamera() const { return camera; }
 
+        // Light
+        void SetLight(ZNLight* inLight) { light = inLight; }
+        ZNLight* GetLight() const { return light; }
+
+        // Directional Light (secondary)
+        void SetDirectionalLight(ZNDirectionalLight* inLight) { directionalLight = inLight; }
+        ZNDirectionalLight* GetDirectionalLight() const { return directionalLight; }
+
     private:
         ZNGraphicsDevice* device = nullptr;
         ZNCommandQueue* queue = nullptr;
@@ -89,6 +98,8 @@ namespace ZNFramework
         ZNDepthStencilBuffer* depthStencilBuffer = nullptr;
         ZNTableDescriptorHeap* descHeap = nullptr;
         ZNCamera* camera = nullptr;
+        ZNLight* light = nullptr;
+        ZNDirectionalLight* directionalLight = nullptr;
 
         GraphicsContext() = default;
         ~GraphicsContext() = default;

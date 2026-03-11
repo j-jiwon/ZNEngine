@@ -45,10 +45,25 @@ namespace ZNFramework
 		class ZNDepthStencilBuffer* depthStencilBuffer = nullptr;
 		class ZNCamera* camera = nullptr;
 
+		// Lights
+		class ZNSpotLight* spotLight = nullptr;
+		class ZNDirectionalLight* directionalLight = nullptr;
+
 		// FBX Model test
 		std::vector<class ZNMesh*> loadedMeshes;
 		std::vector<class ZNMaterial*> loadedMaterials;
 		std::vector<class ZNTexture*> loadedTextures;
+
+		// Debug visualization
+		class ZNMesh* crosshairMesh = nullptr;
+		class ZNMesh* lightDebugMesh = nullptr;
+		class ZNMesh* axisXMesh = nullptr;
+		class ZNMesh* axisYMesh = nullptr;
+		class ZNMesh* axisZMesh = nullptr;
+		class ZNMaterial* debugMaterial = nullptr;
+		class ZNMaterial* redMaterial = nullptr;
+		class ZNMaterial* greenMaterial = nullptr;
+		class ZNMaterial* blueMaterial = nullptr;
 	};
 }
 

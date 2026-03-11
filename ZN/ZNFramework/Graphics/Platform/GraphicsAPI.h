@@ -18,6 +18,8 @@ namespace ZNFramework::Platform
 		ZNDepthStencilBuffer* CreateDepthStencilBuffer();
 		ZNMaterial* CreateMaterial();
 		ZNModelLoader* CreateModelLoader();
+		ZNDirectionalLight* CreateDirectionalLight();
+		ZNSpotLight* CreateSpotLight();
 	}
 #endif
 
@@ -68,5 +70,13 @@ namespace ZNFramework::Platform
 	inline ZNModelLoader* CreateModelLoader()
 	{
 		return Direct3D::CreateModelLoader();
+	}
+	inline ZNDirectionalLight* CreateDirectionalLight()
+	{
+		return Direct3D::CreateDirectionalLight();
+	}
+	inline ZNSpotLight* CreateSpotLight()
+	{
+		return Direct3D::CreateSpotLight();
 	}
 }
