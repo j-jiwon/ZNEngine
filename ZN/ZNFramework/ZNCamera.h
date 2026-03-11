@@ -33,6 +33,8 @@ namespace ZNFramework
 		ZNVector3 GetForward() const { return forward; }
 		ZNVector3 GetRight() const { return right; }
 		ZNVector3 GetUp() const { return up; }
+		float GetPitch() const { return pitch; }
+		float GetYaw() const { return yaw; }
 
 		// Camera movement (First-Person style)
 		void MoveForward(float distance);

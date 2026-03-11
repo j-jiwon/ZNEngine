@@ -105,6 +105,20 @@ void AssimpLoader::ProcessMesh(aiMesh* mesh, const aiScene* scene, ModelData& ou
 			vertex.uv = ZNVector2(0.f, 0.f);
 		}
 
+		// Normal (should always be present due to aiProcess_GenNormals flag)
+		if (mesh->mNormals)
+		{
+			vertex.normal = ZNVector3(
+				mesh->mNormals[i].x,
+				mesh->mNormals[i].y,
+				mesh->mNormals[i].z
+			);
+		}
+		else
+		{
+			vertex.normal = ZNVector3(0.f, 1.f, 0.f); // Default up
+		}
+
 		meshData.vertices.push_back(vertex);
 	}
 

@@ -45,6 +45,7 @@ using uint64 = unsigned __int64;
 #include "ZNFramework/Graphics/ZNDepthStencilBuffer.h"
 #include "ZNFramework/Graphics/ZNMaterial.h"
 #include "ZNFramework/Graphics/ZNModelLoader.h"
+#include "ZNFramework/Graphics/ZNLight.h"
 
 #include "ZNFramework/Graphics/ZNGraphicsContext.h"
 
@@ -54,18 +55,19 @@ using uint64 = unsigned __int64;
 
 namespace ZNFramework
 {
-	struct Vertex 
+	struct Vertex
 	{
 		Vertex() {}
 
-		Vertex(ZNVector3 p, ZNVector4 c, ZNVector2 u)
-			: pos(p), color(c), uv(u)
+		Vertex(ZNVector3 p, ZNVector4 c, ZNVector2 u, ZNVector3 n = ZNVector3(0, 0, 1))
+			: pos(p), color(c), uv(u), normal(n)
 		{
 		}
-	
+
 		ZNVector3 pos;
 		ZNVector4 color;
 		ZNVector2 uv;
+		ZNVector3 normal;
 	};
 
 	struct Transform
@@ -137,6 +139,36 @@ namespace ZNFramework
 		float roughness = 0.5f;
 		float ao = 1.0f;
 		float padding = 0.0f; // 16-byte alignment
+	};
+
+	// Light data for shader (cbLight : register(b2))
+	struct LightData
+	{
+		// Primary light (can be any type)
+		ZNVector3 position = ZNVector3(0.0f, 0.0f, 0.0f); // Light position (for point/spot)
+		int lightType = 0; // 0=Directional, 1=Point, 2=Spot
+
+		ZNVector3 direction = ZNVector3(0.0f, -1.0f, 0.0f); // Light direction (world space)
+		float intensity = 1.0f;
+
+		ZNVector3 color = ZNVector3(1.0f, 1.0f, 1.0f); // Light color
+		float ambientIntensity = 0.2f; // Ambient light intensity
+
+		ZNVector3 cameraPos = ZNVector3(0.0f, 0.0f, 0.0f); // Camera position for specular
+		float cutoffAngle = 0.0f; // Spot light inner cutoff angle (cosine)
+
+		// Attenuation for point/spot lights
+		float constant = 1.0f;
+		float linear = 0.09f;
+		float quadratic = 0.032f;
+		float outerCutoffAngle = 0.0f; // Spot light outer cutoff angle (cosine)
+
+		// Secondary directional light (always active)
+		ZNVector3 dirLightDirection = ZNVector3(0.0f, -1.0f, 0.0f); // Directional light direction
+		float dirLightIntensity = 0.0f; // 0 = disabled
+
+		ZNVector3 dirLightColor = ZNVector3(1.0f, 1.0f, 1.0f); // Directional light color
+		float dirLightPadding = 0.0f; // Padding for 16-byte alignment
 	};
 
 	struct MeshData

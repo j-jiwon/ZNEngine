@@ -80,6 +80,27 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
 
     std::cout << "Camera initialized at position: (0, 0, -5)" << std::endl;
 
+    // Setup spot light like a flashlight from camera
+    spotLight = ZNFramework::Platform::CreateSpotLight();
+    spotLight->SetPosition(camera->GetPosition()); // At camera position
+    spotLight->SetDirection(ZNVector3(0.0f, 0.0f, 1.0f)); // Camera forward direction (+Z)
+    spotLight->SetIntensity(1.0f); // Bright but balanced with ambient
+    spotLight->SetColor(ZNVector3(0.8f, 0.1f, 0.1f)); // Warm white/yellow
+    spotLight->SetAmbientIntensity(0.2f); // Moderate ambient so models are visible
+    spotLight->SetCutoffAngle(5.0f, 15.0f); // Wider cone
+    spotLight->SetAttenuation(1.0f, 0.045f, 0.0075f); // Less attenuation for longer range
+    GraphicsContext::GetInstance().SetLight(spotLight);
+
+    // Setup green directional light
+    directionalLight = ZNFramework::Platform::CreateDirectionalLight();
+    directionalLight->SetDirection(ZNVector3(0.5f, -1.0f, 0.3f)); // Coming from upper right
+    directionalLight->SetIntensity(0.8f); // Medium intensity
+    directionalLight->SetColor(ZNVector3(0.2f, 1.0f, 0.2f)); // Green color
+    directionalLight->SetAmbientIntensity(0.0f); // No ambient, just directional
+    GraphicsContext::GetInstance().SetDirectionalLight(directionalLight);
+
+    std::cout << "Lights initialized - Spot light (flashlight mode) + Green directional light" << std::endl;
+
     // initialize
     commandQueue->Init(swapChain);
     swapChain->Init(commandQueue);
@@ -144,8 +165,8 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
         defaultMaterial->SetTexture(TextureType::Albedo, defaultTexture);
 
         MaterialParams params;
-        params.albedoColor = ZNVector4(1.f, 1.f, 1.f, 1.f);  // White with full opacity
-        params.metallic = 0.0f;
+        params.albedoColor = ZNVector4(1.f, 0.f, 0.f, 1.f);  // White with full opacity
+        params.metallic = 1.0f;
         params.roughness = 0.5f;
         params.ao = 1.0f;
         defaultMaterial->SetParams(params);
@@ -184,9 +205,11 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
                     material->Init();
                     material->SetShader(defaultShader); // Use default shader
 
-                    // Override material params with bright color
+                    // Use material params from FBX
                     MaterialParams params = matData.params;
-                    params.albedoColor = ZNVector4(1.0f, 1.0f, 1.0f, 1.0f); // Force white color
+                    // Keep original albedo color from FBX file
+                    params.metallic = 0.0f; // Non-metallic for better diffuse lighting
+                    params.roughness = 0.8f;
                     material->SetParams(params);
 
                     // Load textures for this material
@@ -240,6 +263,83 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
         }
     }
 
+    // Create debug visualization meshes
+    {
+        // Create debug material (solid color, no lighting needed)
+        debugMaterial = ZNFramework::Platform::CreateMaterial();
+        debugMaterial->Init();
+        debugMaterial->SetShader(defaultShader);
+        MaterialParams debugParams;
+        debugParams.albedoColor = ZNVector4(1.0f, 1.0f, 0.0f, 1.0f); // Yellow
+        debugParams.metallic = 0.0f;
+        debugParams.roughness = 1.0f;
+        debugParams.ao = 1.0f;
+        debugMaterial->SetParams(debugParams);
+
+        // Create light debug cube (small cube at light position)
+        {
+            std::vector<Vertex> cubeVerts;
+            std::vector<uint32> cubeIndices;
+
+            float s = 0.1f; // Cube half-size
+            ZNVector4 color(1, 0, 0, 1); // Yellow
+            ZNVector2 uv(0, 0);
+
+            // Front face (z = s)
+            cubeVerts.push_back(Vertex(ZNVector3(-s, -s, s), color, uv, ZNVector3(0, 0, 1)));
+            cubeVerts.push_back(Vertex(ZNVector3(s, -s, s), color, uv, ZNVector3(0, 0, 1)));
+            cubeVerts.push_back(Vertex(ZNVector3(s, s, s), color, uv, ZNVector3(0, 0, 1)));
+            cubeVerts.push_back(Vertex(ZNVector3(-s, s, s), color, uv, ZNVector3(0, 0, 1)));
+
+            // Back face (z = -s)
+            cubeVerts.push_back(Vertex(ZNVector3(s, -s, -s), color, uv, ZNVector3(0, 0, -1)));
+            cubeVerts.push_back(Vertex(ZNVector3(-s, -s, -s), color, uv, ZNVector3(0, 0, -1)));
+            cubeVerts.push_back(Vertex(ZNVector3(-s, s, -s), color, uv, ZNVector3(0, 0, -1)));
+            cubeVerts.push_back(Vertex(ZNVector3(s, s, -s), color, uv, ZNVector3(0, 0, -1)));
+
+            // Top face (y = s)
+            cubeVerts.push_back(Vertex(ZNVector3(-s, s, s), color, uv, ZNVector3(0, 1, 0)));
+            cubeVerts.push_back(Vertex(ZNVector3(s, s, s), color, uv, ZNVector3(0, 1, 0)));
+            cubeVerts.push_back(Vertex(ZNVector3(s, s, -s), color, uv, ZNVector3(0, 1, 0)));
+            cubeVerts.push_back(Vertex(ZNVector3(-s, s, -s), color, uv, ZNVector3(0, 1, 0)));
+
+            // Bottom face (y = -s)
+            cubeVerts.push_back(Vertex(ZNVector3(-s, -s, -s), color, uv, ZNVector3(0, -1, 0)));
+            cubeVerts.push_back(Vertex(ZNVector3(s, -s, -s), color, uv, ZNVector3(0, -1, 0)));
+            cubeVerts.push_back(Vertex(ZNVector3(s, -s, s), color, uv, ZNVector3(0, -1, 0)));
+            cubeVerts.push_back(Vertex(ZNVector3(-s, -s, s), color, uv, ZNVector3(0, -1, 0)));
+
+            // Right face (x = s)
+            cubeVerts.push_back(Vertex(ZNVector3(s, -s, s), color, uv, ZNVector3(1, 0, 0)));
+            cubeVerts.push_back(Vertex(ZNVector3(s, -s, -s), color, uv, ZNVector3(1, 0, 0)));
+            cubeVerts.push_back(Vertex(ZNVector3(s, s, -s), color, uv, ZNVector3(1, 0, 0)));
+            cubeVerts.push_back(Vertex(ZNVector3(s, s, s), color, uv, ZNVector3(1, 0, 0)));
+
+            // Left face (x = -s)
+            cubeVerts.push_back(Vertex(ZNVector3(-s, -s, -s), color, uv, ZNVector3(-1, 0, 0)));
+            cubeVerts.push_back(Vertex(ZNVector3(-s, -s, s), color, uv, ZNVector3(-1, 0, 0)));
+            cubeVerts.push_back(Vertex(ZNVector3(-s, s, s), color, uv, ZNVector3(-1, 0, 0)));
+            cubeVerts.push_back(Vertex(ZNVector3(-s, s, -s), color, uv, ZNVector3(-1, 0, 0)));
+
+            // Indices for all 6 faces (2 triangles per face)
+            for (uint32 i = 0; i < 6; ++i) {
+                uint32 base = i * 4;
+                cubeIndices.push_back(base + 0);
+                cubeIndices.push_back(base + 1);
+                cubeIndices.push_back(base + 2);
+                cubeIndices.push_back(base + 0);
+                cubeIndices.push_back(base + 2);
+                cubeIndices.push_back(base + 3);
+            }
+
+            lightDebugMesh = ZNFramework::Platform::CreateMesh();
+            lightDebugMesh->Init(cubeVerts, cubeIndices);
+            lightDebugMesh->SetMaterial(debugMaterial);
+        }
+
+        std::cout << "Debug visualization meshes created (including XYZ axes)" << std::endl;
+    }
+
     commandQueue->WaitSync();
 }
 
@@ -284,6 +384,25 @@ void ApplicationContext::Update()
     if (camera)
     {
         camera->UpdateViewMatrix();
+
+        // Update spot light to follow camera (flashlight effect)
+        ZNLight* light = GraphicsContext::GetInstance().GetLight();
+        if (light && light->GetType() == LightType::Spot)
+        {
+            ZNSpotLight* spotLight = static_cast<ZNSpotLight*>(light);
+            spotLight->SetPosition(camera->GetPosition());
+
+            // Calculate camera forward direction from rotation
+            float pitch = camera->GetPitch();
+            float yaw = camera->GetYaw();
+
+            ZNVector3 forward;
+            forward.x = cos(pitch) * sin(yaw);
+            forward.y = sin(pitch);
+            forward.z = cos(pitch) * cos(yaw);
+
+            spotLight->SetDirection(forward);
+        }
     }
 }
 
@@ -329,6 +448,62 @@ void ApplicationContext::Render()
         {
             std::cout << "No meshes loaded to render" << std::endl;
             printedOnce = true;
+        }
+    }
+
+    // Render debug visualizations
+    if (camera && lightDebugMesh && crosshairMesh)
+    {
+        // Render crosshair at screen center (in front of camera)
+        {
+            Transform crosshairTransform;
+            ZNVector3 forward(0, 0, 1); // Camera forward is +Z
+            ZNVector3 right(1, 0, 0);
+            ZNVector3 up(0, 1, 0);
+
+            // Position crosshair 1 unit in front of camera
+            crosshairTransform.position = camera->GetPosition() + forward * 1.0f;
+            crosshairTransform.scale = ZNVector3(1.0f, 1.0f, 1.0f);
+
+            crosshairMesh->SetTransform(crosshairTransform);
+            crosshairMesh->Render();
+        }
+
+        // Render light position indicator (slightly ahead of camera)
+        {
+            ZNLight* light = GraphicsContext::GetInstance().GetLight();
+            if (light && light->GetType() == LightType::Spot)
+            {
+                ZNSpotLight* spotLight = static_cast<ZNSpotLight*>(light);
+                Transform lightTransform;
+                // Show light box 2 units ahead of camera
+                lightTransform.position = ZNVector3(5, 0, 15); //spotLight->GetPosition() + camera->GetForward() * 2.0f;
+                lightTransform.scale = ZNVector3(0.5f, 0.5f, 0.5f); // Smaller box
+
+                lightDebugMesh->SetTransform(lightTransform);
+                lightDebugMesh->Render();
+            }
+        }
+
+        // Render XYZ axes at origin
+        if (axisXMesh && axisYMesh && axisZMesh)
+        {
+            Transform axisTransform;
+            axisTransform.position = ZNVector3(0.0f, 0.0f, 0.0f); // At world origin
+            axisTransform.scale = ZNVector3(1.0f, 1.0f, 1.0f);
+            axisTransform.rotation = ZNVector3(0.0f, 0.0f, 0.0f);
+
+            // Render X axis (Red)
+            axisXMesh->SetTransform(axisTransform);
+            axisXMesh->Render();
+
+            // Render Y axis (Green)
+            axisYMesh->SetTransform(axisTransform);
+            axisYMesh->Render();
+
+            // Render Z axis (Blue)
+            axisZMesh->SetTransform(axisTransform);
+            axisZMesh->Render();
         }
     }
 

@@ -55,6 +55,36 @@ void Mesh::Render()
 		tableDescHeap->SetSRV(texture->GetCpuHandle(), SRV_REGISTER::t0);
 	}
 
+	// Set Light data (b2)
+	ZNLight* light = GraphicsContext::GetInstance().GetLight();
+	if (light)
+	{
+		LightData lightData = light->GetLightData();
+		// Update camera position for specular lighting
+		if (camera)
+		{
+			lightData.cameraPos = camera->GetPosition();
+		}
+
+		// Add directional light data if available
+		ZNDirectionalLight* dirLight = GraphicsContext::GetInstance().GetDirectionalLight();
+		if (dirLight)
+		{
+			LightData dirLightData = dirLight->GetLightData();
+			lightData.dirLightDirection = dirLightData.direction;
+			lightData.dirLightIntensity = dirLightData.intensity;
+			lightData.dirLightColor = dirLightData.color;
+		}
+		else
+		{
+			// No directional light - set intensity to 0 to disable
+			lightData.dirLightIntensity = 0.0f;
+		}
+
+		D3D12_CPU_DESCRIPTOR_HANDLE lightHandle = constantBuffer->PushData(0, &lightData, sizeof(LightData));
+		tableDescHeap->SetCBV(lightHandle, CBV_REGISTER::b2);
+	}
+
 	tableDescHeap->CommitTable();
 
 	queue->CommandList()->DrawIndexedInstanced(indexCount, 1, 0, 0, 0);

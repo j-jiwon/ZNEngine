@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(\"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Community\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe\" \"c:\\\\Work\\\\ZNEngine\\\\ZNEngine.sln\" -p:Configuration=Debug -p:Platform=x64 -t:Build -v:minimal)",
+      "Bash(\"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Community\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe\" \"c:\\\\Work\\\\ZNEngine\\\\ZN\\\\ZN.vcxproj\" -p:Configuration=Debug -p:Platform=x64 -t:Build -v:minimal)"
+    ]
+  }
+}
