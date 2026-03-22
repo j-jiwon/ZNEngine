@@ -217,6 +217,7 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="UnitTest\Framework\App.cpp" />
+    <ClCompile Include="UnitTest\Framework\TestGameScene.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ZN\ZN.vcxproj">
@@ -261,6 +262,7 @@
     <ClInclude Include="Libs\googletest\include\gtest\internal\gtest-port.h" />
     <ClInclude Include="Libs\googletest\include\gtest\internal\gtest-string.h" />
     <ClInclude Include="Libs\googletest\include\gtest\internal\gtest-type-util.h" />
+    <ClInclude Include="UnitTest\Framework\TestGameScene.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Libs\googletest\LICENSE" />

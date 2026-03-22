@@ -32,6 +32,12 @@
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\Texture.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\DDSTextureLoader12.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\DepthStencilBuffer.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\DirectionalLight.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\SpotLight.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\Material.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\AssimpLoader.cpp" />
+    <ClCompile Include="ZNFramework\Scene\ZNScene.cpp" />
+    <ClCompile Include="ZNFramework\Scene\ZNGameObject.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\d3dx12.h" />
@@ -84,5 +90,15 @@
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\DepthStencilBuffer.h" />
     <ClInclude Include="ZNFramework\ZNInputDef.h" />
     <ClInclude Include="ZNFramework\Math\ZNMath.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\DirectionalLight.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\SpotLight.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Material.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\AssimpLoader.h" />
+    <ClInclude Include="ZNFramework\Graphics\ZNLight.h" />
+    <ClInclude Include="ZNFramework\Graphics\ZNMaterial.h" />
+    <ClInclude Include="ZNFramework\Graphics\ZNModelLoader.h" />
+    <ClInclude Include="ZNFramework\Scene\ZNGameObject.h" />
+    <ClInclude Include="ZNFramework\Scene\ZNScene.h" />
+    <ClInclude Include="ZNFramework\ZNTransform.h" />
   </ItemGroup>
 </Project>
