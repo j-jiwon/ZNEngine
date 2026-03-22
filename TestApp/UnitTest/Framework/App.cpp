@@ -2,6 +2,7 @@
 #include "ZNFramework.h"
 #include "ZNFramework/Window/Platform/WindowPlatform.h"
 #include "ZNFramework/Graphics/Platform/GraphicsAPI.h"
+#include "TestGameScene.h"
 
 using namespace ZNFramework;
 
@@ -32,8 +33,13 @@ void TestApp::OnInitialize()
     window = ZNFramework::WindowPlatform::Create();
     window->Create(700, 500);
 
-    device = ZNFramework::Platform::CreateGraphicsDevice();    
+    device = ZNFramework::Platform::CreateGraphicsDevice();
     context->Initialize(window, device);
+
+    // Create and initialize game scene
+    TestGameScene* gameScene = new TestGameScene();
+    gameScene->Initialize();
+    context->SetScene(gameScene);
 };
 
 void TestApp::OnTerminate()
