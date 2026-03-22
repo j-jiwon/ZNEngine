@@ -153,7 +153,6 @@ void ApplicationContext::Update()
 {
     if (currentScene)
     {
-        timer->Tick();
         currentScene->Update(timer->DeltaTime());
     }
 }

@@ -98,8 +98,8 @@ void TestGameScene::Initialize()
                     }
 
                     obj->SetMesh(mesh);
-                    obj->GetTransform().position = ZNVector3(0.0f, 0.0f, 0.0f);
-                    obj->GetTransform().scale = ZNVector3(5.0f, 5.0f, 5.0f);
+                    obj->GetTransform().position = ZNVector3(0.0f, 0.0f, 1000.0f);
+                    obj->GetTransform().scale = ZNVector3(0.05f, 0.05f, 0.05f);
 
                     AddGameObject(obj);
                     modelObjects.push_back(obj);
@@ -257,6 +257,7 @@ void TestGameScene::Initialize()
         AddGameObject(lightIndicator);
     }
 
+    /*
     // Debug visualization - XYZ Axes
     {
         float axisLength = 5.0f;
@@ -351,6 +352,7 @@ void TestGameScene::Initialize()
 
         std::cout << "Debug visualization meshes created (including XYZ axes)" << std::endl;
     }
+    */
 }
 
 void TestGameScene::Update(float deltaTime)
