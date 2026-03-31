@@ -20,15 +20,15 @@ void Shader::Load(const wstring& path)
 	CreateVertexShader(path, "VS_Main", "vs_5_0");
 	CreatePixelShader(path, "PS_Main", "ps_5_0");
 
-	D3D12_INPUT_ELEMENT_DESC desc[] =
-	{
+	// Store input layout descriptors as member variable to keep them valid
+	inputElementDescs = {
 		{ "POSITION",	0, DXGI_FORMAT_R32G32B32_FLOAT,		0, 0,	D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 		{ "COLOR",		0, DXGI_FORMAT_R32G32B32A32_FLOAT,	0, 12,	D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }, // 12 = float3 pos
 		{ "TEXCOORD",	0, DXGI_FORMAT_R32G32_FLOAT,		0, 28,	D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }, // 28 = 12 + 16(float4 color)
 		{ "NORMAL",		0, DXGI_FORMAT_R32G32B32_FLOAT,		0, 36,	D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }  // 36 = 12 + 16 + 8(float2 uv)
 	};
 
-	pipelineDesc.InputLayout = { desc, _countof(desc) };
+	pipelineDesc.InputLayout = { inputElementDescs.data(), static_cast<UINT>(inputElementDescs.size()) };
 	RootSignature* rootSignature = GraphicsContext::GetInstance().GetAs<RootSignature>();
 	pipelineDesc.pRootSignature = rootSignature->GetSignature().Get();
 
@@ -44,7 +44,7 @@ void Shader::Load(const wstring& path)
 	pipelineDesc.DSVFormat = dsBuffer->GetDSVFormat();
 
 	GraphicsDevice* device = GraphicsContext::GetInstance().GetAs<GraphicsDevice>();
-	device->Device()->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&pipelineState));
+	ThrowIfFailed(device->Device()->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&pipelineState)));
 }
 
 void Shader::Bind()
@@ -77,4 +77,18 @@ void Shader::CreateVertexShader(const wstring& path, const string& name, const s
 void Shader::CreatePixelShader(const wstring& path, const string& name, const string& version)
 {
 	CreateShader(path, name, version, psBlob, pipelineDesc.PS);
+}
+
+void Shader::SetRenderTargetFormats(uint32 numRenderTargets, const DXGI_FORMAT* formats)
+{
+	pipelineDesc.NumRenderTargets = numRenderTargets;
+	for (uint32 i = 0; i < numRenderTargets; ++i)
+	{
+		pipelineDesc.RTVFormats[i] = formats[i];
+	}
+
+	// Recreate pipeline state with new configuration
+	GraphicsDevice* device = GraphicsContext::GetInstance().GetAs<GraphicsDevice>();
+	pipelineState.Reset();
+	ThrowIfFailed(device->Device()->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&pipelineState)));
 }

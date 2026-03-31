@@ -12,6 +12,8 @@ namespace ZNFramework
 		void Load(const wstring& path) override;
 		void Bind() override;
 
+		void SetRenderTargetFormats(uint32 numRenderTargets, const DXGI_FORMAT* formats);
+
 	private:
 		void CreateShader(const wstring& path, const string& name, const string& version, ComPtr<ID3DBlob>& blob, D3D12_SHADER_BYTECODE& shaderByteCode);
 		void CreateVertexShader(const wstring& path, const string& name, const string& version);
@@ -24,5 +26,8 @@ namespace ZNFramework
 
 		ComPtr<ID3D12PipelineState>	pipelineState;
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC pipelineDesc = {};
+
+		// Store input layout descriptors to keep them valid
+		std::vector<D3D12_INPUT_ELEMENT_DESC> inputElementDescs;
 	};
 }

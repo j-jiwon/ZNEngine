@@ -8,6 +8,7 @@ namespace ZNFramework
     class ZNConstantBuffer;
     class ZNDepthStencilBuffer;
     class ZNTableDescriptorHeap;
+    class ZNShader;
     class ZNCamera;
     class ZNLight;
 
@@ -90,6 +91,10 @@ namespace ZNFramework
         void SetDirectionalLight(ZNDirectionalLight* inLight) { directionalLight = inLight; }
         ZNDirectionalLight* GetDirectionalLight() const { return directionalLight; }
 
+        // Shaders
+        void SetGBufferShader(ZNShader* inShader) { gbufferShader = inShader; }
+        ZNShader* GetGBufferShader() const { return gbufferShader; }
+
     private:
         ZNGraphicsDevice* device = nullptr;
         ZNCommandQueue* queue = nullptr;
@@ -97,6 +102,7 @@ namespace ZNFramework
         ZNConstantBuffer* constantBuffer = nullptr;
         ZNDepthStencilBuffer* depthStencilBuffer = nullptr;
         ZNTableDescriptorHeap* descHeap = nullptr;
+        ZNShader* gbufferShader = nullptr;
         ZNCamera* camera = nullptr;
         ZNLight* light = nullptr;
         ZNDirectionalLight* directionalLight = nullptr;
