@@ -3,6 +3,7 @@
 #include "Texture.h"
 #include "ConstantBuffer.h"
 #include "TableDescriptorHeap.h"
+#include "CommandQueue.h"
 #include "ZNFramework.h"
 
 using namespace ZNFramework;
@@ -48,8 +49,11 @@ void Material::SetParams(const MaterialParams& inParams)
 
 void Material::Bind()
 {
-	// Bind shader
-	if (shader)
+	CommandQueue* queue = GraphicsContext::GetInstance().GetAs<CommandQueue>();
+	bool isMRTMode = (queue->GetGBufferManager() != nullptr);
+
+	// Bind shader (skip in MRT mode - gbuffer shader is already bound)
+	if (shader && !isMRTMode)
 	{
 		shader->Bind();
 	}

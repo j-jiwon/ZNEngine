@@ -40,7 +40,7 @@ struct PS_MRT_OUTPUT
 {
     float4 baseColor : SV_Target0;  // Base color (albedo)
     float4 normal : SV_Target1;     // World normal (encoded)
-    float depth : SV_Target2;       // Depth value for visualization
+    float4 depth : SV_Target2;      // Depth value for visualization (R32_FLOAT writes to .r channel)
 };
 
 VS_OUT VS_Main(VS_IN input)
@@ -96,8 +96,8 @@ PS_MRT_OUTPUT PS_Main(VS_OUT input)
     float3 N = normalize(input.normal);
     output.normal = float4(N * 0.5 + 0.5, 1.0); // Encode [-1,1] to [0,1]
 
-    // Output 2: Depth for visualization
-    output.depth = input.depth;
+    // Output 2: Depth for visualization (R32_FLOAT only uses .r channel)
+    output.depth = float4(input.depth, 0.0, 0.0, 1.0);
 
     return output;
 }

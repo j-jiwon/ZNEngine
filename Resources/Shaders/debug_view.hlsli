@@ -11,7 +11,9 @@ SamplerState debugSampler : register(s0);
 struct VS_IN
 {
     float3 pos : POSITION;
+    float4 color : COLOR;
     float2 uv : TEXCOORD;
+    float3 normal : NORMAL;
 };
 
 struct VS_OUT
@@ -34,7 +36,6 @@ float4 PS_Main(VS_OUT input) : SV_Target
 
     if (viewType == 0) // Depth
     {
-        // Depth is already in [0,1] range, just visualize as grayscale
         float depth = texValue.r;
         return float4(depth, depth, depth, 1.0f);
     }

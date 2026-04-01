@@ -175,13 +175,19 @@ void CommandQueue::RenderEnd()
 		// Set back buffer as render target
 		commandList->OMSetRenderTargets(1, &backBufferView, FALSE, nullptr);
 
-		// Restore full viewport for debug rendering
+		// Restore full viewport
 		D3D12_VIEWPORT vp = { 0, 0, static_cast<FLOAT>(swapChain->Width()), static_cast<FLOAT>(swapChain->Height()), 0.f, 1.f };
 		D3D12_RECT rect = CD3DX12_RECT(0, 0, swapChain->Width(), swapChain->Height());
 		commandList->RSSetViewports(1, &vp);
 		commandList->RSSetScissorRects(1, &rect);
 
-		// Render debug viewports
+		// Render G-Buffer BaseColor to main view (fullscreen)
+		if (debugViewportRenderer)
+		{
+			debugViewportRenderer->RenderMainView(gbufferManager->GetBaseColorSRV(), swapChain->Width(), swapChain->Height());
+		}
+
+		// Render debug viewports on top
 		if (debugViewportRenderer)
 		{
 			debugViewportRenderer->RenderDebugViews(gbufferManager, swapChain->Width(), swapChain->Height());

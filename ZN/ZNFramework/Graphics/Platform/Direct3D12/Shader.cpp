@@ -92,3 +92,16 @@ void Shader::SetRenderTargetFormats(uint32 numRenderTargets, const DXGI_FORMAT* 
 	pipelineState.Reset();
 	ThrowIfFailed(device->Device()->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&pipelineState)));
 }
+
+void Shader::DisableDepthTest()
+{
+	// Disable depth testing and depth writes
+	pipelineDesc.DepthStencilState.DepthEnable = FALSE;
+	pipelineDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+	pipelineDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
+
+	// Recreate pipeline state with depth test disabled
+	GraphicsDevice* device = GraphicsContext::GetInstance().GetAs<GraphicsDevice>();
+	pipelineState.Reset();
+	ThrowIfFailed(device->Device()->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&pipelineState)));
+}
