@@ -4,6 +4,10 @@
 #include "ApplicationContext.h"
 #include "ZNFramework.h"
 #include "ZNFramework/Graphics/Platform/GraphicsAPI.h"
+#include "ZNFramework/Graphics/Platform/Direct3D12/Shader.h"
+#include "ZNFramework/Graphics/Platform/Direct3D12/CommandQueue.h"
+#include "ZNFramework/Graphics/Platform/Direct3D12/GBufferManager.h"
+#include "ZNFramework/Graphics/Platform/Direct3D12/DebugViewportRenderer.h"
 #include "ZNFramework/Scene/ZNScene.h"
 #include "ZNFramework/ZNCamera.h"
 
@@ -96,6 +100,45 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
     {
         std::filesystem::path shaderPath = GetResourcePath() / L"Shaders" / L"default.hlsli";
         defaultShader->Load(shaderPath);
+    }
+
+    // Load G-Buffer shader for MRT
+    {
+        gbufferShader = ZNFramework::Platform::CreateShader();
+        std::filesystem::path shaderPath = GetResourcePath() / L"Shaders" / L"gbuffer.hlsli";
+        gbufferShader->Load(shaderPath);
+
+        // Configure for 3 render targets
+        DXGI_FORMAT mrtFormats[3] = {
+            DXGI_FORMAT_R8G8B8A8_UNORM,      // Base Color
+            DXGI_FORMAT_R16G16B16A16_FLOAT,  // World Normal
+            DXGI_FORMAT_R32_FLOAT            // Depth
+        };
+
+        // Cast to concrete type to access SetRenderTargetFormats
+        Shader* d3dShader = dynamic_cast<Shader*>(gbufferShader);
+        if (d3dShader)
+        {
+            d3dShader->SetRenderTargetFormats(3, mrtFormats);
+        }
+
+        GraphicsContext::GetInstance().SetGBufferShader(gbufferShader);
+    }
+
+    // Initialize G-Buffer and Debug Viewport Renderer after SwapChain is ready
+    // This must be done after OnResize to ensure proper dimensions
+    CommandQueue* cmdQueue = dynamic_cast<CommandQueue*>(commandQueue);
+    if (cmdQueue)
+    {
+        // Initialize G-Buffer for MRT
+        GBufferManager* gbufferMgr = new GBufferManager();
+        gbufferMgr->Init(inWindow->Width(), inWindow->Height());
+        cmdQueue->SetGBufferManager(gbufferMgr);
+
+        // Initialize Debug Viewport Renderer
+        DebugViewportRenderer* debugViewport = new DebugViewportRenderer();
+        debugViewport->Init();
+        cmdQueue->SetDebugViewportRenderer(debugViewport);
     }
 
     commandQueue->WaitSync();

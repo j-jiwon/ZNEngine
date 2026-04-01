@@ -39,6 +39,7 @@ namespace ZNFramework
 		class ZNRootSignature* rootSignature = nullptr;
 		class ZNTableDescriptorHeap* tableDescriptorHeap = nullptr;
 		class ZNShader* defaultShader = nullptr;
+		class ZNShader* gbufferShader = nullptr;
 		class ZNConstantBuffer* constantBuffer = nullptr;
 		class ZNDepthStencilBuffer* depthStencilBuffer = nullptr;
 

@@ -219,9 +219,11 @@
     <ClInclude Include="ZNFramework.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\DDSTextureLoader12.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\DepthStencilBuffer.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\DebugViewportRenderer.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\DirectionalLight.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\SpotLight.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\GraphicsDevice.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\GBufferManager.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Material.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Mesh.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\AssimpLoader.h" />
@@ -280,9 +282,11 @@
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\ConstantBuffer.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\DDSTextureLoader12.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\DepthStencilBuffer.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\DebugViewportRenderer.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\DirectionalLight.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\SpotLight.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\GraphicsDevice.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\GBufferManager.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\Material.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\Mesh.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\AssimpLoader.cpp" />

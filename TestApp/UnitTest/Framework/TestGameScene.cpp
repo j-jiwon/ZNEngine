@@ -98,8 +98,8 @@ void TestGameScene::Initialize()
                     }
 
                     obj->SetMesh(mesh);
-                    obj->GetTransform().position = ZNVector3(0.0f, 0.0f, 1000.0f);
-                    obj->GetTransform().scale = ZNVector3(0.05f, 0.05f, 0.05f);
+                    obj->GetTransform().position = ZNVector3(0.0f, 0.0f, 100.0f);
+                    obj->GetTransform().scale = ZNVector3(0.01f, 0.01f, 0.01f);
 
                     AddGameObject(obj);
                     modelObjects.push_back(obj);
@@ -136,7 +136,7 @@ void TestGameScene::Initialize()
         redMaterial->Init();
         redMaterial->SetShader(defaultShader);
         MaterialParams redParams;
-        redParams.albedoColor = ZNVector4(1.0f, 0.0f, 0.0f, 1.0f);
+        redParams.albedoColor = ZNVector4(1.0f, 1.0f, 0.0f, 1.0f);
         redParams.metallic = 0.0f;
         redParams.roughness = 1.0f;
         redParams.ao = 1.0f;
@@ -257,102 +257,6 @@ void TestGameScene::Initialize()
         AddGameObject(lightIndicator);
     }
 
-    /*
-    // Debug visualization - XYZ Axes
-    {
-        float axisLength = 5.0f;
-        float axisThickness = 0.05f;
-
-        // X Axis (Red)
-        {
-            std::vector<Vertex> axisVerts;
-            std::vector<uint32> axisIndices;
-            ZNVector4 color(1, 0, 0, 1);
-            ZNVector2 uv(0, 0);
-
-            // Bottom face
-            axisVerts.push_back(Vertex(ZNVector3(0, -axisThickness, -axisThickness), color, uv, ZNVector3(0, -1, 0)));
-            axisVerts.push_back(Vertex(ZNVector3(axisLength, -axisThickness, -axisThickness), color, uv, ZNVector3(0, -1, 0)));
-            axisVerts.push_back(Vertex(ZNVector3(axisLength, -axisThickness, axisThickness), color, uv, ZNVector3(0, -1, 0)));
-            axisVerts.push_back(Vertex(ZNVector3(0, -axisThickness, axisThickness), color, uv, ZNVector3(0, -1, 0)));
-
-            // Top face
-            axisVerts.push_back(Vertex(ZNVector3(0, axisThickness, -axisThickness), color, uv, ZNVector3(0, 1, 0)));
-            axisVerts.push_back(Vertex(ZNVector3(axisLength, axisThickness, -axisThickness), color, uv, ZNVector3(0, 1, 0)));
-            axisVerts.push_back(Vertex(ZNVector3(axisLength, axisThickness, axisThickness), color, uv, ZNVector3(0, 1, 0)));
-            axisVerts.push_back(Vertex(ZNVector3(0, axisThickness, axisThickness), color, uv, ZNVector3(0, 1, 0)));
-
-            axisIndices = { 0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7 };
-
-            axisX = new ZNGameObject();
-            ZNMesh* axisMesh = ZNFramework::Platform::CreateMesh();
-            axisMesh->Init(axisVerts, axisIndices);
-            axisMesh->SetMaterial(redMaterial);
-            axisX->SetMesh(axisMesh);
-            AddGameObject(axisX);
-        }
-
-        // Y Axis (Green)
-        {
-            std::vector<Vertex> axisVerts;
-            std::vector<uint32> axisIndices;
-            ZNVector4 color(0, 1, 0, 1);
-            ZNVector2 uv(0, 0);
-
-            // Bottom face
-            axisVerts.push_back(Vertex(ZNVector3(-axisThickness, 0, -axisThickness), color, uv, ZNVector3(0, -1, 0)));
-            axisVerts.push_back(Vertex(ZNVector3(axisThickness, 0, -axisThickness), color, uv, ZNVector3(0, -1, 0)));
-            axisVerts.push_back(Vertex(ZNVector3(axisThickness, 0, axisThickness), color, uv, ZNVector3(0, -1, 0)));
-            axisVerts.push_back(Vertex(ZNVector3(-axisThickness, 0, axisThickness), color, uv, ZNVector3(0, -1, 0)));
-
-            // Top face
-            axisVerts.push_back(Vertex(ZNVector3(-axisThickness, axisLength, -axisThickness), color, uv, ZNVector3(0, 1, 0)));
-            axisVerts.push_back(Vertex(ZNVector3(axisThickness, axisLength, -axisThickness), color, uv, ZNVector3(0, 1, 0)));
-            axisVerts.push_back(Vertex(ZNVector3(axisThickness, axisLength, axisThickness), color, uv, ZNVector3(0, 1, 0)));
-            axisVerts.push_back(Vertex(ZNVector3(-axisThickness, axisLength, axisThickness), color, uv, ZNVector3(0, 1, 0)));
-
-            axisIndices = { 0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7 };
-
-            axisY = new ZNGameObject();
-            ZNMesh* axisMesh = ZNFramework::Platform::CreateMesh();
-            axisMesh->Init(axisVerts, axisIndices);
-            axisMesh->SetMaterial(greenMaterial);
-            axisY->SetMesh(axisMesh);
-            AddGameObject(axisY);
-        }
-
-        // Z Axis (Blue)
-        {
-            std::vector<Vertex> axisVerts;
-            std::vector<uint32> axisIndices;
-            ZNVector4 color(0, 0, 1, 1);
-            ZNVector2 uv(0, 0);
-
-            // Bottom face
-            axisVerts.push_back(Vertex(ZNVector3(-axisThickness, -axisThickness, 0), color, uv, ZNVector3(0, -1, 0)));
-            axisVerts.push_back(Vertex(ZNVector3(axisThickness, -axisThickness, 0), color, uv, ZNVector3(0, -1, 0)));
-            axisVerts.push_back(Vertex(ZNVector3(axisThickness, -axisThickness, axisLength), color, uv, ZNVector3(0, -1, 0)));
-            axisVerts.push_back(Vertex(ZNVector3(-axisThickness, -axisThickness, axisLength), color, uv, ZNVector3(0, -1, 0)));
-
-            // Top face
-            axisVerts.push_back(Vertex(ZNVector3(-axisThickness, axisThickness, 0), color, uv, ZNVector3(0, 1, 0)));
-            axisVerts.push_back(Vertex(ZNVector3(axisThickness, axisThickness, 0), color, uv, ZNVector3(0, 1, 0)));
-            axisVerts.push_back(Vertex(ZNVector3(axisThickness, axisThickness, axisLength), color, uv, ZNVector3(0, 1, 0)));
-            axisVerts.push_back(Vertex(ZNVector3(-axisThickness, axisThickness, axisLength), color, uv, ZNVector3(0, 1, 0)));
-
-            axisIndices = { 0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7 };
-
-            axisZ = new ZNGameObject();
-            ZNMesh* axisMesh = ZNFramework::Platform::CreateMesh();
-            axisMesh->Init(axisVerts, axisIndices);
-            axisMesh->SetMaterial(blueMaterial);
-            axisZ->SetMesh(axisMesh);
-            AddGameObject(axisZ);
-        }
-
-        std::cout << "Debug visualization meshes created (including XYZ axes)" << std::endl;
-    }
-    */
 }
 
 void TestGameScene::Update(float deltaTime)

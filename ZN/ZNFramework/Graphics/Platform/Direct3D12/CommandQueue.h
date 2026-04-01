@@ -6,6 +6,8 @@ namespace ZNFramework
 {
     class GraphicsDevice;
     class SwapChain;
+    class GBufferManager;
+    class DebugViewportRenderer;
     class CommandQueue : public ZNCommandQueue
     {
     public:
@@ -22,6 +24,11 @@ namespace ZNFramework
         ID3D12GraphicsCommandList* CommandList() { return commandList.Get(); }
         ID3D12GraphicsCommandList* ResourceCommandList() { return resourceCommandList.Get(); }
 
+        GBufferManager* GetGBufferManager() { return gbufferManager; }
+        void SetGBufferManager(GBufferManager* manager) { gbufferManager = manager; }
+        void SetDebugViewportRenderer(DebugViewportRenderer* renderer) { debugViewportRenderer = renderer; }
+        void SetGBufferEnabled(bool enabled) { enableGBuffer = enabled; }
+
     private:
         ComPtr<ID3D12CommandQueue> queue;
         ComPtr<ID3D12CommandAllocator> commandAllocator;
@@ -37,5 +44,10 @@ namespace ZNFramework
 
         GraphicsDevice* device;
         SwapChain* swapChain;
+
+        GBufferManager* gbufferManager = nullptr;
+        DebugViewportRenderer* debugViewportRenderer = nullptr;
+        bool enableGBuffer = true; // Enable MRT by default
+        bool isFirstFrame = true; // Track first frame for resource state
     };
 }
