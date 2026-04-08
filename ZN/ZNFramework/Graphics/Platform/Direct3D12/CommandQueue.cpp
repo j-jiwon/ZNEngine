@@ -181,10 +181,10 @@ void CommandQueue::RenderEnd()
 		commandList->RSSetViewports(1, &vp);
 		commandList->RSSetScissorRects(1, &rect);
 
-		// Render G-Buffer BaseColor to main view (fullscreen)
+		// Render deferred lighting to main view (fullscreen)
 		if (debugViewportRenderer)
 		{
-			debugViewportRenderer->RenderMainView(gbufferManager->GetBaseColorSRV(), swapChain->Width(), swapChain->Height());
+			debugViewportRenderer->RenderMainView(gbufferManager, swapChain->Width(), swapChain->Height());
 		}
 
 		// Render debug viewports on top
