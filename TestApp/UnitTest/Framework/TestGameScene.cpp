@@ -21,22 +21,22 @@ void TestGameScene::Initialize()
 
     std::cout << "Camera initialized at position: (0, 0, -5)" << std::endl;
 
-    // Setup spot light like a flashlight from camera
+    // Setup spot light like a flashlight from camera - GREEN
     ZNSpotLight* spotLight = ZNFramework::Platform::CreateSpotLight();
-    spotLight->SetPosition(cam->GetPosition());
+    spotLight->SetPosition(cam->GetPosition()); // Start at camera position
     spotLight->SetDirection(ZNVector3(0.0f, 0.0f, 1.0f));
-    spotLight->SetIntensity(10.0f);
-    spotLight->SetColor(ZNVector3(1.0f, 1.0f, 0.8f));
+    spotLight->SetIntensity(1.0f);
+    spotLight->SetColor(ZNVector3(0.0f, 1.0f, 0.0f)); // Green
     spotLight->SetAmbientIntensity(0.2f);
-    spotLight->SetCutoffAngle(25.0f, 35.0f);
+    spotLight->SetCutoffAngle(5.0f, 10.0f);
     spotLight->SetAttenuation(1.0f, 0.045f, 0.0075f);
     SetLight(spotLight);
 
-    // Setup green directional light
+    // Setup directional light - RED
     ZNDirectionalLight* dirLight = ZNFramework::Platform::CreateDirectionalLight();
     dirLight->SetDirection(ZNVector3(0.5f, -1.0f, 0.3f));
     dirLight->SetIntensity(0.8f);
-    dirLight->SetColor(ZNVector3(0.2f, 1.0f, 0.2f));
+    dirLight->SetColor(ZNVector3(1.0f, 0.0f, 0.0f)); // Red
     dirLight->SetAmbientIntensity(0.0f);
     SetDirectionalLight(dirLight);
 
