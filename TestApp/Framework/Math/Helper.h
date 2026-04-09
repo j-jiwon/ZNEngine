@@ -1,6 +1,5 @@
 #pragma once
 #include "ZNFramework.h"
-#include "gtest/gtest.h"
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <random>

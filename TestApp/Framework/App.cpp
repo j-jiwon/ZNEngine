@@ -1,4 +1,3 @@
-#include "gtest/gtest.h"
 #include "ZNFramework.h"
 #include "ZNFramework/Window/Platform/WindowPlatform.h"
 #include "ZNFramework/Graphics/Platform/GraphicsAPI.h"

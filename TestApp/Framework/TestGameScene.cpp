@@ -25,11 +25,12 @@ void TestGameScene::Initialize()
     ZNSpotLight* spotLight = ZNFramework::Platform::CreateSpotLight();
     spotLight->SetPosition(cam->GetPosition()); // Start at camera position
     spotLight->SetDirection(ZNVector3(0.0f, 0.0f, 1.0f));
-    spotLight->SetIntensity(1.0f);
+    spotLight->SetIntensity(0.5f);
     spotLight->SetColor(ZNVector3(0.0f, 1.0f, 0.0f)); // Green
-    spotLight->SetAmbientIntensity(0.2f);
-    spotLight->SetCutoffAngle(5.0f, 10.0f);
-    spotLight->SetAttenuation(1.0f, 0.045f, 0.0075f);
+    spotLight->SetAmbientIntensity(0.1f);
+    spotLight->SetCutoffAngle(0.0f, 5.0f);
+    // spotLight->SetAttenuation(1.0f, 0.045f, 0.0075f);
+    spotLight->SetAttenuation(0.5f, 0.045f, 0.0075f);
     SetLight(spotLight);
 
     // Setup directional light - RED
@@ -208,11 +209,11 @@ void TestGameScene::Initialize()
         cubeVerts.push_back(Vertex(ZNVector3(s, s, -s), color, uv, ZNVector3(0, 0, -1)));
         cubeVerts.push_back(Vertex(ZNVector3(-s, s, -s), color, uv, ZNVector3(0, 0, -1)));
 
-        // Back face
-        cubeVerts.push_back(Vertex(ZNVector3(-s, -s, s), color, uv, ZNVector3(0, 0, 1)));
+        // Back face (reversed vertex order for correct CW winding)
         cubeVerts.push_back(Vertex(ZNVector3(s, -s, s), color, uv, ZNVector3(0, 0, 1)));
-        cubeVerts.push_back(Vertex(ZNVector3(s, s, s), color, uv, ZNVector3(0, 0, 1)));
+        cubeVerts.push_back(Vertex(ZNVector3(-s, -s, s), color, uv, ZNVector3(0, 0, 1)));
         cubeVerts.push_back(Vertex(ZNVector3(-s, s, s), color, uv, ZNVector3(0, 0, 1)));
+        cubeVerts.push_back(Vertex(ZNVector3(s, s, s), color, uv, ZNVector3(0, 0, 1)));
 
         // Top face
         cubeVerts.push_back(Vertex(ZNVector3(-s, s, -s), color, uv, ZNVector3(0, 1, 0)));
@@ -226,17 +227,17 @@ void TestGameScene::Initialize()
         cubeVerts.push_back(Vertex(ZNVector3(s, -s, s), color, uv, ZNVector3(0, -1, 0)));
         cubeVerts.push_back(Vertex(ZNVector3(-s, -s, s), color, uv, ZNVector3(0, -1, 0)));
 
-        // Right face
+        // Right face (reversed vertex order for correct CW winding)
         cubeVerts.push_back(Vertex(ZNVector3(s, -s, -s), color, uv, ZNVector3(1, 0, 0)));
-        cubeVerts.push_back(Vertex(ZNVector3(s, s, -s), color, uv, ZNVector3(1, 0, 0)));
-        cubeVerts.push_back(Vertex(ZNVector3(s, s, s), color, uv, ZNVector3(1, 0, 0)));
         cubeVerts.push_back(Vertex(ZNVector3(s, -s, s), color, uv, ZNVector3(1, 0, 0)));
+        cubeVerts.push_back(Vertex(ZNVector3(s, s, s), color, uv, ZNVector3(1, 0, 0)));
+        cubeVerts.push_back(Vertex(ZNVector3(s, s, -s), color, uv, ZNVector3(1, 0, 0)));
 
-        // Left face
+        // Left face (reversed vertex order for correct CW winding)
+        cubeVerts.push_back(Vertex(ZNVector3(-s, -s, s), color, uv, ZNVector3(-1, 0, 0)));
         cubeVerts.push_back(Vertex(ZNVector3(-s, -s, -s), color, uv, ZNVector3(-1, 0, 0)));
         cubeVerts.push_back(Vertex(ZNVector3(-s, s, -s), color, uv, ZNVector3(-1, 0, 0)));
         cubeVerts.push_back(Vertex(ZNVector3(-s, s, s), color, uv, ZNVector3(-1, 0, 0)));
-        cubeVerts.push_back(Vertex(ZNVector3(-s, -s, s), color, uv, ZNVector3(-1, 0, 0)));
 
         // Indices for all 6 faces (2 triangles per face)
         for (uint32 i = 0; i < 6; ++i) {

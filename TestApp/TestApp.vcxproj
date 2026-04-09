@@ -215,9 +215,8 @@
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp" />
-    <ClCompile Include="UnitTest\Framework\App.cpp" />
-    <ClCompile Include="UnitTest\Framework\TestGameScene.cpp" />
+    <ClCompile Include="Framework\App.cpp" />
+    <ClCompile Include="Framework\TestGameScene.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ZN\ZN.vcxproj">
@@ -225,6 +224,8 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Framework\Math\Helper.h" />
+    <ClInclude Include="Framework\TestGameScene.h" />
     <ClInclude Include="Libs\googletest\include\gmock\gmock-actions.h" />
     <ClInclude Include="Libs\googletest\include\gmock\gmock-cardinalities.h" />
     <ClInclude Include="Libs\googletest\include\gmock\gmock-function-mocker.h" />
@@ -262,7 +263,6 @@
     <ClInclude Include="Libs\googletest\include\gtest\internal\gtest-port.h" />
     <ClInclude Include="Libs\googletest\include\gtest\internal\gtest-string.h" />
     <ClInclude Include="Libs\googletest\include\gtest\internal\gtest-type-util.h" />
-    <ClInclude Include="UnitTest\Framework\TestGameScene.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Libs\googletest\LICENSE" />
