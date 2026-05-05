@@ -23,15 +23,14 @@ cbuffer cbLight : register(b0)
     float spotAttenuationLinear;
     float spotAttenuationQuadratic;
     float padding2;
-
-    // Inverse view-projection matrix for position reconstruction
-    float4x4 invViewProj;
 };
 
 // G-Buffer textures
 Texture2D baseColorTexture : register(t0);
 Texture2D normalTexture : register(t1);
 Texture2D depthTexture : register(t2);
+Texture2D worldPosTexture : register(t3);
+
 SamplerState sampler0 : register(s0);
 
 struct VS_IN
@@ -56,23 +55,6 @@ VS_OUT VS_Main(VS_IN input)
     return output;
 }
 
-// Reconstruct world position from depth
-float3 ReconstructWorldPosition(float2 uv, float depth)
-{
-    // Convert UV to NDC coordinates
-    float4 ndc;
-    ndc.x = uv.x * 2.0f - 1.0f;
-    ndc.y = (1.0f - uv.y) * 2.0f - 1.0f; // Flip Y
-    ndc.z = depth;
-    ndc.w = 1.0f;
-
-    // Transform to world space
-    float4 worldPos = mul(ndc, invViewProj);
-    worldPos /= worldPos.w; // Perspective divide
-
-    return worldPos.xyz;
-}
-
 float4 PS_Main(VS_OUT input) : SV_Target
 {
     // Sample G-Buffer
@@ -85,11 +67,11 @@ float4 PS_Main(VS_OUT input) : SV_Target
     normal = normalize(normal);
 
     // Reconstruct world position
-    float3 worldPos = ReconstructWorldPosition(input.uv, depth);
+    float3 worldPos = worldPosTexture.Sample(sampler0, input.uv).rgb;
 
     // DIRECTIONAL LIGHT
     float3 L = normalize(-dirLightDirection);
-    float3 V = normalize(viewPosition - float3(0, 0, 0));
+    float3 V = normalize(viewPosition - worldPos);
     float3 H = normalize(L + V);
     
     float NdotL = max(dot(normal, L), 0.0f);
@@ -100,9 +82,7 @@ float4 PS_Main(VS_OUT input) : SV_Target
     float3 specular = dirLightColor * dirLightIntensity * pow(NdotH, 32.0f) * 0.5f;
     
     float3 finalColor = ambient + diffuse + specular;
-    return float4(finalColor, baseColor.a);
-    
-    /*  
+   
     float3 dirLightDir = normalize(-dirLightDirection);
     float dirNdotL = max(dot(normal, dirLightDir), 0.0f);
     float3 dirAmbient = baseColor.rgb * dirAmbientIntensity;
@@ -111,7 +91,7 @@ float4 PS_Main(VS_OUT input) : SV_Target
     // SPOT LIGHT
     float3 spotLightVec = spotLightPosition - worldPos; // Vector from fragment to light
     float spotDistance = length(spotLightVec);
-    float3 spotLightDir = normalize(spotLightVec);
+    float3 spotDir = normalize(spotLightVec);
 
     // Distance attenuation
     float attenuation = 1.0f / (spotAttenuationConstant +
@@ -119,18 +99,19 @@ float4 PS_Main(VS_OUT input) : SV_Target
                                  spotAttenuationQuadratic * spotDistance * spotDistance);
 
     // Cone cutoff (inner/outer)
-    float3 spotDirection = normalize(spotLightDirection);
-    float theta = dot(spotLightDir, -spotDirection); // Angle between light direction and fragment direction
+    float theta = dot(spotDir, normalize(-spotLightDirection)); // Angle between light direction and fragment direction
     float epsilon = spotInnerCutoff - spotOuterCutoff; // Smooth transition
     float intensity = clamp((theta - spotOuterCutoff) / epsilon, 0.0f, 1.0f);
 
     // Diffuse calculation
-    float spotNdotL = max(dot(normal, spotLightDir), 0.0f);
+    float spotNdotL = max(dot(normal, spotDir), 0.0f);
+    float3 spotH = normalize(spotDir + V);
+    float spotNdotH = max(dot(normal, spotH), 0.0f);
     float3 spotDiffuse = baseColor.rgb * spotLightColor * spotLightIntensity * spotNdotL * attenuation * intensity;
-
+    float3 spotSpecular = spotLightColor * spotLightIntensity * pow(spotNdotH, 32.0f) * 0.5f * attenuation * intensity;
+    
     // Combine all lighting
-    float3 finalColor = dirAmbient + dirDiffuse + spotDiffuse;
+    finalColor += spotDiffuse + spotSpecular;
 
     return float4(finalColor, baseColor.a);
-*/
 }

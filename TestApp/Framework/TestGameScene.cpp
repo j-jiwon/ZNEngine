@@ -20,8 +20,8 @@ void TestGameScene::Initialize()
 
     // Create camera - positioned to look down at floor grid
     ZNCamera* cam = new ZNCamera();
-    cam->SetPosition(ZNVector3(0.0f, 5.0f, -5.0f));
-    cam->SetRotation(-30.0f, 0.0f); // Pitch down 30 degrees to look at floor
+    cam->SetPosition(ZNVector3(0.0f, 3.0f, -8.0f));
+    cam->SetRotation(-20, 0, 0);
     cam->SetMoveSpeed(3.0f);
     SetCamera(cam);
 
@@ -29,16 +29,19 @@ void TestGameScene::Initialize()
 
     // Setup spot light like a flashlight from camera - GREEN
     ZNSpotLight* spotLight = ZNFramework::Platform::CreateSpotLight();
-    spotLight->SetPosition(cam->GetPosition()); // Start at camera position
-    spotLight->SetDirection(ZNVector3(0.0f, 0.0f, 1.0f));
+    ZNVector3 spotLightPos(1.0f, 2.f, 1.0f);
+    ZNVector3 spotLightDir(-1.0f, -1.0f, 0.0f);
+    spotLightDir = spotLightDir.Normalize();
+    spotLight->SetPosition(spotLightPos);
+    spotLight->SetDirection(spotLightDir);
     spotLight->SetIntensity(0.5f);
     spotLight->SetColor(ZNVector3(0.0f, 1.0f, 0.0f)); // Green
     spotLight->SetAmbientIntensity(0.1f);
-    spotLight->SetCutoffAngle(0.0f, 5.0f);
-    // spotLight->SetAttenuation(1.0f, 0.045f, 0.0075f);
-    spotLight->SetAttenuation(0.5f, 0.045f, 0.0075f);
+    spotLight->SetCutoffAngle(12.0f, 17.0f);
+    spotLight->SetAttenuation(1.0f, 0.045f, 0.0075f);
+    //spotLight->SetAttenuation(0.5f, 0.045f, 0.0075f);
     SetLight(spotLight);
-
+    
     // Setup directional light - RED
     ZNDirectionalLight* dirLight = ZNFramework::Platform::CreateDirectionalLight();
     dirLight->SetDirection(ZNVector3(0.5f, -1.0f, 0.3f));
@@ -132,7 +135,7 @@ void TestGameScene::Initialize()
         debugMaterial->Init();
         debugMaterial->SetShader(defaultShader);
         MaterialParams debugParams;
-        debugParams.albedoColor = ZNVector4(1.0f, 1.0f, 1.0f, 1.0f);
+        debugParams.albedoColor = ZNVector4(1.0f, 1.0f, 0.0f, 1.0f);
         debugParams.metallic = 0.0f;
         debugParams.roughness = 1.0f;
         debugParams.ao = 1.0f;
@@ -188,18 +191,21 @@ void TestGameScene::Initialize()
         std::vector<Vertex> crosshairVerts;
         std::vector<uint32> crosshairIndices;
 
-        float size = 0.02f;
         float length = 0.05f;
-        ZNVector4 color(1, 1, 1, 1);
+        ZNVector4 color(1, 1, 0, 1);
         ZNVector2 uv(0, 0);
 
-        // Horizontal line (left-right)
-        crosshairVerts.push_back(Vertex(ZNVector3(-length, 0, 0), color, uv, ZNVector3(0, 0, 1)));
-        crosshairVerts.push_back(Vertex(ZNVector3(length, 0, 0), color, uv, ZNVector3(0, 0, 1)));
+        // spotLightDir에 수직인 벡터 계산 (XY 평면에서 90도 회전)
+        ZNVector3 perpDir(-spotLightDir.y, spotLightDir.x, 0);
+        perpDir = perpDir.Normalize();
 
-        // Vertical line (up-down)
-        crosshairVerts.push_back(Vertex(ZNVector3(0, -length, 0), color, uv, ZNVector3(0, 0, 1)));
-        crosshairVerts.push_back(Vertex(ZNVector3(0, length, 0), color, uv, ZNVector3(0, 0, 1)));
+        // Main line (spotLightDir 방향)
+        crosshairVerts.push_back(Vertex(spotLightDir * -length, color, uv, ZNVector3(0, 0, 1)));
+        crosshairVerts.push_back(Vertex(spotLightDir * length, color, uv, ZNVector3(0, 0, 1)));
+
+        // Perpendicular line (수직 방향)
+        crosshairVerts.push_back(Vertex(perpDir * -length, color, uv, ZNVector3(0, 0, 1)));
+        crosshairVerts.push_back(Vertex(perpDir * length, color, uv, ZNVector3(0, 0, 1)));
 
         crosshairIndices = { 0, 1, 2, 3 };
 
@@ -208,6 +214,8 @@ void TestGameScene::Initialize()
         crosshairMesh->Init(crosshairVerts, crosshairIndices);
         crosshairMesh->SetMaterial(debugMaterial);
         crosshair->SetMesh(crosshairMesh);
+        crosshair->GetTransform().position = spotLightPos;
+
         AddGameObject(crosshair);
     }
 
@@ -240,28 +248,10 @@ void TestGameScene::Initialize()
 
 void TestGameScene::Update(float deltaTime)
 {
-    // Call base class update
     ZNScene::Update(deltaTime);
-
-    // Update crosshair position (1 unit in front of camera)
-    if (crosshair && camera)
-    {
-        ZNVector3 camPos = camera->GetPosition();
-        ZNVector3 camForward = camera->GetForward();
-        crosshair->GetTransform().position = camPos + camForward * 1.0f;
-    }
-
-    // Update light indicator position (2 units ahead of camera for spot light)
-    if (lightIndicator && camera)
-    {
-        ZNVector3 camPos = camera->GetPosition();
-        ZNVector3 camForward = camera->GetForward();
-        lightIndicator->GetTransform().position = camPos + camForward * 2.0f;
-    }
 }
 
 void TestGameScene::Render()
 {
-    // Call base class render
     ZNScene::Render();
 }

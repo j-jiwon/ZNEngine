@@ -20,22 +20,6 @@ void ZNScene::Update(float deltaTime)
 	if (camera)
 	{
 		camera->UpdateViewMatrix();
-
-		// Update spot light to follow camera if it's a flashlight
-		if (primaryLight && primaryLight->GetType() == LightType::Spot)
-		{
-			ZNSpotLight* spotLight = static_cast<ZNSpotLight*>(primaryLight);
-			spotLight->SetPosition(camera->GetPosition());
-
-			// Calculate forward direction from pitch and yaw
-			float pitch = camera->GetPitch();
-			float yaw = camera->GetYaw();
-			ZNVector3 forward;
-			forward.x = cos(pitch) * sin(yaw);
-			forward.y = sin(pitch);
-			forward.z = cos(pitch) * cos(yaw);
-			spotLight->SetDirection(forward);
-		}
 	}
 }
 

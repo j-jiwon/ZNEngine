@@ -99,12 +99,12 @@ float4 PS_Main(VS_OUT input) : SV_Target
 {
     float dist = length(input.worldPos - gCameraPos);
 
-    // 거리에 따라 3단계 grid 크기
+    // LOD : 거리에 따른 grid 크기 세팅
     float g1 = grid(input.worldPos.xz, 1.0, input.worldPos, gCameraPos);
     float g2 = grid(input.worldPos.xz, 5.0, input.worldPos, gCameraPos);
     float g3 = grid(input.worldPos.xz, 25.0, input.worldPos, gCameraPos);
 
-    // 거리별 blend
+    // blend
     float t1 = smoothstep(0.0, 30.0, dist); // 0~20: g1→g2
     float t2 = smoothstep(20.0, 80.0, dist); // 15~60: g2→g3
 

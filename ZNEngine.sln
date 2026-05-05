@@ -12,6 +12,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.editorconfig = .editorconfig
 		Resources\Shaders\default.hlsli = Resources\Shaders\default.hlsli
 		Resources\Shaders\deferred_lighting.hlsli = Resources\Shaders\deferred_lighting.hlsli
+		Resources\Shaders\gbuffer.hlsli = Resources\Shaders\gbuffer.hlsli
 		Resources\Shaders\grid.hlsli = Resources\Shaders\grid.hlsli
 	EndProjectSection
 EndProject

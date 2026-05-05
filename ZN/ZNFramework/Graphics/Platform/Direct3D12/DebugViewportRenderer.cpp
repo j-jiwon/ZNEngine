@@ -106,9 +106,6 @@ void DebugViewportRenderer::Init()
         float spotAttenuationLinear;
         float spotAttenuationQuadratic;
         float padding2;
-
-        // Inverse view-projection matrix
-        float invViewProj[16]; // 4x4 matrix
     };
     uint32 lightingBufferSize = (sizeof(LightDataInit) + 255) & ~255; // Align to 256 bytes
     D3D12_RESOURCE_DESC lightingBufferDesc = CD3DX12_RESOURCE_DESC::Buffer(lightingBufferSize);
@@ -128,7 +125,7 @@ void DebugViewportRenderer::Init()
     // Create descriptor heap for lighting pass (CBV + SRVs, kept alive across frames)
     D3D12_DESCRIPTOR_HEAP_DESC lightingHeapDesc = {};
     lightingHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-    lightingHeapDesc.NumDescriptors = 10; // b0~b4 (5) + t0~t4 (5)
+    lightingHeapDesc.NumDescriptors = 11; // b0~b4 (5) + t0~t4 (6)
     lightingHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
     ThrowIfFailed(device->Device()->CreateDescriptorHeap(&lightingHeapDesc, IID_PPV_ARGS(&lightingDescriptorHeap)));
 }
@@ -217,9 +214,6 @@ void DebugViewportRenderer::RenderMainView(GBufferManager* gbufferManager, uint3
         float spotAttenuationLinear;
         float spotAttenuationQuadratic;
         float padding2;
-
-        // Inverse view-projection matrix
-        float invViewProj[16]; // 4x4 matrix
     };
 
     LightData lightData = {};
@@ -278,13 +272,6 @@ void DebugViewportRenderer::RenderMainView(GBufferManager* gbufferManager, uint3
         lightData.viewPosition[0] = camPos.x;
         lightData.viewPosition[1] = camPos.y;
         lightData.viewPosition[2] = camPos.z;
-
-        // Calculate inverse view-projection matrix
-        ZNMatrix4 viewProj = camera->ViewProjectionMatrix();
-        ZNMatrix4 invViewProj = viewProj.Inverse();
-
-        // Copy matrix data (row-major to match HLSL float4x4)
-        memcpy(lightData.invViewProj, invViewProj.value, sizeof(float) * 16);
     }
 
     memcpy(mappedLightingBuffer, &lightData, sizeof(LightData));
@@ -322,6 +309,9 @@ void DebugViewportRenderer::RenderMainView(GBufferManager* gbufferManager, uint3
     // Copy Depth SRV to t2 (offset 7)
     cpuHandle.ptr += lightingDescSize;
     device->Device()->CopyDescriptorsSimple(1, cpuHandle, gbufferManager->GetDepthCopySRV(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+    cpuHandle.ptr += lightingDescSize;
+    device->Device()->CopyDescriptorsSimple(1, cpuHandle, gbufferManager->GetWorldPosSRV(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
     // Set descriptor heap
     ID3D12DescriptorHeap* heaps[] = { lightingDescriptorHeap.Get() };
