@@ -14,6 +14,7 @@ namespace ZNFramework
 
 		void SetRenderTargetFormats(uint32 numRenderTargets, const DXGI_FORMAT* formats);
 		void DisableDepthTest();
+		void EnableAlphaBlend() override;
 
 	private:
 		void CreateShader(const wstring& path, const string& name, const string& version, ComPtr<ID3DBlob>& blob, D3D12_SHADER_BYTECODE& shaderByteCode);

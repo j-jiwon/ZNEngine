@@ -19,11 +19,17 @@ namespace ZNFramework
 		virtual void Initialize() {}
 		virtual void Update(float deltaTime);
 		virtual void Render();
+		virtual void RenderForward();  // Forward pass for non-deferred objects (e.g., grid)
 
 		// GameObject management
 		void AddGameObject(ZNGameObject* obj);
 		void RemoveGameObject(ZNGameObject* obj);
 		const std::vector<ZNGameObject*>& GetGameObjects() const { return gameObjects; }
+
+		// Forward objects (rendered after deferred lighting)
+		void AddForwardGameObject(ZNGameObject* obj);
+		void RemoveForwardGameObject(ZNGameObject* obj);
+		const std::vector<ZNGameObject*>& GetForwardGameObjects() const { return forwardGameObjects; }
 
 		// Camera
 		void SetCamera(ZNCamera* cam);
@@ -38,6 +44,7 @@ namespace ZNFramework
 
 	protected:
 		std::vector<ZNGameObject*> gameObjects;
+		std::vector<ZNGameObject*> forwardGameObjects;  // Objects rendered in forward pass
 		ZNCamera* camera = nullptr;
 		ZNLight* primaryLight = nullptr;
 		ZNDirectionalLight* directionalLight = nullptr;

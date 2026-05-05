@@ -17,11 +17,20 @@ cbuffer cbLight : register(b0)
 
     float3 viewPosition;
     float padding;
+
+    // Spot light attenuation (constant, linear, quadratic)
+    float spotAttenuationConstant;
+    float spotAttenuationLinear;
+    float spotAttenuationQuadratic;
+    float padding2;
 };
 
 // G-Buffer textures
 Texture2D baseColorTexture : register(t0);
 Texture2D normalTexture : register(t1);
+Texture2D depthTexture : register(t2);
+Texture2D worldPosTexture : register(t3);
+
 SamplerState sampler0 : register(s0);
 
 struct VS_IN
@@ -51,27 +60,58 @@ float4 PS_Main(VS_OUT input) : SV_Target
     // Sample G-Buffer
     float4 baseColor = baseColorTexture.Sample(sampler0, input.uv);
     float4 encodedNormal = normalTexture.Sample(sampler0, input.uv);
+    float depth = depthTexture.Sample(sampler0, input.uv).r;
 
     // Decode normal from [0,1] to [-1,1]
     float3 normal = encodedNormal.rgb * 2.0f - 1.0f;
     normal = normalize(normal);
 
+    // Reconstruct world position
+    float3 worldPos = worldPosTexture.Sample(sampler0, input.uv).rgb;
+
     // DIRECTIONAL LIGHT
+    float3 L = normalize(-dirLightDirection);
+    float3 V = normalize(viewPosition - worldPos);
+    float3 H = normalize(L + V);
+    
+    float NdotL = max(dot(normal, L), 0.0f);
+    float NdotH = max(dot(normal, H), 0.0f);
+    
+    float3 ambient = baseColor.rgb * dirAmbientIntensity;
+    float3 diffuse = baseColor.rgb * dirLightColor * dirLightIntensity * NdotL;
+    float3 specular = dirLightColor * dirLightIntensity * pow(NdotH, 32.0f) * 0.5f;
+    
+    float3 finalColor = ambient + diffuse + specular;
+   
     float3 dirLightDir = normalize(-dirLightDirection);
     float dirNdotL = max(dot(normal, dirLightDir), 0.0f);
     float3 dirAmbient = baseColor.rgb * dirAmbientIntensity;
     float3 dirDiffuse = baseColor.rgb * dirLightColor * dirLightIntensity * dirNdotL;
 
     // SPOT LIGHT
-    // We need world position to calculate spot light, but we don't have it in deferred rendering
-    // For now, we'll just add a simple contribution based on normal alignment
-    // In a real implementation, you'd need to reconstruct world position from depth
-    float3 spotLightDir = normalize(-spotLightDirection);
-    float spotNdotL = max(dot(normal, spotLightDir), 0.0f);
-    float3 spotDiffuse = baseColor.rgb * spotLightColor * spotLightIntensity * spotNdotL * 0.3f; // Scale down
+    float3 spotLightVec = spotLightPosition - worldPos; // Vector from fragment to light
+    float spotDistance = length(spotLightVec);
+    float3 spotDir = normalize(spotLightVec);
 
+    // Distance attenuation
+    float attenuation = 1.0f / (spotAttenuationConstant +
+                                 spotAttenuationLinear * spotDistance +
+                                 spotAttenuationQuadratic * spotDistance * spotDistance);
+
+    // Cone cutoff (inner/outer)
+    float theta = dot(spotDir, normalize(-spotLightDirection)); // Angle between light direction and fragment direction
+    float epsilon = spotInnerCutoff - spotOuterCutoff; // Smooth transition
+    float intensity = clamp((theta - spotOuterCutoff) / epsilon, 0.0f, 1.0f);
+
+    // Diffuse calculation
+    float spotNdotL = max(dot(normal, spotDir), 0.0f);
+    float3 spotH = normalize(spotDir + V);
+    float spotNdotH = max(dot(normal, spotH), 0.0f);
+    float3 spotDiffuse = baseColor.rgb * spotLightColor * spotLightIntensity * spotNdotL * attenuation * intensity;
+    float3 spotSpecular = spotLightColor * spotLightIntensity * pow(spotNdotH, 32.0f) * 0.5f * attenuation * intensity;
+    
     // Combine all lighting
-    float3 finalColor = dirAmbient + dirDiffuse + spotDiffuse;
+    finalColor += spotDiffuse + spotSpecular;
 
     return float4(finalColor, baseColor.a);
 }

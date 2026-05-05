@@ -8,6 +8,8 @@
 #include "ZNFramework.h"
 #include "../../ZNLight.h"
 #include "../../../Math/ZNVector3.h"
+#include "../../../Math/ZNMatrix4.h"
+#include "../../../ZNCamera.h"
 
 using namespace ZNFramework;
 
@@ -98,6 +100,12 @@ void DebugViewportRenderer::Init()
 
         float viewPosition[3];
         float padding;
+
+        // Spot light attenuation
+        float spotAttenuationConstant;
+        float spotAttenuationLinear;
+        float spotAttenuationQuadratic;
+        float padding2;
     };
     uint32 lightingBufferSize = (sizeof(LightDataInit) + 255) & ~255; // Align to 256 bytes
     D3D12_RESOURCE_DESC lightingBufferDesc = CD3DX12_RESOURCE_DESC::Buffer(lightingBufferSize);
@@ -117,7 +125,7 @@ void DebugViewportRenderer::Init()
     // Create descriptor heap for lighting pass (CBV + SRVs, kept alive across frames)
     D3D12_DESCRIPTOR_HEAP_DESC lightingHeapDesc = {};
     lightingHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-    lightingHeapDesc.NumDescriptors = 10; // b0~b4 (5) + t0~t4 (5)
+    lightingHeapDesc.NumDescriptors = 11; // b0~b4 (5) + t0~t4 (6)
     lightingHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
     ThrowIfFailed(device->Device()->CreateDescriptorHeap(&lightingHeapDesc, IID_PPV_ARGS(&lightingDescriptorHeap)));
 }
@@ -200,13 +208,20 @@ void DebugViewportRenderer::RenderMainView(GBufferManager* gbufferManager, uint3
 
         float viewPosition[3];
         float padding;
+
+        // Spot light attenuation
+        float spotAttenuationConstant;
+        float spotAttenuationLinear;
+        float spotAttenuationQuadratic;
+        float padding2;
     };
 
     LightData lightData = {};
 
-    // Get lights from GraphicsContext
+    // Get lights and camera from GraphicsContext
     ZNDirectionalLight* dirLight = GraphicsContext::GetInstance().GetDirectionalLight();
     ZNLight* primaryLight = GraphicsContext::GetInstance().GetLight();
+    ZNCamera* camera = GraphicsContext::GetInstance().GetCamera();
 
     // Set directional light data
     if (dirLight)
@@ -228,7 +243,7 @@ void DebugViewportRenderer::RenderMainView(GBufferManager* gbufferManager, uint3
     {
         ZNSpotLight* spotLight = static_cast<ZNSpotLight*>(primaryLight);
         ZNVector3 pos = spotLight->GetPosition();
-        ZNVector3 dir = spotLight->GetDirection(); // Ensure it points towards the scene
+        ZNVector3 dir = spotLight->GetDirection();
         ZNVector3 color = spotLight->GetColor();
 
         lightData.spotLightPosition[0] = pos.x;
@@ -243,11 +258,21 @@ void DebugViewportRenderer::RenderMainView(GBufferManager* gbufferManager, uint3
         lightData.spotLightColor[1] = color.y;
         lightData.spotLightColor[2] = color.z;
         lightData.spotOuterCutoff = cos(spotLight->GetOuterCutoffAngle() * 3.14159f / 180.0f);
+
+        // Attenuation parameters
+        lightData.spotAttenuationConstant = spotLight->GetConstantAttenuation();
+        lightData.spotAttenuationLinear = spotLight->GetLinearAttenuation();
+        lightData.spotAttenuationQuadratic = spotLight->GetQuadraticAttenuation();
     }
 
-    lightData.viewPosition[0] = 0.0f;
-    lightData.viewPosition[1] = 0.0f;
-    lightData.viewPosition[2] = -5.0f;
+    // Set camera view position
+    if (camera)
+    {
+        ZNVector3 camPos = camera->GetPosition();
+        lightData.viewPosition[0] = camPos.x;
+        lightData.viewPosition[1] = camPos.y;
+        lightData.viewPosition[2] = camPos.z;
+    }
 
     memcpy(mappedLightingBuffer, &lightData, sizeof(LightData));
 
@@ -280,6 +305,13 @@ void DebugViewportRenderer::RenderMainView(GBufferManager* gbufferManager, uint3
     // Copy Normal SRV to t1 (offset 6)
     cpuHandle.ptr += lightingDescSize;
     device->Device()->CopyDescriptorsSimple(1, cpuHandle, gbufferManager->GetNormalSRV(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+    // Copy Depth SRV to t2 (offset 7)
+    cpuHandle.ptr += lightingDescSize;
+    device->Device()->CopyDescriptorsSimple(1, cpuHandle, gbufferManager->GetDepthCopySRV(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+    cpuHandle.ptr += lightingDescSize;
+    device->Device()->CopyDescriptorsSimple(1, cpuHandle, gbufferManager->GetWorldPosSRV(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
     // Set descriptor heap
     ID3D12DescriptorHeap* heaps[] = { lightingDescriptorHeap.Get() };

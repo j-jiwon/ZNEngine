@@ -7,9 +7,10 @@ namespace ZNFramework
 	{
 	public:
 		ZNShader() = default;
-		~ZNShader() = default;
+		virtual ~ZNShader() = default;
 
 		virtual void Load(const std::wstring& filepath) = 0;
 		virtual void Bind() = 0;
+		virtual void EnableAlphaBlend() {}
 	};
 }

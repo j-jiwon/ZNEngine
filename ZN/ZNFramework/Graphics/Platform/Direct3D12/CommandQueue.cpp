@@ -76,7 +76,7 @@ void CommandQueue::RenderBegin()
 		// Skip on first frame since resources are created in RENDER_TARGET state
 		if (!isFirstFrame)
 		{
-			D3D12_RESOURCE_BARRIER barriers[3];
+			D3D12_RESOURCE_BARRIER barriers[4];
 			barriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(
 				gbufferManager->GetBaseColorResource(),
 				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
@@ -89,8 +89,12 @@ void CommandQueue::RenderBegin()
 				gbufferManager->GetDepthCopyResource(),
 				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 				D3D12_RESOURCE_STATE_RENDER_TARGET);
+			barriers[3] = CD3DX12_RESOURCE_BARRIER::Transition(
+				gbufferManager->GetWorldPosResource(),
+				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+				D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-			commandList->ResourceBarrier(3, barriers);
+			commandList->ResourceBarrier(4, barriers);
 		}
 
 		// Clear all G-Buffer render targets
@@ -103,11 +107,15 @@ void CommandQueue::RenderBegin()
 		float clearDepth[4] = { 1.0f, 0.0f, 0.0f, 0.0f };
 		commandList->ClearRenderTargetView(gbufferManager->GetDepthCopyRTV(), clearDepth, 0, nullptr);
 
+		float clearWorldPos[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+		commandList->ClearRenderTargetView(gbufferManager->GetWorldPosRTV(), clearWorldPos, 0, nullptr);
+
 		// Set G-Buffer render targets
-		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandles[3];
+		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandles[4];
 		rtvHandles[0] = gbufferManager->GetBaseColorRTV();
 		rtvHandles[1] = gbufferManager->GetNormalRTV();
 		rtvHandles[2] = gbufferManager->GetDepthCopyRTV();
+		rtvHandles[3] = gbufferManager->GetWorldPosRTV();
 
 		// depth stencil
 		DepthStencilBuffer* dsBuffer = GraphicsContext::GetInstance().GetAs<DepthStencilBuffer>();
@@ -115,7 +123,7 @@ void CommandQueue::RenderBegin()
 		commandList->ClearDepthStencilView(depthStencilView, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
 		// Bind G-Buffer render targets with depth stencil
-		commandList->OMSetRenderTargets(3, rtvHandles, FALSE, &depthStencilView);
+		commandList->OMSetRenderTargets(4, rtvHandles, FALSE, &depthStencilView);
 	}
 	else
 	{
@@ -144,7 +152,7 @@ void CommandQueue::RenderEnd()
 	if (enableGBuffer)
 	{
 		// Transition G-Buffer resources back to SHADER_RESOURCE for reading in debug views
-		D3D12_RESOURCE_BARRIER barriers[3];
+		D3D12_RESOURCE_BARRIER barriers[4];
 		barriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(
 			gbufferManager->GetBaseColorResource(),
 			D3D12_RESOURCE_STATE_RENDER_TARGET,
@@ -157,8 +165,12 @@ void CommandQueue::RenderEnd()
 			gbufferManager->GetDepthCopyResource(),
 			D3D12_RESOURCE_STATE_RENDER_TARGET,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		barriers[3] = CD3DX12_RESOURCE_BARRIER::Transition(
+			gbufferManager->GetWorldPosResource(),
+			D3D12_RESOURCE_STATE_RENDER_TARGET,
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
-		commandList->ResourceBarrier(3, barriers);
+		commandList->ResourceBarrier(4, barriers);
 
 		// Transition back buffer to RENDER_TARGET for composite/debug rendering
 		D3D12_RESOURCE_BARRIER backBufferBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
@@ -185,6 +197,30 @@ void CommandQueue::RenderEnd()
 		if (debugViewportRenderer)
 		{
 			debugViewportRenderer->RenderMainView(gbufferManager, swapChain->Width(), swapChain->Height());
+		}
+
+		// Forward pass - render objects that need forward rendering (e.g., grid)
+		if (forwardRenderCallback)
+		{
+			// Re-bind depth stencil for forward pass
+			DepthStencilBuffer* dsBuffer = GraphicsContext::GetInstance().GetAs<DepthStencilBuffer>();
+			D3D12_CPU_DESCRIPTOR_HANDLE depthStencilView = dsBuffer->GetDSVCpuHandle();
+			D3D12_CPU_DESCRIPTOR_HANDLE backBufferView = swapChain->GetBackRTV();
+			commandList->OMSetRenderTargets(1, &backBufferView, FALSE, &depthStencilView);
+
+			// Re-bind root signature for forward pass (was changed by deferred lighting)
+			RootSignature* rootSignature = GraphicsContext::GetInstance().GetAs<RootSignature>();
+			commandList->SetGraphicsRootSignature(rootSignature->GetSignature().Get());
+
+			// Re-bind table descriptor heap for forward pass
+			TableDescriptorHeap* tableDescHeap = GraphicsContext::GetInstance().GetAs<TableDescriptorHeap>();
+			ID3D12DescriptorHeap* descHeap = tableDescHeap->GetDescriptorHeap().Get();
+			commandList->SetDescriptorHeaps(1, &descHeap);
+
+			// Mark as forward pass so Material::Bind() will bind shaders
+			isForwardPass = true;
+			forwardRenderCallback();
+			isForwardPass = false;
 		}
 
 		// Render debug viewports on top

@@ -59,5 +59,8 @@ namespace ZNFramework
 		virtual ZNVector3 GetDirection() const = 0;
 		virtual float GetInnerCutoffAngle() const = 0;
 		virtual float GetOuterCutoffAngle() const = 0;
+		virtual float GetConstantAttenuation() const = 0;
+		virtual float GetLinearAttenuation() const = 0;
+		virtual float GetQuadraticAttenuation() const = 0;
 	};
 }

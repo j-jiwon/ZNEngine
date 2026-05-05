@@ -90,8 +90,10 @@ void ZNCamera::SetPosition(const ZNVector3& pos)
 
 void ZNCamera::SetRotation(float inPitch, float inYaw, float roll)
 {
-	pitch = inPitch;
-	yaw = inYaw;
+	// Convert degrees to radians
+	const float DEG_TO_RAD = 3.14159265f / 180.0f;
+	pitch = inPitch * DEG_TO_RAD;
+	yaw = inYaw * DEG_TO_RAD;
 	UpdateVectors();
 	if (autoUpdateView)
 		UpdateViewMatrix();

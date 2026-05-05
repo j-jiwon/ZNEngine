@@ -28,6 +28,8 @@ namespace ZNFramework
         void SetGBufferManager(GBufferManager* manager) { gbufferManager = manager; }
         void SetDebugViewportRenderer(DebugViewportRenderer* renderer) { debugViewportRenderer = renderer; }
         void SetGBufferEnabled(bool enabled) { enableGBuffer = enabled; }
+        bool IsForwardPass() const { return isForwardPass; }
+        void SetForwardPass(bool forward) { isForwardPass = forward; }
 
     private:
         ComPtr<ID3D12CommandQueue> queue;
@@ -49,5 +51,6 @@ namespace ZNFramework
         DebugViewportRenderer* debugViewportRenderer = nullptr;
         bool enableGBuffer = true; // Enable MRT by default
         bool isFirstFrame = true; // Track first frame for resource state
+        bool isForwardPass = false; // Track if currently in forward pass
     };
 }

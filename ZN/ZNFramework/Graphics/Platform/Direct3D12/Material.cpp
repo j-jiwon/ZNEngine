@@ -51,9 +51,10 @@ void Material::Bind()
 {
 	CommandQueue* queue = GraphicsContext::GetInstance().GetAs<CommandQueue>();
 	bool isMRTMode = (queue->GetGBufferManager() != nullptr);
+	bool isForwardPass = queue->IsForwardPass();
 
-	// Bind shader (skip in MRT mode - gbuffer shader is already bound)
-	if (shader && !isMRTMode)
+	// Bind shader (skip in MRT mode unless in forward pass)
+	if (shader && (!isMRTMode || isForwardPass))
 	{
 		shader->Bind();
 	}

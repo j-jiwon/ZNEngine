@@ -32,6 +32,9 @@ namespace ZNFramework::Platform::Direct3D
 		virtual ZNVector3 GetDirection() const override { return direction; }
 		virtual float GetInnerCutoffAngle() const override { return innerCutoffAngle; }
 		virtual float GetOuterCutoffAngle() const override { return outerCutoffAngle; }
+		virtual float GetConstantAttenuation() const override { return constantAttenuation; }
+		virtual float GetLinearAttenuation() const override { return linearAttenuation; }
+		virtual float GetQuadraticAttenuation() const override { return quadraticAttenuation; }
 
 	private:
 		ZNVector3 position = ZNVector3(0.0f, 0.0f, 0.0f);
