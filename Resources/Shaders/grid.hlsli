@@ -84,101 +84,45 @@ VS_OUT VS_Main(VS_IN input)
     return output;
 }
 
-float grid(float2 coord, float gridSize, float lineWidth)
-{
-    // Simple grid pattern using modulo
-    float2 gridCoord = abs(frac(coord / gridSize) - 0.5);
-    float2 gridLine = step(gridCoord, float2(lineWidth / gridSize, lineWidth / gridSize));
-    return max(gridLine.x, gridLine.y);
+float grid(float2 worldXZ, float gridSize, float3 worldPos, float3 cameraPos)
+{    
+    float2 coord = worldXZ / gridSize;
+    float2 deriv = fwidth(coord); // 현재 픽셀의 미분값 (화면 공간 기준)
+    float2 gridLines = abs(frac(coord - 0.5) - 0.5) / deriv;
+    float lineVal = min(gridLines.x, gridLines.y);
+    
+    return 1.0 - min(lineVal, 1.0);
 }
+
 
 float4 PS_Main(VS_OUT input) : SV_Target
 {
-    // Grid parameters
-    float gridSize = 5.0; // Grid cell size in world units
-    float lineWidth = 0.01; // Line width in world units
-    float3 gridColor = float3(0.8, 0.8, 0.8); // Grid line color (light gray)
-    float3 backgroundColor = float3(0.1, 0.1, 0.1); // Background color (dark gray)
+    float dist = length(input.worldPos - gCameraPos);
 
-    // Calculate grid on XZ plane for horizontal floor
-    float2 gridCoord = input.worldPos.xz;
-    float gridPattern = grid(gridCoord, gridSize, lineWidth);
+    // 거리에 따라 3단계 grid 크기
+    float g1 = grid(input.worldPos.xz, 1.0, input.worldPos, gCameraPos);
+    float g2 = grid(input.worldPos.xz, 5.0, input.worldPos, gCameraPos);
+    float g3 = grid(input.worldPos.xz, 25.0, input.worldPos, gCameraPos);
 
-    // Axis lines (X and Z axes for horizontal plane)
-    float axisLineWidth = 0.02;
-    float xAxis = smoothstep(axisLineWidth, 0.0, abs(input.worldPos.z));
-    float zAxis = smoothstep(axisLineWidth, 0.0, abs(input.worldPos.x));
+    // 거리별 blend
+    float t1 = smoothstep(0.0, 30.0, dist); // 0~20: g1→g2
+    float t2 = smoothstep(20.0, 80.0, dist); // 15~60: g2→g3
 
-    // Combine grid with axis lines
-    float3 baseColor = lerp(backgroundColor, gridColor, gridPattern);
-    baseColor = lerp(baseColor, float3(1.0, 0.0, 0.0), xAxis); // Red for X axis
-    baseColor = lerp(baseColor, float3(0.0, 0.0, 1.0), zAxis); // Blue for Z axis
+    float gridPattern = lerp(g1, lerp(g2, g3, t2), t1);
 
-    // Alpha: grid lines and axis lines are opaque, background is transparent
+    // axis lines
+    float xAxisDeriv = fwidth(input.worldPos.z);
+    float zAxisDeriv = fwidth(input.worldPos.x);
+    float axisWidth = 0.08;
+    float xAxis = 1.0 - smoothstep(0.0, axisWidth + xAxisDeriv * 2.0, abs(input.worldPos.z));
+    float zAxis = 1.0 - smoothstep(0.0, axisWidth + zAxisDeriv * 2.0, abs(input.worldPos.x));
+
+    float3 baseColor = lerp(float3(0.1, 0.1, 0.1), float3(0.8, 0.8, 0.8), gridPattern);
+    baseColor = lerp(baseColor, float3(1.0, 0.0, 0.0), xAxis);
+    baseColor = lerp(baseColor, float3(0.0, 0.0, 1.0), zAxis);
+
     float isLine = max(gridPattern, max(xAxis, zAxis));
-    float alpha = lerp(0.0, 1.0, isLine); // Background 30% opacity, lines 100%
+    float fade = 1.0 - saturate(dist / 60.0);
 
-    // Apply albedo color tint
-    baseColor *= albedoColor.rgb;
-
-    // Normalize interpolated normal
-    float3 N = normalize(input.normal);
-    float3 V = normalize(gCameraPos - input.worldPos); // View direction
-
-    // High ambient lighting to make grid always visible
-    float3 ambient = baseColor * 0.8;
-
-    // Calculate light direction and attenuation based on light type
-    float3 L;
-    float attenuation = 1.0;
-    float spotEffect = 1.0;
-
-    if (gLightType == 0) // Directional Light
-    {
-        L = normalize(-gLightDirection);
-        attenuation = 1.0;
-    }
-    else if (gLightType == 1) // Point Light
-    {
-        float3 lightVec = gLightPosition - input.worldPos;
-        float distance = length(lightVec);
-        L = normalize(lightVec);
-        attenuation = 1.0 / (gConstant + gLinear * distance + gQuadratic * distance * distance);
-    }
-    else if (gLightType == 2) // Spot Light
-    {
-        float3 lightVec = gLightPosition - input.worldPos;
-        float distance = length(lightVec);
-        L = normalize(lightVec);
-
-        // Attenuation
-        attenuation = 1.0 / (gConstant + gLinear * distance + gQuadratic * distance * distance);
-
-        // Spot light effect
-        float theta = dot(L, normalize(-gLightDirection));
-        float epsilon = gCutoffAngle - gOuterCutoffAngle;
-        float intensity = clamp((theta - gOuterCutoffAngle) / epsilon, 0.0, 1.0);
-        spotEffect = intensity;
-    }
-
-    // Diffuse lighting (Lambertian) - reduced contribution
-    float NdotL = max(dot(N, L), 0.0);
-    float3 diffuse = NdotL * gLightColor * gLightIntensity * baseColor * attenuation * spotEffect * 0.2;
-
-    // Final color from primary light
-    float3 finalColor = ambient + diffuse;
-
-    // Add secondary directional light if enabled
-    if (gDirLightIntensity > 0.0)
-    {
-        float3 dirL = normalize(-gDirLightDirection);
-
-        // Diffuse
-        float dirNdotL = max(dot(N, dirL), 0.0);
-        float3 dirDiffuse = dirNdotL * gDirLightColor * gDirLightIntensity * baseColor * 0.2;
-
-        finalColor += dirDiffuse;
-    }
-
-    return float4(finalColor, alpha);
+    return float4(baseColor * albedoColor.rgb, isLine * fade);
 }
