@@ -47,8 +47,24 @@ void ZNScene::Render()
 	ctx.SetLight(primaryLight);
 	ctx.SetDirectionalLight(directionalLight);
 
-	// Render all game objects
+	// Render all game objects (deferred pass)
 	for (auto* obj : gameObjects)
+	{
+		if (obj)
+			obj->Render();
+	}
+}
+
+void ZNScene::RenderForward()
+{
+	// Set camera and lights to GraphicsContext (in case they weren't set)
+	GraphicsContext& ctx = GraphicsContext::GetInstance();
+	ctx.SetCamera(camera);
+	ctx.SetLight(primaryLight);
+	ctx.SetDirectionalLight(directionalLight);
+
+	// Render forward objects (after deferred lighting)
+	for (auto* obj : forwardGameObjects)
 	{
 		if (obj)
 			obj->Render();
@@ -66,6 +82,19 @@ void ZNScene::RemoveGameObject(ZNGameObject* obj)
 	auto it = std::find(gameObjects.begin(), gameObjects.end(), obj);
 	if (it != gameObjects.end())
 		gameObjects.erase(it);
+}
+
+void ZNScene::AddForwardGameObject(ZNGameObject* obj)
+{
+	if (obj)
+		forwardGameObjects.push_back(obj);
+}
+
+void ZNScene::RemoveForwardGameObject(ZNGameObject* obj)
+{
+	auto it = std::find(forwardGameObjects.begin(), forwardGameObjects.end(), obj);
+	if (it != forwardGameObjects.end())
+		forwardGameObjects.erase(it);
 }
 
 void ZNScene::SetCamera(ZNCamera* cam)

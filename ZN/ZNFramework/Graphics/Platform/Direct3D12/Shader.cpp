@@ -33,6 +33,7 @@ void Shader::Load(const wstring& path)
 	pipelineDesc.pRootSignature = rootSignature->GetSignature().Get();
 
 	pipelineDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+	pipelineDesc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
 	pipelineDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 	pipelineDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 	pipelineDesc.SampleMask = UINT_MAX;
@@ -63,7 +64,17 @@ void Shader::CreateShader(const wstring& path, const string& name, const string&
 	if (FAILED(::D3DCompileFromFile(path.c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE
 		, name.c_str(), version.c_str(), compileFlag, 0, &blob, &errBlob)))
 	{
-		::MessageBoxA(nullptr, "Shader Create Failed !", nullptr, MB_OK);
+		if (errBlob)
+		{
+			string errorMsg = "Shader Compile Failed!\n\n";
+			errorMsg += static_cast<const char*>(errBlob->GetBufferPointer());
+			::MessageBoxA(nullptr, errorMsg.c_str(), "Shader Error", MB_OK);
+		}
+		else
+		{
+			::MessageBoxA(nullptr, "Shader Create Failed !", nullptr, MB_OK);
+		}
+		return;
 	}
 
 	shaderByteCode = { blob->GetBufferPointer(), blob->GetBufferSize() };
@@ -101,6 +112,25 @@ void Shader::DisableDepthTest()
 	pipelineDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
 
 	// Recreate pipeline state with depth test disabled
+	GraphicsDevice* device = GraphicsContext::GetInstance().GetAs<GraphicsDevice>();
+	pipelineState.Reset();
+	ThrowIfFailed(device->Device()->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&pipelineState)));
+}
+
+void Shader::EnableAlphaBlend()
+{
+	// Enable alpha blending: FinalColor = SrcColor * SrcAlpha + DestColor * (1 - SrcAlpha)
+	D3D12_RENDER_TARGET_BLEND_DESC& rtBlend = pipelineDesc.BlendState.RenderTarget[0];
+	rtBlend.BlendEnable = TRUE;
+	rtBlend.SrcBlend = D3D12_BLEND_SRC_ALPHA;
+	rtBlend.DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
+	rtBlend.BlendOp = D3D12_BLEND_OP_ADD;
+	rtBlend.SrcBlendAlpha = D3D12_BLEND_ONE;
+	rtBlend.DestBlendAlpha = D3D12_BLEND_ZERO;
+	rtBlend.BlendOpAlpha = D3D12_BLEND_OP_ADD;
+	rtBlend.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+
+	// Recreate pipeline state with alpha blending enabled
 	GraphicsDevice* device = GraphicsContext::GetInstance().GetAs<GraphicsDevice>();
 	pipelineState.Reset();
 	ThrowIfFailed(device->Device()->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&pipelineState)));

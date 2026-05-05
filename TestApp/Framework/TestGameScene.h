@@ -17,6 +17,7 @@ public:
 private:
     // Resources
     ZNFramework::ZNShader* defaultShader = nullptr;
+    ZNFramework::ZNShader* gridShader = nullptr;
 
     // FBX Models
     std::vector<ZNFramework::ZNGameObject*> modelObjects;
@@ -26,10 +27,13 @@ private:
     // Debug visualization
     ZNFramework::ZNGameObject* crosshair = nullptr;
     ZNFramework::ZNGameObject* lightIndicator = nullptr;
+    ZNFramework::ZNGameObject* plane = nullptr;
+
     ZNFramework::ZNGameObject* axisX = nullptr;
     ZNFramework::ZNGameObject* axisY = nullptr;
     ZNFramework::ZNGameObject* axisZ = nullptr;
     ZNFramework::ZNMaterial* debugMaterial = nullptr;
+    ZNFramework::ZNMaterial* gridMaterial = nullptr;
     ZNFramework::ZNMaterial* redMaterial = nullptr;
     ZNFramework::ZNMaterial* greenMaterial = nullptr;
     ZNFramework::ZNMaterial* blueMaterial = nullptr;

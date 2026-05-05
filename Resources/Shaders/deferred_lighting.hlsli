@@ -88,6 +88,21 @@ float4 PS_Main(VS_OUT input) : SV_Target
     float3 worldPos = ReconstructWorldPosition(input.uv, depth);
 
     // DIRECTIONAL LIGHT
+    float3 L = normalize(-dirLightDirection);
+    float3 V = normalize(viewPosition - float3(0, 0, 0));
+    float3 H = normalize(L + V);
+    
+    float NdotL = max(dot(normal, L), 0.0f);
+    float NdotH = max(dot(normal, H), 0.0f);
+    
+    float3 ambient = baseColor.rgb * dirAmbientIntensity;
+    float3 diffuse = baseColor.rgb * dirLightColor * dirLightIntensity * NdotL;
+    float3 specular = dirLightColor * dirLightIntensity * pow(NdotH, 32.0f) * 0.5f;
+    
+    float3 finalColor = ambient + diffuse + specular;
+    return float4(finalColor, baseColor.a);
+    
+    /*  
     float3 dirLightDir = normalize(-dirLightDirection);
     float dirNdotL = max(dot(normal, dirLightDir), 0.0f);
     float3 dirAmbient = baseColor.rgb * dirAmbientIntensity;
@@ -117,4 +132,5 @@ float4 PS_Main(VS_OUT input) : SV_Target
     float3 finalColor = dirAmbient + dirDiffuse + spotDiffuse;
 
     return float4(finalColor, baseColor.a);
+*/
 }

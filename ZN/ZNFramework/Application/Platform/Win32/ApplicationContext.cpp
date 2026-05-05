@@ -147,6 +147,25 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
 void ApplicationContext::SetScene(ZNScene* scene)
 {
     currentScene = scene;
+
+    // Set forward render callback
+    if (commandQueue && currentScene)
+    {
+        commandQueue->SetForwardRenderCallback([this]() {
+            if (currentScene)
+            {
+                currentScene->RenderForward();
+            }
+        });
+    }
+
+    // Initialize camera projection when scene is set
+    if (currentScene && currentScene->GetCamera() && swapChain)
+    {
+        ZNCamera* camera = currentScene->GetCamera();
+        float aspect = static_cast<float>(swapChain->Width()) / static_cast<float>(swapChain->Height());
+        camera->SetPerspective(3.141592f / 4.0f, aspect, 0.1f, 100.0f);
+    }
 }
 
 ZNScene* ApplicationContext::GetScene() const

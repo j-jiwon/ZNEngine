@@ -187,6 +187,30 @@ void CommandQueue::RenderEnd()
 			debugViewportRenderer->RenderMainView(gbufferManager, swapChain->Width(), swapChain->Height());
 		}
 
+		// Forward pass - render objects that need forward rendering (e.g., grid)
+		if (forwardRenderCallback)
+		{
+			// Re-bind depth stencil for forward pass
+			DepthStencilBuffer* dsBuffer = GraphicsContext::GetInstance().GetAs<DepthStencilBuffer>();
+			D3D12_CPU_DESCRIPTOR_HANDLE depthStencilView = dsBuffer->GetDSVCpuHandle();
+			D3D12_CPU_DESCRIPTOR_HANDLE backBufferView = swapChain->GetBackRTV();
+			commandList->OMSetRenderTargets(1, &backBufferView, FALSE, &depthStencilView);
+
+			// Re-bind root signature for forward pass (was changed by deferred lighting)
+			RootSignature* rootSignature = GraphicsContext::GetInstance().GetAs<RootSignature>();
+			commandList->SetGraphicsRootSignature(rootSignature->GetSignature().Get());
+
+			// Re-bind table descriptor heap for forward pass
+			TableDescriptorHeap* tableDescHeap = GraphicsContext::GetInstance().GetAs<TableDescriptorHeap>();
+			ID3D12DescriptorHeap* descHeap = tableDescHeap->GetDescriptorHeap().Get();
+			commandList->SetDescriptorHeaps(1, &descHeap);
+
+			// Mark as forward pass so Material::Bind() will bind shaders
+			isForwardPass = true;
+			forwardRenderCallback();
+			isForwardPass = false;
+		}
+
 		// Render debug viewports on top
 		if (debugViewportRenderer)
 		{
