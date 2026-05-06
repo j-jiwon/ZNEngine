@@ -204,7 +204,7 @@ void ApplicationContext::OnMouseEvent(struct MouseEvent event)
 
 void ApplicationContext::OnKeyboardEvent(struct KeyboardEvent event)
 {
-    if (currentScene && currentScene->GetCamera())
+    if (currentScene)
     {
         static int callCount = 0;
         if (callCount++ < 5)
@@ -213,7 +213,15 @@ void ApplicationContext::OnKeyboardEvent(struct KeyboardEvent event)
                       << ", state=" << static_cast<int>(event.state)
                       << ", deltaTime=" << timer->DeltaTime() << std::endl;
         }
-        currentScene->GetCamera()->ProcessKeyboard(event, timer->DeltaTime());
+
+        // Forward to scene for custom handling
+        currentScene->OnKeyboardEvent(event);
+
+        // Forward to camera for movement
+        if (currentScene->GetCamera())
+        {
+            currentScene->GetCamera()->ProcessKeyboard(event, timer->DeltaTime());
+        }
     }
 }
 
