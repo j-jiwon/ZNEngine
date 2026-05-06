@@ -1,0 +1,227 @@
+#include "DeferredLightingPass.h"
+#include "GBufferManager.h"
+#include "Shader.h"
+#include "GraphicsDevice.h"
+#include "CommandQueue.h"
+#include "ZNFramework.h"
+#include "../../ZNLight.h"
+#include "../../../Math/ZNVector3.h"
+#include "../../../ZNCamera.h"
+
+using namespace ZNFramework;
+
+struct LightingVertex
+{
+    float pos[3];
+    float color[4];
+    float uv[2];
+    float normal[3];
+};
+
+struct DeferredLightCB
+{
+    // Directional Light
+    float dirLightDirection[3];
+    float dirLightIntensity;
+    float dirLightColor[3];
+    float dirAmbientIntensity;
+
+    // Spot Light
+    float spotLightPosition[3];
+    float spotLightIntensity;
+    float spotLightDirection[3];
+    float spotInnerCutoff;
+    float spotLightColor[3];
+    float spotOuterCutoff;
+
+    float viewPosition[3];
+    float padding;
+
+    // Spot light attenuation
+    float spotAttenuationConstant;
+    float spotAttenuationLinear;
+    float spotAttenuationQuadratic;
+    float padding2;
+};
+
+void DeferredLightingPass::Init()
+{
+    GraphicsDevice* device = GraphicsContext::GetInstance().GetAs<GraphicsDevice>();
+
+    CreateFullscreenQuad();
+
+    // Load deferred lighting shader
+    lightingShader = new Shader();
+    std::filesystem::path lightingShaderPath = GetResourcePath() / L"Shaders" / L"deferred_lighting.hlsli";
+    lightingShader->Load(lightingShaderPath);
+    lightingShader->DisableDepthTest();
+
+    // Create constant buffer for lighting
+    D3D12_HEAP_PROPERTIES heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+    uint32 lightingBufferSize = (sizeof(DeferredLightCB) + 255) & ~255;
+    D3D12_RESOURCE_DESC lightingBufferDesc = CD3DX12_RESOURCE_DESC::Buffer(lightingBufferSize);
+
+    ThrowIfFailed(device->Device()->CreateCommittedResource(
+        &heapProps,
+        D3D12_HEAP_FLAG_NONE,
+        &lightingBufferDesc,
+        D3D12_RESOURCE_STATE_GENERIC_READ,
+        nullptr,
+        IID_PPV_ARGS(&lightingConstantBuffer)
+    ));
+
+    lightingConstantBuffer->Map(0, nullptr, &mappedLightingBuffer);
+
+    // Create descriptor heap for lighting pass
+    D3D12_DESCRIPTOR_HEAP_DESC lightingHeapDesc = {};
+    lightingHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+    lightingHeapDesc.NumDescriptors = 11; // b0~b4 (5) + t0~t4 (6)
+    lightingHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+    ThrowIfFailed(device->Device()->CreateDescriptorHeap(&lightingHeapDesc, IID_PPV_ARGS(&lightingDescriptorHeap)));
+}
+
+void DeferredLightingPass::CreateFullscreenQuad()
+{
+    GraphicsDevice* device = GraphicsContext::GetInstance().GetAs<GraphicsDevice>();
+
+    LightingVertex vertices[] = {
+        { {-1.0f,  1.0f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, 1.0f} },
+        { { 1.0f,  1.0f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, 1.0f} },
+        { {-1.0f, -1.0f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, 1.0f} },
+        { { 1.0f, -1.0f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, 1.0f} }
+    };
+
+    uint32 bufferSize = sizeof(vertices);
+
+    D3D12_HEAP_PROPERTIES heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+    D3D12_RESOURCE_DESC bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize);
+
+    ThrowIfFailed(device->Device()->CreateCommittedResource(
+        &heapProps,
+        D3D12_HEAP_FLAG_NONE,
+        &bufferDesc,
+        D3D12_RESOURCE_STATE_GENERIC_READ,
+        nullptr,
+        IID_PPV_ARGS(&quadVertexBuffer)
+    ));
+
+    void* mappedData = nullptr;
+    quadVertexBuffer->Map(0, nullptr, &mappedData);
+    memcpy(mappedData, vertices, bufferSize);
+    quadVertexBuffer->Unmap(0, nullptr);
+
+    quadVertexBufferView.BufferLocation = quadVertexBuffer->GetGPUVirtualAddress();
+    quadVertexBufferView.SizeInBytes = bufferSize;
+    quadVertexBufferView.StrideInBytes = sizeof(LightingVertex);
+}
+
+void DeferredLightingPass::Render(GBufferManager* gbufferManager, uint32 screenWidth, uint32 screenHeight)
+{
+    if (!gbufferManager)
+        return;
+
+    GraphicsDevice* device = GraphicsContext::GetInstance().GetAs<GraphicsDevice>();
+    CommandQueue* queue = GraphicsContext::GetInstance().GetAs<CommandQueue>();
+    ID3D12GraphicsCommandList* cmdList = queue->CommandList();
+
+    // Update lighting constant buffer
+    DeferredLightCB lightData = {};
+
+    ZNDirectionalLight* dirLight = GraphicsContext::GetInstance().GetDirectionalLight();
+    ZNLight* primaryLight = GraphicsContext::GetInstance().GetLight();
+    ZNCamera* camera = GraphicsContext::GetInstance().GetCamera();
+
+    if (dirLight)
+    {
+        ZNVector3 dir = dirLight->GetDirection();
+        ZNVector3 color = dirLight->GetColor();
+        lightData.dirLightDirection[0] = dir.x;
+        lightData.dirLightDirection[1] = dir.y;
+        lightData.dirLightDirection[2] = dir.z;
+        lightData.dirLightIntensity = dirLight->GetIntensity();
+        lightData.dirLightColor[0] = color.x;
+        lightData.dirLightColor[1] = color.y;
+        lightData.dirLightColor[2] = color.z;
+        lightData.dirAmbientIntensity = dirLight->GetAmbientIntensity();
+    }
+
+    if (primaryLight && primaryLight->GetType() == LightType::Spot)
+    {
+        ZNSpotLight* spotLight = static_cast<ZNSpotLight*>(primaryLight);
+        ZNVector3 pos = spotLight->GetPosition();
+        ZNVector3 dir = spotLight->GetDirection();
+        ZNVector3 color = spotLight->GetColor();
+
+        lightData.spotLightPosition[0] = pos.x;
+        lightData.spotLightPosition[1] = pos.y;
+        lightData.spotLightPosition[2] = pos.z;
+        lightData.spotLightIntensity = spotLight->GetIntensity();
+        lightData.spotLightDirection[0] = dir.x;
+        lightData.spotLightDirection[1] = dir.y;
+        lightData.spotLightDirection[2] = dir.z;
+        lightData.spotInnerCutoff = cos(spotLight->GetInnerCutoffAngle() * 3.14159f / 180.0f);
+        lightData.spotLightColor[0] = color.x;
+        lightData.spotLightColor[1] = color.y;
+        lightData.spotLightColor[2] = color.z;
+        lightData.spotOuterCutoff = cos(spotLight->GetOuterCutoffAngle() * 3.14159f / 180.0f);
+
+        lightData.spotAttenuationConstant = spotLight->GetConstantAttenuation();
+        lightData.spotAttenuationLinear = spotLight->GetLinearAttenuation();
+        lightData.spotAttenuationQuadratic = spotLight->GetQuadraticAttenuation();
+    }
+
+    if (camera)
+    {
+        ZNVector3 camPos = camera->GetPosition();
+        lightData.viewPosition[0] = camPos.x;
+        lightData.viewPosition[1] = camPos.y;
+        lightData.viewPosition[2] = camPos.z;
+    }
+
+    memcpy(mappedLightingBuffer, &lightData, sizeof(DeferredLightCB));
+
+    // Set fullscreen viewport
+    D3D12_VIEWPORT viewport = { 0, 0, static_cast<FLOAT>(screenWidth), static_cast<FLOAT>(screenHeight), 0.f, 1.f };
+    D3D12_RECT scissorRect = CD3DX12_RECT(0, 0, screenWidth, screenHeight);
+    cmdList->RSSetViewports(1, &viewport);
+    cmdList->RSSetScissorRects(1, &scissorRect);
+
+    if (lightingShader)
+    {
+        lightingShader->Bind();
+    }
+
+    uint32 lightingDescSize = device->Device()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+    // Create CBV for lighting at b0
+    D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = lightingDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+    D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+    cbvDesc.BufferLocation = lightingConstantBuffer->GetGPUVirtualAddress();
+    cbvDesc.SizeInBytes = lightingConstantBuffer->GetDesc().Width;
+    device->Device()->CreateConstantBufferView(&cbvDesc, cpuHandle);
+
+    // Copy G-Buffer SRVs
+    cpuHandle.ptr += lightingDescSize * 5;
+    device->Device()->CopyDescriptorsSimple(1, cpuHandle, gbufferManager->GetBaseColorSRV(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+    cpuHandle.ptr += lightingDescSize;
+    device->Device()->CopyDescriptorsSimple(1, cpuHandle, gbufferManager->GetNormalSRV(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+    cpuHandle.ptr += lightingDescSize;
+    device->Device()->CopyDescriptorsSimple(1, cpuHandle, gbufferManager->GetDepthCopySRV(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+    cpuHandle.ptr += lightingDescSize;
+    device->Device()->CopyDescriptorsSimple(1, cpuHandle, gbufferManager->GetWorldPosSRV(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+    // Set descriptor heap
+    ID3D12DescriptorHeap* heaps[] = { lightingDescriptorHeap.Get() };
+    cmdList->SetDescriptorHeaps(1, heaps);
+
+    D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = lightingDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
+    cmdList->SetGraphicsRootDescriptorTable(0, gpuHandle);
+
+    cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+    cmdList->IASetVertexBuffers(0, 1, &quadVertexBufferView);
+
+    cmdList->DrawInstanced(4, 1, 0, 0);
+}

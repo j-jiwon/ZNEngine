@@ -6,6 +6,7 @@
 #include "TableDescriptorHeap.h"
 #include "DepthStencilBuffer.h"
 #include "GBufferManager.h"
+#include "DeferredLightingPass.h"
 #include "DebugViewportRenderer.h"
 #include "ZNFramework.h"
 
@@ -194,9 +195,9 @@ void CommandQueue::RenderEnd()
 		commandList->RSSetScissorRects(1, &rect);
 
 		// Render deferred lighting to main view (fullscreen)
-		if (debugViewportRenderer)
+		if (deferredLightingPass)
 		{
-			debugViewportRenderer->RenderMainView(gbufferManager, swapChain->Width(), swapChain->Height());
+			deferredLightingPass->Render(gbufferManager, swapChain->Width(), swapChain->Height());
 		}
 
 		// Forward pass - render objects that need forward rendering (e.g., grid)

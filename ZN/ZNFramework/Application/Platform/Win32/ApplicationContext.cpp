@@ -7,6 +7,7 @@
 #include "ZNFramework/Graphics/Platform/Direct3D12/Shader.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/CommandQueue.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/GBufferManager.h"
+#include "ZNFramework/Graphics/Platform/Direct3D12/DeferredLightingPass.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/DebugViewportRenderer.h"
 #include "ZNFramework/Scene/ZNScene.h"
 #include "ZNFramework/ZNCamera.h"
@@ -134,6 +135,11 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
         GBufferManager* gbufferMgr = new GBufferManager();
         gbufferMgr->Init(inWindow->Width(), inWindow->Height());
         cmdQueue->SetGBufferManager(gbufferMgr);
+
+        // Initialize Deferred Lighting Pass
+        DeferredLightingPass* lightingPass = new DeferredLightingPass();
+        lightingPass->Init();
+        cmdQueue->SetDeferredLightingPass(lightingPass);
 
         // Initialize Debug Viewport Renderer
         DebugViewportRenderer* debugViewport = new DebugViewportRenderer();
