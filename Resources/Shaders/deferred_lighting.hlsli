@@ -83,11 +83,6 @@ float4 PS_Main(VS_OUT input) : SV_Target
     
     float3 finalColor = ambient + diffuse + specular;
    
-    float3 dirLightDir = normalize(-dirLightDirection);
-    float dirNdotL = max(dot(normal, dirLightDir), 0.0f);
-    float3 dirAmbient = baseColor.rgb * dirAmbientIntensity;
-    float3 dirDiffuse = baseColor.rgb * dirLightColor * dirLightIntensity * dirNdotL;
-
     // SPOT LIGHT
     float3 spotLightVec = spotLightPosition - worldPos; // Vector from fragment to light
     float spotDistance = length(spotLightVec);

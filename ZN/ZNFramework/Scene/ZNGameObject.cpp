@@ -14,5 +14,8 @@ void ZNGameObject::Render()
 	mesh->SetTransform(transform);
 
 	// Render mesh (material is already set on mesh if available)
-	mesh->Render();
+	if (isVisible)
+	{
+		mesh->Render();
+	}
 }

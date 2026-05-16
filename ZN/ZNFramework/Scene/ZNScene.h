@@ -1,5 +1,6 @@
 #pragma once
 #include "../ZNTransform.h"
+#include "../ZNInputDef.h"
 #include <vector>
 
 namespace ZNFramework
@@ -20,6 +21,7 @@ namespace ZNFramework
 		virtual void Update(float deltaTime);
 		virtual void Render();
 		virtual void RenderForward();  // Forward pass for non-deferred objects (e.g., grid)
+		virtual void OnKeyboardEvent(const KeyboardEvent& event) {}
 
 		// GameObject management
 		void AddGameObject(ZNGameObject* obj);

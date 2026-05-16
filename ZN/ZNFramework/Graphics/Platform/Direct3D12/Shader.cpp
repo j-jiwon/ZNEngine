@@ -33,7 +33,7 @@ void Shader::Load(const wstring& path)
 	pipelineDesc.pRootSignature = rootSignature->GetSignature().Get();
 
 	pipelineDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-	pipelineDesc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
+	pipelineDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
 	pipelineDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 	pipelineDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 	pipelineDesc.SampleMask = UINT_MAX;

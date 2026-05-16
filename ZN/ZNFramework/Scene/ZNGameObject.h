@@ -17,6 +17,10 @@ namespace ZNFramework
 
 		void SetMesh(ZNMesh* inMesh) { mesh = inMesh; }
 		void SetMaterial(ZNMaterial* inMaterial) { material = inMaterial; }
+		void SetActive(bool active) { isActive = active; }
+		bool IsActive() const { return isActive; }
+		void SetVisible(bool visible) { isVisible = visible; }
+		bool IsVisible() const { return isVisible; }
 
 		ZNMesh* GetMesh() const { return mesh; }
 		ZNMaterial* GetMaterial() const { return material; }
@@ -28,5 +32,7 @@ namespace ZNFramework
 		ZNMesh* mesh = nullptr;
 		ZNMaterial* material = nullptr;
 		Transform transform;
+		bool isActive = true;
+		bool isVisible = true;
 	};
 }

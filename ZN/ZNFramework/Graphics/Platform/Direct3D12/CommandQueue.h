@@ -7,6 +7,7 @@ namespace ZNFramework
     class GraphicsDevice;
     class SwapChain;
     class GBufferManager;
+    class DeferredLightingPass;
     class DebugViewportRenderer;
     class CommandQueue : public ZNCommandQueue
     {
@@ -26,6 +27,7 @@ namespace ZNFramework
 
         GBufferManager* GetGBufferManager() { return gbufferManager; }
         void SetGBufferManager(GBufferManager* manager) { gbufferManager = manager; }
+        void SetDeferredLightingPass(DeferredLightingPass* pass) { deferredLightingPass = pass; }
         void SetDebugViewportRenderer(DebugViewportRenderer* renderer) { debugViewportRenderer = renderer; }
         void SetGBufferEnabled(bool enabled) { enableGBuffer = enabled; }
         bool IsForwardPass() const { return isForwardPass; }
@@ -48,6 +50,7 @@ namespace ZNFramework
         SwapChain* swapChain;
 
         GBufferManager* gbufferManager = nullptr;
+        DeferredLightingPass* deferredLightingPass = nullptr;
         DebugViewportRenderer* debugViewportRenderer = nullptr;
         bool enableGBuffer = true; // Enable MRT by default
         bool isFirstFrame = true; // Track first frame for resource state

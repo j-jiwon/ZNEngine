@@ -108,11 +108,16 @@ void TestGameScene::Initialize()
                     }
 
                     obj->SetMesh(mesh);
-                    obj->GetTransform().position = ZNVector3(0.0f, 0.0f, 100.0f);
+                    obj->GetTransform().position = ZNVector3(0.0f, 0.0f, 0.0f);
                     obj->GetTransform().scale = ZNVector3(0.01f, 0.01f, 0.01f);
 
                     AddGameObject(obj);
                     modelObjects.push_back(obj);
+                }
+
+                if (!modelObjects.empty())
+                {
+                    turntableObj = modelObjects.front();
                 }
 
                 std::cout << "Created " << modelObjects.size() << " game objects from FBX model" << std::endl;
@@ -249,6 +254,37 @@ void TestGameScene::Initialize()
 void TestGameScene::Update(float deltaTime)
 {
     ZNScene::Update(deltaTime);
+
+    if (turntableObj && turntableEnabled)
+    {
+        turntableObj->GetTransform().rotation.y += 0.5f * deltaTime; // Rotate 20 degrees per second
+    }
+}
+
+void TestGameScene::OnKeyboardEvent(const ZNFramework::KeyboardEvent& event)
+{
+    using namespace ZNFramework;
+
+    // Only respond to key down events (not hold/repeat)
+    if (event.state != KEY_STATE::DOWN)
+        return;
+
+    switch (event.type)
+    {
+    case KEY_TYPE::KEY_T:
+        turntableEnabled = !turntableEnabled;
+        std::cout << "Turntable: " << (turntableEnabled ? "ON" : "OFF") << std::endl;
+        break;
+
+    case KEY_TYPE::KEY_P:
+        planeVisible = !planeVisible;
+        if (plane)
+        {
+            plane->SetVisible(planeVisible);
+        }
+        std::cout << "Plane: " << (planeVisible ? "VISIBLE" : "HIDDEN") << std::endl;
+        break;
+    }
 }
 
 void TestGameScene::Render()

@@ -11,10 +11,16 @@ public:
     void Initialize() override;
     void Update(float deltaTime) override;
     void Render() override;
+    void OnKeyboardEvent(const ZNFramework::KeyboardEvent& event) override;
 
     ZNFramework::ZNShader* GetDefaultShader() const { return defaultShader; }
+    ZNFramework::ZNGameObject* GetTurntableObject() const { return turntableObj; }
 
 private:
+    // Toggle states
+    bool turntableEnabled = true;
+    bool planeVisible = true;
+
     // Resources
     ZNFramework::ZNShader* defaultShader = nullptr;
     ZNFramework::ZNShader* gridShader = nullptr;
@@ -25,6 +31,7 @@ private:
     std::vector<ZNFramework::ZNTexture*> textures;
 
     // Debug visualization
+    ZNFramework::ZNGameObject* turntableObj = nullptr;
     ZNFramework::ZNGameObject* crosshair = nullptr;
     ZNFramework::ZNGameObject* lightIndicator = nullptr;
     ZNFramework::ZNGameObject* plane = nullptr;

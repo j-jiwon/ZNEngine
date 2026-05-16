@@ -7,6 +7,7 @@
 #include "ZNFramework/Graphics/Platform/Direct3D12/Shader.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/CommandQueue.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/GBufferManager.h"
+#include "ZNFramework/Graphics/Platform/Direct3D12/DeferredLightingPass.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/DebugViewportRenderer.h"
 #include "ZNFramework/Scene/ZNScene.h"
 #include "ZNFramework/ZNCamera.h"
@@ -135,6 +136,11 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
         gbufferMgr->Init(inWindow->Width(), inWindow->Height());
         cmdQueue->SetGBufferManager(gbufferMgr);
 
+        // Initialize Deferred Lighting Pass
+        DeferredLightingPass* lightingPass = new DeferredLightingPass();
+        lightingPass->Init();
+        cmdQueue->SetDeferredLightingPass(lightingPass);
+
         // Initialize Debug Viewport Renderer
         DebugViewportRenderer* debugViewport = new DebugViewportRenderer();
         debugViewport->Init();
@@ -198,7 +204,7 @@ void ApplicationContext::OnMouseEvent(struct MouseEvent event)
 
 void ApplicationContext::OnKeyboardEvent(struct KeyboardEvent event)
 {
-    if (currentScene && currentScene->GetCamera())
+    if (currentScene)
     {
         static int callCount = 0;
         if (callCount++ < 5)
@@ -207,7 +213,15 @@ void ApplicationContext::OnKeyboardEvent(struct KeyboardEvent event)
                       << ", state=" << static_cast<int>(event.state)
                       << ", deltaTime=" << timer->DeltaTime() << std::endl;
         }
-        currentScene->GetCamera()->ProcessKeyboard(event, timer->DeltaTime());
+
+        // Forward to scene for custom handling
+        currentScene->OnKeyboardEvent(event);
+
+        // Forward to camera for movement
+        if (currentScene->GetCamera())
+        {
+            currentScene->GetCamera()->ProcessKeyboard(event, timer->DeltaTime());
+        }
     }
 }
 
