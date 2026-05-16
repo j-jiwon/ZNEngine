@@ -45,82 +45,87 @@ void TestGameScene::Initialize()
     // Setup directional light - RED
     ZNDirectionalLight* dirLight = ZNFramework::Platform::CreateDirectionalLight();
     dirLight->SetDirection(ZNVector3(0.5f, -1.0f, 0.3f));
-    dirLight->SetIntensity(0.8f);
-    dirLight->SetColor(ZNVector3(0.5f, 0.5f, 0.5f)); // Red
-    dirLight->SetAmbientIntensity(0.5f);
+    dirLight->SetIntensity(8.0f);
+    dirLight->SetColor(ZNVector3(0.5f, 0.5f, 0.5f));
+    dirLight->SetAmbientIntensity(5.0f);
     SetDirectionalLight(dirLight);
 
     std::cout << "Lights initialized - Spot light (flashlight mode) + Green directional light" << std::endl;
 
-    // FBX Model Loading
     {
         std::filesystem::path modelPath = GetResourcePath() / L"Models" / L"stanford-bunny.fbx";
-
         if (std::filesystem::exists(modelPath))
         {
             ZNModelLoader* modelLoader = ZNFramework::Platform::CreateModelLoader();
             ModelData modelData;
-
             if (modelLoader->Load(modelPath, modelData))
             {
                 std::cout << "FBX Model loaded successfully!" << std::endl;
-                std::cout << "  Meshes: " << modelData.meshes.size() << std::endl;
-                std::cout << "  Materials: " << modelData.materials.size() << std::endl;
 
-                // Create materials from loaded data
-                for (const auto& matData : modelData.materials)
+                // ── 머티리얼 3종 ────────────────────────────────────
+
+                // 1. Iron
+                ZNMaterial* ironMat = ZNFramework::Platform::CreateMaterial();
+                ironMat->Init();
+                ironMat->SetShader(defaultShader);
+                MaterialParams ironParams;
+                ironParams.albedoColor = ZNVector4(0.56f, 0.57f, 0.58f, 1.0f);
+                ironParams.metallic = 1.0f;
+                ironParams.roughness = 0.8f;
+                ironParams.ao = 1.0f;
+                ironMat->SetParams(ironParams);
+                materials.push_back(ironMat);
+
+                // 2. Gold
+                ZNMaterial* goldMat = ZNFramework::Platform::CreateMaterial();
+                goldMat->Init();
+                goldMat->SetShader(defaultShader);
+                MaterialParams goldParams;
+                goldParams.albedoColor = ZNVector4(1.0f, 0.78f, 0.34f, 1.0f);
+                goldParams.metallic =0.9f;
+                goldParams.roughness = 0.1f;
+                goldParams.ao = 1.0f;
+                goldMat->SetParams(goldParams);
+                materials.push_back(goldMat);
+
+                // 3. Red Plastic
+                ZNMaterial* plasticMat = ZNFramework::Platform::CreateMaterial();
+                plasticMat->Init();
+                plasticMat->SetShader(defaultShader);
+                MaterialParams plasticParams;
+                plasticParams.albedoColor = ZNVector4(0.8f, 0.1f, 0.1f, 1.0f);
+                plasticParams.metallic = 0.0f;
+                plasticParams.roughness = 0.3f;
+                plasticParams.ao = 1.0f;
+                plasticMat->SetParams(plasticParams);
+                materials.push_back(plasticMat);
+
+                ZNMaterial* mats[3] = { ironMat, goldMat, plasticMat };
+                float xPositions[3] = { -3.0f, 0.0f, 3.0f };
+
+                for (int i = 0; i < 3; ++i)
                 {
-                    ZNMaterial* material = ZNFramework::Platform::CreateMaterial();
-                    material->Init();
-                    material->SetShader(defaultShader);
-
-                    // Use material params from FBX
-                    MaterialParams params = matData.params;
-                    params.metallic = 0.0f;
-                    params.roughness = 0.8f;
-                    material->SetParams(params);
-
-                    // Load textures
-                    for (size_t i = 0; i < static_cast<size_t>(TextureType::Count); ++i)
+                    for (const auto& meshData : modelData.meshes)
                     {
-                        if (!matData.texturePaths[i].empty())
-                        {
-                            ZNTexture* texture = ZNFramework::Platform::CreateTexture();
-                            texture->Init(matData.texturePaths[i]);
-                            material->SetTexture(static_cast<TextureType>(i), texture);
-                            textures.push_back(texture);
-                        }
+                        ZNGameObject* obj = new ZNGameObject();
+                        ZNMesh* mesh = ZNFramework::Platform::CreateMesh();
+                        mesh->Init(meshData.vertices, meshData.indices);
+                        mesh->SetMaterial(mats[i]);
+
+                        obj->SetMesh(mesh);
+                        obj->GetTransform().rotation = ZNVector3(0.f, 90.f, 0.f);
+                        obj->GetTransform().position = ZNVector3(xPositions[i], 0.0f, 0.0f);
+                        obj->GetTransform().scale = ZNVector3(0.01f, 0.01f, 0.01f);
+
+                        AddGameObject(obj);
+                        modelObjects.push_back(obj);
                     }
-
-                    materials.push_back(material);
-                }
-
-                // Create game objects from meshes
-                for (const auto& meshData : modelData.meshes)
-                {
-                    ZNGameObject* obj = new ZNGameObject();
-                    ZNMesh* mesh = ZNFramework::Platform::CreateMesh();
-                    mesh->Init(meshData.vertices, meshData.indices);
-
-                    if (meshData.materialIndex < materials.size())
-                    {
-                        mesh->SetMaterial(materials[meshData.materialIndex]);
-                    }
-
-                    obj->SetMesh(mesh);
-                    obj->GetTransform().position = ZNVector3(0.0f, 0.0f, 0.0f);
-                    obj->GetTransform().scale = ZNVector3(0.01f, 0.01f, 0.01f);
-
-                    AddGameObject(obj);
-                    modelObjects.push_back(obj);
                 }
 
                 if (!modelObjects.empty())
-                {
                     turntableObj = modelObjects.front();
-                }
 
-                std::cout << "Created " << modelObjects.size() << " game objects from FBX model" << std::endl;
+                std::cout << "Created 3 bunnies (Iron / Gold / Plastic)" << std::endl;
                 delete modelLoader;
             }
             else
@@ -285,6 +290,10 @@ void TestGameScene::OnKeyboardEvent(const ZNFramework::KeyboardEvent& event)
         std::cout << "Plane: " << (planeVisible ? "VISIBLE" : "HIDDEN") << std::endl;
         break;
     }
+
+
+
+
 }
 
 void TestGameScene::Render()

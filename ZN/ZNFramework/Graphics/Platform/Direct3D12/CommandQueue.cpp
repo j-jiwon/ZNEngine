@@ -77,7 +77,7 @@ void CommandQueue::RenderBegin()
 		// Skip on first frame since resources are created in RENDER_TARGET state
 		if (!isFirstFrame)
 		{
-			D3D12_RESOURCE_BARRIER barriers[4];
+			D3D12_RESOURCE_BARRIER barriers[5];
 			barriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(
 				gbufferManager->GetBaseColorResource(),
 				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
@@ -94,8 +94,11 @@ void CommandQueue::RenderBegin()
 				gbufferManager->GetWorldPosResource(),
 				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 				D3D12_RESOURCE_STATE_RENDER_TARGET);
-
-			commandList->ResourceBarrier(4, barriers);
+			barriers[4] = CD3DX12_RESOURCE_BARRIER::Transition(
+				gbufferManager->GetARMResource(),
+				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+				D3D12_RESOURCE_STATE_RENDER_TARGET);
+			commandList->ResourceBarrier(5, barriers);
 		}
 
 		// Clear all G-Buffer render targets
@@ -111,20 +114,23 @@ void CommandQueue::RenderBegin()
 		float clearWorldPos[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 		commandList->ClearRenderTargetView(gbufferManager->GetWorldPosRTV(), clearWorldPos, 0, nullptr);
 
+		float clearARM[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+		commandList->ClearRenderTargetView(gbufferManager->GetARMRTV(), clearARM, 0, nullptr);
+
 		// Set G-Buffer render targets
-		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandles[4];
+		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandles[5];
 		rtvHandles[0] = gbufferManager->GetBaseColorRTV();
 		rtvHandles[1] = gbufferManager->GetNormalRTV();
 		rtvHandles[2] = gbufferManager->GetDepthCopyRTV();
 		rtvHandles[3] = gbufferManager->GetWorldPosRTV();
-
+		rtvHandles[4] = gbufferManager->GetARMRTV();
 		// depth stencil
 		DepthStencilBuffer* dsBuffer = GraphicsContext::GetInstance().GetAs<DepthStencilBuffer>();
 		D3D12_CPU_DESCRIPTOR_HANDLE depthStencilView = dsBuffer->GetDSVCpuHandle();
 		commandList->ClearDepthStencilView(depthStencilView, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
-		// Bind G-Buffer render targets with depth stencil
-		commandList->OMSetRenderTargets(4, rtvHandles, FALSE, &depthStencilView);
+		// Bind G-Buffer render targets with depth stencil (5 targets: BaseColor, Normal, Depth, WorldPos, ARM)
+		commandList->OMSetRenderTargets(gbufferManager->GetRTVCount(), rtvHandles, FALSE, &depthStencilView);
 	}
 	else
 	{
@@ -153,7 +159,7 @@ void CommandQueue::RenderEnd()
 	if (enableGBuffer)
 	{
 		// Transition G-Buffer resources back to SHADER_RESOURCE for reading in debug views
-		D3D12_RESOURCE_BARRIER barriers[4];
+		D3D12_RESOURCE_BARRIER barriers[5];
 		barriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(
 			gbufferManager->GetBaseColorResource(),
 			D3D12_RESOURCE_STATE_RENDER_TARGET,
@@ -170,8 +176,12 @@ void CommandQueue::RenderEnd()
 			gbufferManager->GetWorldPosResource(),
 			D3D12_RESOURCE_STATE_RENDER_TARGET,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		barriers[4] = CD3DX12_RESOURCE_BARRIER::Transition(
+			gbufferManager->GetARMResource(),
+			D3D12_RESOURCE_STATE_RENDER_TARGET,
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
-		commandList->ResourceBarrier(4, barriers);
+		commandList->ResourceBarrier(5, barriers);
 
 		// Transition back buffer to RENDER_TARGET for composite/debug rendering
 		D3D12_RESOURCE_BARRIER backBufferBarrier = CD3DX12_RESOURCE_BARRIER::Transition(

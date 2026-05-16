@@ -15,7 +15,10 @@ cbuffer cbMaterial : register(b1)
     float padding;
 };
 
-Texture2D tex_0 : register(t0);
+Texture2D tex_0 : register(t0); // Albedo (BaseColor)
+Texture2D tex_1 : register(t1); // Normal map
+Texture2D tex_arm : register(t2); // ARM
+
 SamplerState sam_0 : register(s0);
 
 struct VS_IN
@@ -42,6 +45,7 @@ struct PS_MRT_OUTPUT
     float4 normal : SV_Target1;     // World normal (encoded)
     float4 depth : SV_Target2;      // Depth value for visualization (R32_FLOAT writes to .r channel)
     float4 worldPos : SV_Target3;
+    float4 arm : SV_Target4;        // ARM texture: R=AO, G=Roughness, B=Metallic
 };
 
 VS_OUT VS_Main(VS_IN input)
@@ -90,16 +94,44 @@ PS_MRT_OUTPUT PS_Main(VS_OUT input)
         baseColor = texColor.rgb * albedoColor.rgb;
     }
 
-    // Output 0: Base Color (albedo)
+    // Base Color (albedo)
     output.baseColor = float4(baseColor, albedoColor.a);
 
-    // Output 1: World Normal (normalized and encoded to [0,1] range for storage)
-    float3 N = normalize(input.normal);
+    // Normal (normalized and encoded to [0,1] range for storage)
+    float3 normalSample = tex_1.Sample(sam_0, input.uv).rgb;
+    float3 N; 
+    if (dot(normalSample, normalSample) < 0.01)
+    {
+        N = normalize(input.normal);
+    }
+    else
+    {
+        float3 vN = normalize(input.normal);
+        float3 up = abs(vN.y) < 0.999 ? float3(0, 1, 0) : float3(1, 0, 0);
+        float3 vT = normalize(cross(up, vN));
+        float3 vB = cross(vN, vT);
+
+        float3 tsNormal = normalSample * 2.0 - 1.0;
+        N = normalize(tsNormal.x * vT + tsNormal.y * vB + tsNormal.z * vN);
+    }
     output.normal = float4(N * 0.5 + 0.5, 1.0); // Encode [-1,1] to [0,1]
 
-    // Output 2: Depth for visualization (R32_FLOAT only uses .r channel)
-    output.depth = float4(input.depth, 0.0, 0.0, 1.0);
+    // ARM (AO, Roughness, Metallic)
+    float4 armSample = tex_arm.Sample(sam_0, input.uv);
+    if (dot(armSample.rgb, armSample.rgb) < 0.01)
+    {
+        output.arm = float4(ao, roughness, metallic, 1.0);
+    }
+    else
+    {
+        // Use texture values directly (no conversion)
+        output.arm = float4(armSample.r, armSample.g, armSample.b, 1.0);
+    }
     
+    // Depth (R32_FLOAT only uses .r channel)
+    output.depth = float4(input.depth, 0.0, 0.0, 1.0);
+
+    // World Position
     output.worldPos = float4(input.worldPos, 1.0f);
 
     return output;

@@ -10,6 +10,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{E25EBFF4-8018-43BA-BA08-B3E2B56B4691}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
+		Resources\Shaders\debug_view.hlsli = Resources\Shaders\debug_view.hlsli
 		Resources\Shaders\default.hlsli = Resources\Shaders\default.hlsli
 		Resources\Shaders\deferred_lighting.hlsli = Resources\Shaders\deferred_lighting.hlsli
 		Resources\Shaders\gbuffer.hlsli = Resources\Shaders\gbuffer.hlsli

@@ -37,7 +37,11 @@ float4 PS_Main(VS_OUT input) : SV_Target
     if (viewType == 0) // Depth
     {
         float depth = texValue.r;
-        return float4(depth, depth, depth, 1.0f);
+        float near = 0.1f;
+        float far = 100.0f;
+        float linearDepth = (2.0f * near) / (far + near - depth * (far - near));
+        linearDepth = pow(linearDepth, 0.4f);
+        return float4(linearDepth, linearDepth, linearDepth, 1.0f);
     }
     else if (viewType == 1) // Base Color
     {

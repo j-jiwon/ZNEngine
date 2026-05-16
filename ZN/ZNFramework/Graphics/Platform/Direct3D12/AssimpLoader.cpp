@@ -177,7 +177,6 @@ void AssimpLoader::ProcessMaterial(aiMaterial* material, const aiScene* scene, c
 
 	LoadTexturePath(aiTextureType_DIFFUSE, TextureType::Albedo);
 	LoadTexturePath(aiTextureType_NORMALS, TextureType::Normal);
-	LoadTexturePath(aiTextureType_METALNESS, TextureType::Metallic);
-	LoadTexturePath(aiTextureType_DIFFUSE_ROUGHNESS, TextureType::Roughness);
-	LoadTexturePath(aiTextureType_AMBIENT_OCCLUSION, TextureType::AO);
+	// ARM texture (AO, Roughness, Metallic combined) - try common ARM texture types
+	LoadTexturePath(aiTextureType_UNKNOWN, TextureType::ARM);  // Often used for custom/combined textures
 }

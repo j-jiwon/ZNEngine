@@ -78,12 +78,10 @@ namespace ZNFramework
 
 	enum class TextureType : uint8
 	{
-		Albedo = 0,
-		Normal = 1,
-		Metallic = 2,
-		Roughness = 3,
-		AO = 4,
-		Count = 5
+		Albedo = 0,   // t0: Base color
+		Normal = 1,   // t1: Normal map
+		ARM = 2,      // t2: AO(R), Roughness(G), Metallic(B)
+		Count = 3
 	};
 
 	struct MaterialParams

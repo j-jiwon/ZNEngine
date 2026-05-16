@@ -28,7 +28,8 @@ void GBufferManager::CreateGBufferResources()
         DXGI_FORMAT_R8G8B8A8_UNORM,      // Base Color
         DXGI_FORMAT_R16G16B16A16_FLOAT,  // World Normal (need precision)
         DXGI_FORMAT_R32_FLOAT,           // Depth copy (for visualization)
-        DXGI_FORMAT_R16G16B16A16_FLOAT   // World Position (half precision is sufficient)
+        DXGI_FORMAT_R16G16B16A16_FLOAT,  // World Position (half precision is sufficient)
+        DXGI_FORMAT_R8G8B8A8_UNORM       // ARM texture (AO, Roughness, Metallic)
     };
 
     // Create each G-Buffer texture
