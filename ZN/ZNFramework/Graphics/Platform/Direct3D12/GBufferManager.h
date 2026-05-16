@@ -15,12 +15,13 @@ namespace ZNFramework
         D3D12_CPU_DESCRIPTOR_HANDLE GetNormalRTV() const { return rtvHandles[1]; }
         D3D12_CPU_DESCRIPTOR_HANDLE GetDepthCopyRTV() const { return rtvHandles[2]; }
         D3D12_CPU_DESCRIPTOR_HANDLE GetWorldPosRTV() const { return rtvHandles[3]; }
-
+        D3D12_CPU_DESCRIPTOR_HANDLE GetARMRTV() const { return rtvHandles[4]; }
         // SRV access for reading in debug views
         D3D12_CPU_DESCRIPTOR_HANDLE GetBaseColorSRV() const { return srvHandles[0]; }
         D3D12_CPU_DESCRIPTOR_HANDLE GetNormalSRV() const { return srvHandles[1]; }
         D3D12_CPU_DESCRIPTOR_HANDLE GetDepthCopySRV() const { return srvHandles[2]; }
         D3D12_CPU_DESCRIPTOR_HANDLE GetWorldPosSRV() const { return srvHandles[3]; }
+        D3D12_CPU_DESCRIPTOR_HANDLE GetARMSRV() const { return srvHandles[4]; }
 
         // Get all RTVs for OMSetRenderTargets
         D3D12_CPU_DESCRIPTOR_HANDLE* GetAllRTVs() { return rtvHandles; }
@@ -30,7 +31,7 @@ namespace ZNFramework
         ID3D12Resource* GetNormalResource() const { return gbufferTextures[1].Get(); }
         ID3D12Resource* GetDepthCopyResource() const { return gbufferTextures[2].Get(); }
         ID3D12Resource* GetWorldPosResource() const { return gbufferTextures[3].Get(); }
-
+        ID3D12Resource* GetARMResource() const { return gbufferTextures[4].Get(); }
         ID3D12DescriptorHeap* GetSRVHeap() const { return srvHeap.Get(); }
 
     private:
@@ -39,7 +40,7 @@ namespace ZNFramework
         void CreateSRVs();
 
     private:
-        static constexpr uint32 GBUFFER_COUNT = 4;
+        static constexpr uint32 GBUFFER_COUNT = 5;
 
         ComPtr<ID3D12Resource> gbufferTextures[GBUFFER_COUNT];
         ComPtr<ID3D12DescriptorHeap> rtvHeap;

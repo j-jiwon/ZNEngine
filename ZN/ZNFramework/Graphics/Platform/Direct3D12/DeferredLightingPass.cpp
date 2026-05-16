@@ -213,6 +213,9 @@ void DeferredLightingPass::Render(GBufferManager* gbufferManager, uint32 screenW
     cpuHandle.ptr += lightingDescSize;
     device->Device()->CopyDescriptorsSimple(1, cpuHandle, gbufferManager->GetWorldPosSRV(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
+    cpuHandle.ptr += lightingDescSize;
+    device->Device()->CopyDescriptorsSimple(1, cpuHandle, gbufferManager->GetARMSRV(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
     // Set descriptor heap
     ID3D12DescriptorHeap* heaps[] = { lightingDescriptorHeap.Get() };
     cmdList->SetDescriptorHeaps(1, heaps);

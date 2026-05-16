@@ -20,6 +20,7 @@ private:
     // Toggle states
     bool turntableEnabled = true;
     bool planeVisible = true;
+    bool lightEnabled = true;
 
     // Resources
     ZNFramework::ZNShader* defaultShader = nullptr;

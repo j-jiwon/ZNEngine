@@ -30,6 +30,12 @@ namespace ZNFramework
 		virtual float GetIntensity() const = 0;
 		virtual ZNVector3 GetColor() const = 0;
 		virtual float GetAmbientIntensity() const = 0;
+
+		void SetEnabled(bool enabled) { this->enabled = enabled; }
+		bool IsEnabled() const { return enabled; }
+		
+	protected:
+		bool enabled = true;
 	};
 
 	// Directional Light

@@ -45,9 +45,9 @@ void TestGameScene::Initialize()
     // Setup directional light - RED
     ZNDirectionalLight* dirLight = ZNFramework::Platform::CreateDirectionalLight();
     dirLight->SetDirection(ZNVector3(0.5f, -1.0f, 0.3f));
-    dirLight->SetIntensity(0.8f);
+    dirLight->SetIntensity(10.0f);
     dirLight->SetColor(ZNVector3(0.5f, 0.5f, 0.5f)); // Red
-    dirLight->SetAmbientIntensity(0.5f);
+    dirLight->SetAmbientIntensity(0.8f);
     SetDirectionalLight(dirLight);
 
     std::cout << "Lights initialized - Spot light (flashlight mode) + Green directional light" << std::endl;
@@ -68,32 +68,59 @@ void TestGameScene::Initialize()
                 std::cout << "  Materials: " << modelData.materials.size() << std::endl;
 
                 // Create materials from loaded data
-                for (const auto& matData : modelData.materials)
-                {
-                    ZNMaterial* material = ZNFramework::Platform::CreateMaterial();
-                    material->Init();
-                    material->SetShader(defaultShader);
+                // for (const auto& matData : modelData.materials)
+                // {
+                //     ZNMaterial* material = ZNFramework::Platform::CreateMaterial();
+                //     material->Init();
+                //     material->SetShader(defaultShader);
 
-                    // Use material params from FBX
-                    MaterialParams params = matData.params;
-                    params.metallic = 0.0f;
-                    params.roughness = 0.8f;
-                    material->SetParams(params);
+                //     // Use material params from FBX
+                //     MaterialParams params = matData.params;
+                //     params.metallic = 0.0f;
+                //     params.roughness = 0.8f;
+                //     material->SetParams(params);
 
-                    // Load textures
-                    for (size_t i = 0; i < static_cast<size_t>(TextureType::Count); ++i)
-                    {
-                        if (!matData.texturePaths[i].empty())
-                        {
-                            ZNTexture* texture = ZNFramework::Platform::CreateTexture();
-                            texture->Init(matData.texturePaths[i]);
-                            material->SetTexture(static_cast<TextureType>(i), texture);
-                            textures.push_back(texture);
-                        }
-                    }
+                //     // Load textures
+                //     for (size_t i = 0; i < static_cast<size_t>(TextureType::Count); ++i)
+                //     {
+                //         if (!matData.texturePaths[i].empty())
+                //         {
+                //             ZNTexture* texture = ZNFramework::Platform::CreateTexture();
+                //             texture->Init(matData.texturePaths[i]);
+                //             material->SetTexture(static_cast<TextureType>(i), texture);
+                //             textures.push_back(texture);
+                //         }
+                //     }
 
-                    materials.push_back(material);
-                }
+                //     materials.push_back(material);
+                // }
+                ZNMaterial* brickMat = ZNFramework::Platform::CreateMaterial();
+                brickMat->Init();
+                brickMat->SetShader(defaultShader);
+
+                MaterialParams brickParams;
+                brickParams.albedoColor = ZNVector4(1.0f, 1.0f, 1.0f, 1.0f);
+                brickParams.metallic  = 0.0f;
+                brickParams.roughness = 0.8f;
+                brickParams.ao        = 1.0f;
+                brickMat->SetParams(brickParams);
+
+                ZNTexture* bcTex = ZNFramework::Platform::CreateTexture();
+                bcTex->Init(GetResourcePath() / L"Textures" / L"rusty_metal_diff.png");
+                brickMat->SetTexture(TextureType::Albedo, bcTex);
+                textures.push_back(bcTex);
+
+                ZNTexture* nTex = ZNFramework::Platform::CreateTexture();
+                nTex->Init(GetResourcePath() / L"Textures" / L"rusty_metal_nor.png");
+                brickMat->SetTexture(TextureType::Normal, nTex);
+                textures.push_back(nTex);
+
+                ZNTexture* armTex = ZNFramework::Platform::CreateTexture();
+                armTex->Init(GetResourcePath() / L"Textures" / L"rusty_metal_arm.png");
+                brickMat->SetTexture(TextureType::ARM, armTex);
+                textures.push_back(armTex);
+
+                materials.push_back(brickMat);
 
                 // Create game objects from meshes
                 for (const auto& meshData : modelData.meshes)
@@ -101,11 +128,11 @@ void TestGameScene::Initialize()
                     ZNGameObject* obj = new ZNGameObject();
                     ZNMesh* mesh = ZNFramework::Platform::CreateMesh();
                     mesh->Init(meshData.vertices, meshData.indices);
-
-                    if (meshData.materialIndex < materials.size())
-                    {
-                        mesh->SetMaterial(materials[meshData.materialIndex]);
-                    }
+                    mesh->SetMaterial(brickMat); // Use the same material for all meshes for simplicity
+                    // if (meshData.materialIndex < materials.size())
+                    // {
+                    //     mesh->SetMaterial(materials[meshData.materialIndex]);
+                    // }
 
                     obj->SetMesh(mesh);
                     obj->GetTransform().position = ZNVector3(0.0f, 0.0f, 0.0f);
@@ -285,6 +312,10 @@ void TestGameScene::OnKeyboardEvent(const ZNFramework::KeyboardEvent& event)
         std::cout << "Plane: " << (planeVisible ? "VISIBLE" : "HIDDEN") << std::endl;
         break;
     }
+
+
+
+
 }
 
 void TestGameScene::Render()
