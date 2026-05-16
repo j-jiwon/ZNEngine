@@ -18,7 +18,7 @@ public:
 
 private:
     // Toggle states
-    bool turntableEnabled = true;
+    bool turntableEnabled = false;
     bool planeVisible = true;
     bool lightEnabled = true;
 

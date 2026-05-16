@@ -156,7 +156,7 @@ float4 PS_Main(VS_OUT input) : SV_Target
     float metallic = arm.b;
 
     ao = max(ao, 0.1f);
-
+    
     // Reconstruct world position
     float3 worldPos = worldPosTexture.Sample(sampler0, input.uv).rgb;
 

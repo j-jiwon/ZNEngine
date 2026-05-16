@@ -129,8 +129,8 @@ void CommandQueue::RenderBegin()
 		D3D12_CPU_DESCRIPTOR_HANDLE depthStencilView = dsBuffer->GetDSVCpuHandle();
 		commandList->ClearDepthStencilView(depthStencilView, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
-		// Bind G-Buffer render targets with depth stencil
-		commandList->OMSetRenderTargets(4, rtvHandles, FALSE, &depthStencilView);
+		// Bind G-Buffer render targets with depth stencil (5 targets: BaseColor, Normal, Depth, WorldPos, ARM)
+		commandList->OMSetRenderTargets(gbufferManager->GetRTVCount(), rtvHandles, FALSE, &depthStencilView);
 	}
 	else
 	{
