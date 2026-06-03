@@ -1,7 +1,7 @@
 
 cbuffer cbDebugView : register(b0)
 {
-    int viewType; // 0=Depth, 1=BaseColor, 2=Normal
+    int viewType; // 0=Depth, 1=BaseColor, 2=Normal, 3=ShadowMap
     float3 padding;
 };
 
@@ -55,6 +55,14 @@ float4 PS_Main(VS_OUT input) : SV_Target
         normal = normalize(normal);
         normal = normal * 0.5f + 0.5f; // Remap to [0,1] for visualization
         return float4(normal, 1.0f);
+    }
+    else if (viewType == 3) // ShadowMap
+    {
+        // Shadow map stores depth values [0,1]
+        float shadowDepth = texValue.r;
+        // Apply gamma for better visibility
+        shadowDepth = pow(shadowDepth, 0.5f);
+        return float4(shadowDepth, shadowDepth, shadowDepth, 1.0f);
     }
 
     return float4(1.0f, 0.0f, 1.0f, 1.0f); // Magenta for error

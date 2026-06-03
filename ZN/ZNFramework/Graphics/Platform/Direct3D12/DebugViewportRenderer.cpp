@@ -1,5 +1,6 @@
 #include "DebugViewportRenderer.h"
 #include "GBufferManager.h"
+#include "ShadowMap.h"
 #include "Shader.h"
 #include "GraphicsDevice.h"
 #include "CommandQueue.h"
@@ -29,7 +30,7 @@ void DebugViewportRenderer::Init()
 
     // Create constant buffer for viewType
     constantBufferSize = (sizeof(int) + 255) & ~255;
-    uint32 totalBufferSize = constantBufferSize * 4; // 4 viewports
+    uint32 totalBufferSize = constantBufferSize * 5; // 5 viewports (Depth, BaseColor, Normal, ShadowMap + 1 spare)
     D3D12_HEAP_PROPERTIES heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
     D3D12_RESOURCE_DESC bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(totalBufferSize);
 
@@ -46,17 +47,17 @@ void DebugViewportRenderer::Init()
 
     // Create descriptor heap for multiple viewports
     // Each viewport needs: CBV (b0~b4: 5) + SRV (t0~t4: 5) = 10 descriptors
-    // We need 4 viewports = 40 descriptors total
+    // We need 5 viewports = 50 descriptors total
     D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
     heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-    heapDesc.NumDescriptors = 40;
+    heapDesc.NumDescriptors = 50;
     heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 
     ThrowIfFailed(device->Device()->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&descriptorHeap)));
     descriptorSize = device->Device()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
     // Create CBV for viewType constant buffer at b0 for each viewport
-    for (uint32 i = 0; i < 4; ++i)
+    for (uint32 i = 0; i < 5; ++i)
     {
         D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
         cbvDesc.BufferLocation = viewTypeConstantBuffer->GetGPUVirtualAddress() + (i * constantBufferSize);
@@ -115,7 +116,7 @@ void DebugViewportRenderer::UpdateViewTypeConstants(int viewportIndex, int viewT
     memcpy(targetAddress, &data, sizeof(ViewTypeData));
 }
 
-void DebugViewportRenderer::RenderDebugViews(GBufferManager* gbufferManager, uint32 screenWidth, uint32 screenHeight)
+void DebugViewportRenderer::RenderDebugViews(GBufferManager* gbufferManager, ShadowMap* shadowMap, uint32 screenWidth, uint32 screenHeight)
 {
     if (!isEnabled || !gbufferManager)
         return;
@@ -124,6 +125,7 @@ void DebugViewportRenderer::RenderDebugViews(GBufferManager* gbufferManager, uin
     UpdateViewTypeConstants(1, 0); // Depth
     UpdateViewTypeConstants(2, 1); // BaseColor
     UpdateViewTypeConstants(3, 2); // Normal
+    UpdateViewTypeConstants(4, 3); // ShadowMap
 
     // Define viewport sizes (percentage of screen)
     float viewportWidthPercent = 0.20f;
@@ -132,7 +134,7 @@ void DebugViewportRenderer::RenderDebugViews(GBufferManager* gbufferManager, uin
     float vpWidth = viewportWidthPercent;
     float vpHeight = viewportHeightPercent;
 
-    // Render 3 debug views in top-right corner stacked vertically
+    // Render 4 debug views in top-right corner stacked vertically
     RenderViewport(1, gbufferManager->GetDepthCopySRV(),
                    1.0f - vpWidth, 0.0f, vpWidth, vpHeight, screenWidth, screenHeight);
 
@@ -141,6 +143,13 @@ void DebugViewportRenderer::RenderDebugViews(GBufferManager* gbufferManager, uin
 
     RenderViewport(3, gbufferManager->GetNormalSRV(),
                    1.0f - vpWidth, vpHeight * 2.0f, vpWidth, vpHeight, screenWidth, screenHeight);
+
+    // Render shadow map if available
+    if (shadowMap)
+    {
+        RenderViewport(4, shadowMap->GetSRV(),
+                       1.0f - vpWidth, vpHeight * 3.0f, vpWidth, vpHeight, screenWidth, screenHeight);
+    }
 }
 
 void DebugViewportRenderer::RenderViewport(int viewportIndex, D3D12_CPU_DESCRIPTOR_HANDLE srv,

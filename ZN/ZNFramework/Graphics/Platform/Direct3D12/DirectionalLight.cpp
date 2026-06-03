@@ -115,8 +115,8 @@ ZNMatrix4 DirectionalLight::GetLightProjectionMatrix() const
 	// Orthographic projection for directional light (Left-Handed, depth [0,1])
 	// For mul(v, M) with row_major matrix in HLSL:
 	// result.x = v dot row0, result.y = v dot row1, etc.
-	float w = shadowOrthoSize * 2.0f;
-	float h = shadowOrthoSize * 2.0f;
+	float w = shadowOrthoSize;
+	float h = shadowOrthoSize;
 	float n = shadowNear;
 	float f = shadowFar;
 

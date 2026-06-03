@@ -283,7 +283,7 @@ void CommandQueue::RenderEnd()
 		// Render debug viewports on top
 		if (debugViewportRenderer)
 		{
-			debugViewportRenderer->RenderDebugViews(gbufferManager, swapChain->Width(), swapChain->Height());
+			debugViewportRenderer->RenderDebugViews(gbufferManager, shadowMap, swapChain->Width(), swapChain->Height());
 		}
 	}
 

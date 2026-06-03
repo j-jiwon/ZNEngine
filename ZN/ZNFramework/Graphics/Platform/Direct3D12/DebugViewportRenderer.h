@@ -4,13 +4,14 @@
 namespace ZNFramework
 {
     class GBufferManager;
+    class ShadowMap;
     class Shader;
 
     class DebugViewportRenderer
     {
     public:
         void Init();
-        void RenderDebugViews(GBufferManager* gbufferManager, uint32 screenWidth, uint32 screenHeight);
+        void RenderDebugViews(GBufferManager* gbufferManager, ShadowMap* shadowMap, uint32 screenWidth, uint32 screenHeight);
         void SetEnabled(bool enabled) { isEnabled = enabled; }
         bool IsEnabled() const { return isEnabled; }
 

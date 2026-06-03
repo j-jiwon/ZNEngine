@@ -385,7 +385,7 @@ void TestGameScene::Update(float deltaTime)
 
     if (turntableObj && turntableEnabled)
     {
-        turntableObj->GetTransform().rotation.y += 0.5f * deltaTime; // Rotate 20 degrees per second
+        turntableObj->GetTransform().rotation.y += 45.0f * deltaTime; // Rotate 45 degrees per second
     }
 }
 
