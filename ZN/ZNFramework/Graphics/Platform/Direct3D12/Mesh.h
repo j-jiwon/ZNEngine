@@ -13,6 +13,7 @@ namespace ZNFramework
 	public:
 		void Init(const vector<Vertex>& vertrexBuffer, const vector<uint32>& indexBuffer) override;
 		void Render() override;
+		void RenderShadow(const ZNMatrix4& lightViewProj, ZNShader* shadowShader) override;
 		void SetTransform(const Transform& t) override { transform = t; }
 		void SetTexture(ZNTexture* inTexture) override;
 		void SetMaterial(ZNMaterial* inMaterial) override;

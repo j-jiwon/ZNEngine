@@ -9,10 +9,15 @@
 #include "ZNFramework/Graphics/Platform/Direct3D12/GBufferManager.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/DeferredLightingPass.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/DebugViewportRenderer.h"
+#include "ZNFramework/Graphics/Platform/Direct3D12/ShadowMap.h"
+#include "ZNFramework/Graphics/Platform/Direct3D12/DirectionalLight.h"
 #include "ZNFramework/Scene/ZNScene.h"
+#include "ZNFramework/Scene/ZNGameObject.h"
 #include "ZNFramework/ZNCamera.h"
+#include "ZNFramework/Math/ZNMatrix4.h"
 
 using namespace ZNFramework;
+using namespace ZNFramework::Platform::Direct3D;
 using namespace std;
 
 int ApplicationContext::MessageLoop()
@@ -103,6 +108,20 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
         defaultShader->Load(shaderPath);
     }
 
+    // Load shadow depth shader for shadow pass
+    {
+        shadowDepthShader = ZNFramework::Platform::CreateShader();
+        std::filesystem::path shaderPath = GetResourcePath() / L"Shaders" / L"shadow_depth.hlsli";
+        shadowDepthShader->Load(shaderPath);
+
+        // Shadow pass has no render targets, only depth
+        Shader* d3dShader = dynamic_cast<Shader*>(shadowDepthShader);
+        if (d3dShader)
+        {
+            d3dShader->SetRenderTargetFormats(0, nullptr);
+        }
+    }
+
     // Load G-Buffer shader for MRT
     {
         gbufferShader = ZNFramework::Platform::CreateShader();
@@ -145,6 +164,11 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
         DebugViewportRenderer* debugViewport = new DebugViewportRenderer();
         debugViewport->Init();
         cmdQueue->SetDebugViewportRenderer(debugViewport);
+
+        // Initialize Shadow Map (2048x2048)
+        ShadowMap* shadowMap = new ShadowMap();
+        shadowMap->Init(2048, 2048);
+        cmdQueue->SetShadowMap(shadowMap);
     }
 
     commandQueue->WaitSync();
@@ -163,6 +187,30 @@ void ApplicationContext::SetScene(ZNScene* scene)
                 currentScene->RenderForward();
             }
         });
+
+        // Set shadow render callback
+        CommandQueue* cmdQueue = dynamic_cast<CommandQueue*>(commandQueue);
+        if (cmdQueue)
+        {
+            cmdQueue->SetShadowRenderCallback([this]() {
+                if (currentScene && shadowDepthShader)
+                {
+                    // Get directional light for shadow mapping
+                    ZNDirectionalLight* dirLight = currentScene->GetDirectionalLight();
+                    if (dirLight)
+                    {
+                        // Get light VP matrix from directional light
+                        Platform::Direct3D::DirectionalLight* d3dDirLight =
+                            dynamic_cast<Platform::Direct3D::DirectionalLight*>(dirLight);
+                        if (d3dDirLight)
+                        {
+                            ZNMatrix4 lightVP = d3dDirLight->GetLightViewProjectionMatrix();
+                            currentScene->RenderShadow(lightVP, shadowDepthShader);
+                        }
+                    }
+                }
+            });
+        }
     }
 
     // Initialize camera projection when scene is set

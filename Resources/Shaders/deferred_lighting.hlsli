@@ -23,6 +23,12 @@ cbuffer cbLight : register(b0)
     float spotAttenuationLinear;
     float spotAttenuationQuadratic;
     float padding2;
+
+    // Shadow mapping
+    row_major float4x4 lightViewProj;
+    float2 shadowMapSize;
+    float shadowBias;
+    float shadowPCFRadius;
 };
 
 // G-Buffer textures
@@ -31,8 +37,10 @@ Texture2D normalTexture : register(t1);
 Texture2D depthTexture : register(t2);
 Texture2D worldPosTexture : register(t3);
 Texture2D armTexture : register(t4);  // ARM: R=AO, G=Roughness, B=Metallic
+Texture2D shadowMap : register(t5);   // Shadow map depth texture
 
 SamplerState sampler0 : register(s0);
+SamplerComparisonState shadowSampler : register(s1);  // Comparison sampler for PCF
 
 struct VS_IN
 {
@@ -47,6 +55,59 @@ struct VS_OUT
     float4 pos : SV_Position;
     float2 uv : TEXCOORD;
 };
+
+// ============================================================================
+// Shadow Mapping Functions
+// ============================================================================
+
+// Calculate shadow factor using PCF (Percentage-Closer Filtering)
+float CalculateShadow(float3 worldPos, float3 normal, float3 lightDir)
+{
+    // Normal offset bias - move sample position along surface normal to reduce shadow acne
+    float normalOffsetScale = 0.05f;
+    float3 offsetWorldPos = worldPos + normal * normalOffsetScale;
+
+    // Transform world position to light clip space
+    float4 lightSpacePos = mul(float4(offsetWorldPos, 1.0f), lightViewProj);
+
+    // Perspective divide
+    float3 projCoords = lightSpacePos.xyz / lightSpacePos.w;
+
+    // Transform from [-1,1] to [0,1] UV space
+    projCoords.x = projCoords.x * 0.5f + 0.5f;
+    projCoords.y = projCoords.y * -0.5f + 0.5f;  // Flip Y for UV coordinates
+
+    // Outside shadow map bounds - fully lit
+    if (projCoords.x < 0.0f || projCoords.x > 1.0f ||
+        projCoords.y < 0.0f || projCoords.y > 1.0f ||
+        projCoords.z < 0.0f || projCoords.z > 1.0f)
+    {
+        return 1.0f;
+    }
+
+    // Slope-scale bias to reduce shadow acne
+    float bias = max(shadowBias * (1.0f - dot(normal, lightDir)), shadowBias * 0.1f);
+    float currentDepth = projCoords.z - bias;
+
+    // PCF 3x3 filtering
+    float shadow = 0.0f;
+    float2 texelSize = 1.0f / shadowMapSize;
+    int pcfRange = (int)shadowPCFRadius;
+    int sampleCount = 0;
+
+    for (int x = -pcfRange; x <= pcfRange; ++x)
+    {
+        for (int y = -pcfRange; y <= pcfRange; ++y)
+        {
+            float2 sampleUV = projCoords.xy + float2(x, y) * texelSize;
+            float pcfDepth = shadowMap.SampleLevel(sampler0, sampleUV, 0).r;
+            shadow += (currentDepth < pcfDepth) ? 1.0f : 0.0f;
+            sampleCount++;
+        }
+    }
+
+    return shadow / float(sampleCount);
+}
 
 // ============================================================================
 // PBR Functions (Cook-Torrance BRDF)
@@ -169,9 +230,54 @@ float4 PS_Main(VS_OUT input) : SV_Target
     float3 ambient = float3(0.03f, 0.03f, 0.03f) * albedo * ao * dirAmbientIntensity;
     float3 Lo = float3(0.0f, 0.0f, 0.0f);
 
-    // DIRECTIONAL LIGHT (PBR)
+    // DIRECTIONAL LIGHT (PBR) with Shadow
     float3 L_dir = normalize(-dirLightDirection);
-    float3 radiance_dir = dirLightColor * dirLightIntensity;
+    float shadow = CalculateShadow(worldPos, N, L_dir);
+
+    // DEBUG: Visualize shadow projection values
+    // Comment out the debug lines you don't need
+    float4 debugLightSpacePos = mul(float4(worldPos, 1.0f), lightViewProj);
+    float3 debugProjCoords = debugLightSpacePos.xyz / debugLightSpacePos.w;
+    debugProjCoords.x = debugProjCoords.x * 0.5f + 0.5f;
+    debugProjCoords.y = debugProjCoords.y * -0.5f + 0.5f;
+
+    // DEBUG 0: Show world position (sanity check)
+    // Objects should show varying colors based on their world position
+    // return float4(worldPos * 0.1f + 0.5f, 1.0f);
+
+    // DEBUG 1: Show UV coordinates (should be 0-1 for visible objects)
+    // Red = U (0-1 left to right), Green = V (0-1 top to bottom)
+    // return float4(debugProjCoords.xy, 0.0f, 1.0f);
+
+    // DEBUG 1.5: Show raw light space position (before perspective divide)
+    // Also show W component in blue - should be 1.0 for orthographic
+    // return float4(debugLightSpacePos.xy * 0.5f + 0.5f, debugLightSpacePos.w, 1.0f);
+
+    // DEBUG MATRIX: Test if values are truly zero or just small
+    // If correct: R=1 (0][0]>0.01), G=1 ([1][1]>0.01), B=1 ([3][3]>0.9) = WHITE
+    // If zeros: R=0, G=0, B=1 = BLUE
+    // return float4(
+    //     lightViewProj[0][0] > 0.01f ? 1.0f : 0.0f,
+    //     lightViewProj[1][1] > 0.01f ? 1.0f : 0.0f,
+    //     lightViewProj[3][3] > 0.9f ? 1.0f : 0.0f,
+    //     1.0f
+    // );
+
+    // DEBUG 1.5: Show light space XY before perspective divide (raw clip space)
+    // return float4(debugLightSpacePos.xy * 0.1f + 0.5f, 0.0f, 1.0f);
+
+    // DEBUG 2: Show depth in light space (should be 0-1)
+    // return float4(debugProjCoords.z, debugProjCoords.z, debugProjCoords.z, 1.0f);
+
+    // DEBUG 3: Show shadow map sampled depth
+    // float2 debugUV = debugProjCoords.xy;
+    // float shadowMapDepth = shadowMap.SampleLevel(sampler0, debugUV, 0).r;
+    // return float4(shadowMapDepth, shadowMapDepth, shadowMapDepth, 1.0f);
+
+    // DEBUG 4: Show shadow factor
+    // return float4(shadow, shadow, shadow, 1.0f);
+
+    float3 radiance_dir = dirLightColor * dirLightIntensity * shadow;
     Lo += CalculatePBR(N, V, L_dir, radiance_dir, albedo, metallic, roughness);
 
     // SPOT LIGHT (PBR)

@@ -3,6 +3,7 @@
 #include "../ZNCamera.h"
 #include "../Graphics/ZNLight.h"
 #include "../Graphics/ZNGraphicsContext.h"
+#include "../Math/ZNMatrix4.h"
 #include <algorithm>
 
 using namespace ZNFramework;
@@ -36,6 +37,16 @@ void ZNScene::Render()
 	{
 		if (obj)
 			obj->Render();
+	}
+}
+
+void ZNScene::RenderShadow(const ZNMatrix4& lightViewProj, ZNShader* shadowShader)
+{
+	// Render all game objects for shadow pass
+	for (auto* obj : gameObjects)
+	{
+		if (obj)
+			obj->RenderShadow(lightViewProj, shadowShader);
 	}
 }
 

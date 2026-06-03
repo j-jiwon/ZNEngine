@@ -1,9 +1,9 @@
 
 cbuffer cbTransform : register(b0)
 {
-    float4x4 gWorld;
-    float4x4 gView;
-    float4x4 gProjection;
+    row_major float4x4 gWorld;
+    row_major float4x4 gView;
+    row_major float4x4 gProjection;
 };
 
 cbuffer cbMaterial : register(b1)

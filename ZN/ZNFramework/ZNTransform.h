@@ -45,14 +45,16 @@ namespace ZNFramework
 			rotMatrix.m[2][2] = rotTransform.matrix3.m[2][2];
 
 			// Create translation matrix
+			// For row_major matrices in HLSL with mul(v, M) (row-vector multiplication):
+			// Translation must be in row 3 (elements [3][0], [3][1], [3][2])
 			ZNMatrix4 translationMatrix;
-			translationMatrix.m[0][3] = position.x;
-			translationMatrix.m[1][3] = position.y;
-			translationMatrix.m[2][3] = position.z;
+			translationMatrix.m[3][0] = position.x;
+			translationMatrix.m[3][1] = position.y;
+			translationMatrix.m[3][2] = position.z;
 
-			// HLSL cbuffer uses column-major packing (matrix is transposed)
-			// So we send T * R * S, which becomes S * R * T after transpose
-			return translationMatrix * rotMatrix * scaleMatrix;
+			// Row-vector multiplication: result = v * S * R * T
+			// So we compute S * R * T (matrix multiplication is right-to-left for row vectors)
+			return scaleMatrix * rotMatrix * translationMatrix;
 		}
 	};
 }

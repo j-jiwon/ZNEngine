@@ -10,6 +10,8 @@ namespace ZNFramework
 	class ZNLight;
 	class ZNDirectionalLight;
 	class ZNSpotLight;
+	class ZNShader;
+	class ZNMatrix4;
 
 	class ZNScene
 	{
@@ -20,6 +22,7 @@ namespace ZNFramework
 		virtual void Initialize() {}
 		virtual void Update(float deltaTime);
 		virtual void Render();
+		virtual void RenderShadow(const ZNMatrix4& lightViewProj, ZNShader* shadowShader);  // Shadow pass
 		virtual void RenderForward();  // Forward pass for non-deferred objects (e.g., grid)
 		virtual void OnKeyboardEvent(const KeyboardEvent& event) {}
 

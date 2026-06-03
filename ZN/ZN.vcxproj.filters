@@ -38,6 +38,10 @@
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\AssimpLoader.cpp" />
     <ClCompile Include="ZNFramework\Scene\ZNScene.cpp" />
     <ClCompile Include="ZNFramework\Scene\ZNGameObject.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\GBufferManager.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\DeferredLightingPass.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\DebugViewportRenderer.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\ShadowMap.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\d3dx12.h" />
@@ -100,5 +104,9 @@
     <ClInclude Include="ZNFramework\Scene\ZNGameObject.h" />
     <ClInclude Include="ZNFramework\Scene\ZNScene.h" />
     <ClInclude Include="ZNFramework\ZNTransform.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\GBufferManager.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\DeferredLightingPass.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\DebugViewportRenderer.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\ShadowMap.h" />
   </ItemGroup>
 </Project>

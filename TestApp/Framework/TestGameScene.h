@@ -45,4 +45,14 @@ private:
     ZNFramework::ZNMaterial* redMaterial = nullptr;
     ZNFramework::ZNMaterial* greenMaterial = nullptr;
     ZNFramework::ZNMaterial* blueMaterial = nullptr;
+
+    // Floor plane (deferred, receives shadows)
+    ZNFramework::ZNGameObject* floorPlane = nullptr;
+    ZNFramework::ZNMaterial* floorMaterial = nullptr;
+
+    // Shadow test objects
+    ZNFramework::ZNGameObject* cube = nullptr;
+    ZNFramework::ZNGameObject* sphere = nullptr;
+    ZNFramework::ZNMaterial* cubeMaterial = nullptr;
+    ZNFramework::ZNMaterial* sphereMaterial = nullptr;
 };

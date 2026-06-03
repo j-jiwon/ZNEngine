@@ -5,6 +5,8 @@ namespace ZNFramework
 {
 	class ZNMesh;
 	class ZNMaterial;
+	class ZNShader;
+	class ZNMatrix4;
 
 	class ZNGameObject
 	{
@@ -14,6 +16,7 @@ namespace ZNFramework
 
 		virtual void Update(float deltaTime) {}
 		virtual void Render();
+		virtual void RenderShadow(const ZNMatrix4& lightViewProj, ZNShader* shadowShader);
 
 		void SetMesh(ZNMesh* inMesh) { mesh = inMesh; }
 		void SetMaterial(ZNMaterial* inMaterial) { material = inMaterial; }
@@ -21,6 +24,7 @@ namespace ZNFramework
 		bool IsActive() const { return isActive; }
 		void SetVisible(bool visible) { isVisible = visible; }
 		bool IsVisible() const { return isVisible; }
+		void SetCastShadow(bool value) { castShadow = value; }
 
 		ZNMesh* GetMesh() const { return mesh; }
 		ZNMaterial* GetMaterial() const { return material; }
@@ -34,5 +38,6 @@ namespace ZNFramework
 		Transform transform;
 		bool isActive = true;
 		bool isVisible = true;
+		bool castShadow = true;
 	};
 }

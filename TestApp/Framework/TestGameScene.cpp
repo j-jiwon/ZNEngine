@@ -2,6 +2,8 @@
 #include <ZNFramework/Graphics/Platform/GraphicsAPI.h>
 #include <iostream>
 #include <filesystem>
+#include <ZNFramework/Graphics/Platform/Direct3D12/DirectionalLight.h>
+
 
 using namespace ZNFramework;
 
@@ -50,6 +52,14 @@ void TestGameScene::Initialize()
     dirLight->SetAmbientIntensity(5.0f);
     SetDirectionalLight(dirLight);
 
+    Platform::Direct3D::DirectionalLight* d3dDirLight =
+        dynamic_cast<Platform::Direct3D::DirectionalLight*>(dirLight);
+    if (d3dDirLight)
+    {
+        d3dDirLight->SetShadowFocusPoint(ZNVector3(0.0f, 0.0f, 0.0f));
+        d3dDirLight->SetShadowBounds(50.0f, 0.1f, 100.0f); // 더 넓은 범위
+    }
+
     std::cout << "Lights initialized - Spot light (flashlight mode) + Green directional light" << std::endl;
 
     {
@@ -62,33 +72,7 @@ void TestGameScene::Initialize()
             {
                 std::cout << "FBX Model loaded successfully!" << std::endl;
 
-                // ── 머티리얼 3종 ────────────────────────────────────
-
-                // 1. Iron
-                ZNMaterial* ironMat = ZNFramework::Platform::CreateMaterial();
-                ironMat->Init();
-                ironMat->SetShader(defaultShader);
-                MaterialParams ironParams;
-                ironParams.albedoColor = ZNVector4(0.56f, 0.57f, 0.58f, 1.0f);
-                ironParams.metallic = 1.0f;
-                ironParams.roughness = 0.8f;
-                ironParams.ao = 1.0f;
-                ironMat->SetParams(ironParams);
-                materials.push_back(ironMat);
-
-                // 2. Gold
-                ZNMaterial* goldMat = ZNFramework::Platform::CreateMaterial();
-                goldMat->Init();
-                goldMat->SetShader(defaultShader);
-                MaterialParams goldParams;
-                goldParams.albedoColor = ZNVector4(1.0f, 0.78f, 0.34f, 1.0f);
-                goldParams.metallic =0.9f;
-                goldParams.roughness = 0.1f;
-                goldParams.ao = 1.0f;
-                goldMat->SetParams(goldParams);
-                materials.push_back(goldMat);
-
-                // 3. Red Plastic
+                // Red Plastic
                 ZNMaterial* plasticMat = ZNFramework::Platform::CreateMaterial();
                 plasticMat->Init();
                 plasticMat->SetShader(defaultShader);
@@ -100,26 +84,22 @@ void TestGameScene::Initialize()
                 plasticMat->SetParams(plasticParams);
                 materials.push_back(plasticMat);
 
-                ZNMaterial* mats[3] = { ironMat, goldMat, plasticMat };
-                float xPositions[3] = { -3.0f, 0.0f, 3.0f };
+                ZNMaterial* mat = plasticMat;
 
-                for (int i = 0; i < 3; ++i)
+                for (const auto& meshData : modelData.meshes)
                 {
-                    for (const auto& meshData : modelData.meshes)
-                    {
-                        ZNGameObject* obj = new ZNGameObject();
-                        ZNMesh* mesh = ZNFramework::Platform::CreateMesh();
-                        mesh->Init(meshData.vertices, meshData.indices);
-                        mesh->SetMaterial(mats[i]);
+                    ZNGameObject* obj = new ZNGameObject();
+                    ZNMesh* mesh = ZNFramework::Platform::CreateMesh();
+                    mesh->Init(meshData.vertices, meshData.indices);
+                    mesh->SetMaterial(mat);
 
-                        obj->SetMesh(mesh);
-                        obj->GetTransform().rotation = ZNVector3(0.f, 90.f, 0.f);
-                        obj->GetTransform().position = ZNVector3(xPositions[i], 0.0f, 0.0f);
-                        obj->GetTransform().scale = ZNVector3(0.01f, 0.01f, 0.01f);
+                    obj->SetMesh(mesh);
+                    obj->GetTransform().rotation = ZNVector3(0.f, 90.f, 0.f);
+                    obj->GetTransform().position = ZNVector3(0.0f, 0.0f, 0.0f);
+                    obj->GetTransform().scale = ZNVector3(0.01f, 0.01f, 0.01f);
 
-                        AddGameObject(obj);
-                        modelObjects.push_back(obj);
-                    }
+                    AddGameObject(obj);
+                    modelObjects.push_back(obj);
                 }
 
                 if (!modelObjects.empty())
@@ -229,6 +209,116 @@ void TestGameScene::Initialize()
         AddGameObject(crosshair);
     }
 
+    // Cube
+    {
+        cubeMaterial = ZNFramework::Platform::CreateMaterial();
+        cubeMaterial->Init();
+        cubeMaterial->SetShader(defaultShader);
+        MaterialParams cubeParams;
+        cubeParams.albedoColor = ZNVector4(0.2f, 0.4f, 0.9f, 1.0f); // 파란색
+        cubeParams.metallic = 0.0f;
+        cubeParams.roughness = 0.4f;
+        cubeParams.ao = 1.0f;
+        cubeMaterial->SetParams(cubeParams);
+
+        std::vector<Vertex> cubeVerts;
+        std::vector<uint32> cubeIndices;
+        ZNVector4 c(1, 1, 1, 1);
+
+        // 각 면을 독립 버텍스로 (노말이 면마다 달라야 하므로)
+        auto addFace = [&](ZNVector3 p0, ZNVector3 p1, ZNVector3 p2, ZNVector3 p3, ZNVector3 normal)
+        {
+            uint32 base = (uint32)cubeVerts.size();
+            cubeVerts.push_back(Vertex(p0, c, ZNVector2(0, 0), normal));
+            cubeVerts.push_back(Vertex(p1, c, ZNVector2(1, 0), normal));
+            cubeVerts.push_back(Vertex(p2, c, ZNVector2(1, 1), normal));
+            cubeVerts.push_back(Vertex(p3, c, ZNVector2(0, 1), normal));
+            cubeIndices.insert(cubeIndices.end(),
+                { base, base + 1, base + 2, base, base + 2, base + 3 });
+        };
+
+        // +Y (top)
+        addFace({ -1,1,-1 }, { 1,1,-1 }, { 1,1,1 }, { -1,1,1 }, { 0,1,0 });
+        // -Y (bottom)
+        addFace({ -1,-1,1 }, { 1,-1,1 }, { 1,-1,-1 }, { -1,-1,-1 }, { 0,-1,0 });
+        // +Z (front)
+        addFace({ -1,-1,1 }, { 1,-1,1 }, { 1,1,1 }, { -1,1,1 }, { 0,0,1 });
+        // -Z (back)
+        addFace({ 1,-1,-1 }, { -1,-1,-1 }, { -1,1,-1 }, { 1,1,-1 }, { 0,0,-1 });
+        // +X (right)
+        addFace({ 1,-1,1 }, { 1,-1,-1 }, { 1,1,-1 }, { 1,1,1 }, { 1,0,0 });
+        // -X (left)
+        addFace({ -1,-1,-1 }, { -1,-1,1 }, { -1,1,1 }, { -1,1,-1 }, { -1,0,0 });
+
+        cube = new ZNGameObject();
+        ZNMesh* cubeMesh = ZNFramework::Platform::CreateMesh();
+        cubeMesh->Init(cubeVerts, cubeIndices);
+        cubeMesh->SetMaterial(cubeMaterial);
+        cube->SetMesh(cubeMesh);
+        cube->GetTransform().position = ZNVector3(2.5f, 0.5f, 1.5f);
+        cube->GetTransform().scale = ZNVector3(0.5f, 0.5f, 0.5f);
+        cube->GetTransform().rotation = ZNVector3(0.0f, 30.0f, 0.0f);
+        AddGameObject(cube);
+    }
+
+    // Sphere (UV sphere)
+    {
+        sphereMaterial = ZNFramework::Platform::CreateMaterial();
+        sphereMaterial->Init();
+        sphereMaterial->SetShader(defaultShader);
+        MaterialParams sphereParams;
+        sphereParams.albedoColor = ZNVector4(0.9f, 0.7f, 0.1f, 1.0f); // 금색
+        sphereParams.metallic = 0.8f;
+        sphereParams.roughness = 0.2f;
+        sphereParams.ao = 1.0f;
+        sphereMaterial->SetParams(sphereParams);
+
+        std::vector<Vertex> sphereVerts;
+        std::vector<uint32> sphereIndices;
+
+        const int stacks = 16;
+        const int slices = 16;
+        const float radius = 1.0f;
+        const float PI = 3.14159265f;
+
+        for (int i = 0; i <= stacks; ++i)
+        {
+            float phi = PI * i / stacks; // 0 ~ PI
+            for (int j = 0; j <= slices; ++j)
+            {
+                float theta = 2.0f * PI * j / slices; // 0 ~ 2PI
+                float x = radius * sinf(phi) * cosf(theta);
+                float y = radius * cosf(phi);
+                float z = radius * sinf(phi) * sinf(theta);
+                ZNVector3 pos(x, y, z);
+                ZNVector3 normal(x, y, z); // 단위 구이므로 pos == normal
+                ZNVector2 uv((float)j / slices, (float)i / stacks);
+                sphereVerts.push_back(Vertex(pos, ZNVector4(1, 1, 1, 1), uv, normal));
+            }
+        }
+
+        for (int i = 0; i < stacks; ++i)
+        {
+            for (int j = 0; j < slices; ++j)
+            {
+                uint32 a = i * (slices + 1) + j;
+                uint32 b = a + 1;
+                uint32 c2 = a + (slices + 1);
+                uint32 d = c2 + 1;
+                sphereIndices.insert(sphereIndices.end(), { a, c2, b, b, c2, d });
+            }
+        }
+
+        sphere = new ZNGameObject();
+        ZNMesh* sphereMesh = ZNFramework::Platform::CreateMesh();
+        sphereMesh->Init(sphereVerts, sphereIndices);
+        sphereMesh->SetMaterial(sphereMaterial);
+        sphere->SetMesh(sphereMesh);
+        sphere->GetTransform().position = ZNVector3(-2.0f, 0.5f, 0.0f);
+        sphere->GetTransform().scale = ZNVector3(0.5f, 0.5f, 0.5f);
+        AddGameObject(sphere);
+    }
+
     // Plane - Horizontal floor grid (XZ plane)
     {
         std::vector<Vertex> planeVerts;
@@ -254,6 +344,39 @@ void TestGameScene::Initialize()
         // Grid uses forward rendering (after deferred lighting pass)
         AddForwardGameObject(plane);
     }
+
+    // Floor Plane - deferred pass로 렌더링하여 그림자를 받음
+    {
+        floorMaterial = ZNFramework::Platform::CreateMaterial();
+        floorMaterial->Init();
+        floorMaterial->SetShader(defaultShader);
+        MaterialParams floorParams;
+        floorParams.albedoColor = ZNVector4(0.6f, 0.6f, 0.6f, 1.0f); // 회색
+        floorParams.metallic = 0.0f;
+        floorParams.roughness = 0.8f;
+        floorParams.ao = 1.0f;
+        floorMaterial->SetParams(floorParams);
+
+        std::vector<Vertex> floorVerts;
+        std::vector<uint32> floorIndices;
+        float s = 10.0f;
+        ZNVector4 c(1, 1, 1, 1);
+        ZNVector3 n(0, 1, 0);
+        floorVerts.push_back(Vertex(ZNVector3(-s, 0, -s), c, ZNVector2(0, 0), n));
+        floorVerts.push_back(Vertex(ZNVector3(s, 0, -s), c, ZNVector2(1, 0), n));
+        floorVerts.push_back(Vertex(ZNVector3(s, 0, s), c, ZNVector2(1, 1), n));
+        floorVerts.push_back(Vertex(ZNVector3(-s, 0, s), c, ZNVector2(0, 1), n));
+        floorIndices = { 0, 3, 2, 0, 2, 1 };
+
+        floorPlane = new ZNGameObject();
+        ZNMesh* floorMesh = ZNFramework::Platform::CreateMesh();
+        floorMesh->Init(floorVerts, floorIndices);
+        floorMesh->SetMaterial(floorMaterial);
+        floorPlane->SetMesh(floorMesh);
+        floorPlane->GetTransform().position = ZNVector3(0.0f, -0.3f, 0.0f);
+        floorPlane->SetCastShadow(false);
+        AddGameObject(floorPlane);
+    }
 }
 
 void TestGameScene::Update(float deltaTime)
@@ -262,7 +385,7 @@ void TestGameScene::Update(float deltaTime)
 
     if (turntableObj && turntableEnabled)
     {
-        turntableObj->GetTransform().rotation.y += 0.5f * deltaTime; // Rotate 20 degrees per second
+        turntableObj->GetTransform().rotation.y += 45.0f * deltaTime; // Rotate 45 degrees per second
     }
 }
 

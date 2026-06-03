@@ -1,8 +1,10 @@
 #include "DeferredLightingPass.h"
 #include "GBufferManager.h"
+#include "ShadowMap.h"
 #include "Shader.h"
 #include "GraphicsDevice.h"
 #include "CommandQueue.h"
+#include "DirectionalLight.h"
 #include "ZNFramework.h"
 #include "../../ZNLight.h"
 #include "../../../Math/ZNVector3.h"
@@ -42,6 +44,12 @@ struct DeferredLightCB
     float spotAttenuationLinear;
     float spotAttenuationQuadratic;
     float padding2;
+
+    // Shadow mapping
+    float lightViewProj[16];    // Light view-projection matrix
+    float shadowMapSize[2];     // Shadow map dimensions
+    float shadowBias;           // Depth bias
+    float shadowPCFRadius;      // PCF filter radius
 };
 
 void DeferredLightingPass::Init()
@@ -75,7 +83,7 @@ void DeferredLightingPass::Init()
     // Create descriptor heap for lighting pass
     D3D12_DESCRIPTOR_HEAP_DESC lightingHeapDesc = {};
     lightingHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-    lightingHeapDesc.NumDescriptors = 11; // b0~b4 (5) + t0~t4 (6)
+    lightingHeapDesc.NumDescriptors = 12; // b0~b4 (5) + t0~t5 (7, including shadow map)
     lightingHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
     ThrowIfFailed(device->Device()->CreateDescriptorHeap(&lightingHeapDesc, IID_PPV_ARGS(&lightingDescriptorHeap)));
 }
@@ -115,7 +123,7 @@ void DeferredLightingPass::CreateFullscreenQuad()
     quadVertexBufferView.StrideInBytes = sizeof(LightingVertex);
 }
 
-void DeferredLightingPass::Render(GBufferManager* gbufferManager, uint32 screenWidth, uint32 screenHeight)
+void DeferredLightingPass::Render(GBufferManager* gbufferManager, ShadowMap* shadowMap, uint32 screenWidth, uint32 screenHeight)
 {
     if (!gbufferManager)
         return;
@@ -143,6 +151,18 @@ void DeferredLightingPass::Render(GBufferManager* gbufferManager, uint32 screenW
         lightData.dirLightColor[1] = color.y;
         lightData.dirLightColor[2] = color.z;
         lightData.dirAmbientIntensity = dirLight->GetAmbientIntensity();
+
+        // Shadow mapping data
+        Platform::Direct3D::DirectionalLight* d3dDirLight = dynamic_cast<Platform::Direct3D::DirectionalLight*>(dirLight);
+        if (d3dDirLight && shadowMap)
+        {
+            ZNMatrix4 lightVP = d3dDirLight->GetLightViewProjectionMatrix();
+            memcpy(lightData.lightViewProj, lightVP.value, sizeof(float) * 16);
+            lightData.shadowMapSize[0] = static_cast<float>(shadowMap->GetWidth());
+            lightData.shadowMapSize[1] = static_cast<float>(shadowMap->GetHeight());
+            lightData.shadowBias = 0.005f;
+            lightData.shadowPCFRadius = 1.0f;
+        }
     }
 
     if (primaryLight && primaryLight->GetType() == LightType::Spot)
@@ -215,6 +235,13 @@ void DeferredLightingPass::Render(GBufferManager* gbufferManager, uint32 screenW
 
     cpuHandle.ptr += lightingDescSize;
     device->Device()->CopyDescriptorsSimple(1, cpuHandle, gbufferManager->GetARMSRV(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+    // Copy Shadow Map SRV (t5)
+    if (shadowMap)
+    {
+        cpuHandle.ptr += lightingDescSize;
+        device->Device()->CopyDescriptorsSimple(1, cpuHandle, shadowMap->GetSRV(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    }
 
     // Set descriptor heap
     ID3D12DescriptorHeap* heaps[] = { lightingDescriptorHeap.Get() };
