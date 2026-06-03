@@ -87,22 +87,22 @@ void TestGameScene::Initialize()
     AddSpotLight(spotLight1);
 
     // Spot light 2 (Cyan)
-    //ZNSpotLight* spotLight2 = Platform::CreateSpotLight();
-    //spotLight2->SetPosition(ZNVector3(-3.0f, 3.0f, -2.0f));
-    //spotLight2->SetDirection(ZNVector3(1.0f, -2.f, 1.0f).Normalize());
-    //spotLight2->SetIntensity(0.8f);
-    //spotLight2->SetColor(ZNVector3(1.0f, 1.0f, 0.0f));
-    //spotLight2->SetAmbientIntensity(1.0f);
-    //spotLight2->SetCutoffAngle(8.0f, 25.0f);
-    //spotLight2->SetAttenuation(0.5f, 0.045f, 0.0075f);
-    //AddSpotLight(spotLight2);
+    ZNSpotLight* spotLight2 = Platform::CreateSpotLight();
+    spotLight2->SetPosition(ZNVector3(-3.0f, 3.0f, -2.0f));
+    spotLight2->SetDirection(ZNVector3(1.0f, -2.f, 1.0f).Normalize());
+    spotLight2->SetIntensity(0.8f);
+    spotLight2->SetColor(ZNVector3(1.0f, 0.0f, 0.0f));
+    spotLight2->SetAmbientIntensity(1.0f);
+    spotLight2->SetCutoffAngle(8.0f, 25.0f);
+    spotLight2->SetAttenuation(0.5f, 0.045f, 0.0075f);
+    AddSpotLight(spotLight2);
 
     // Directional light with shadow
     ZNDirectionalLight* dirLight = Platform::CreateDirectionalLight();
     dirLight->SetDirection(ZNVector3(0.5f, -1.0f, 0.3f));
-    dirLight->SetIntensity(8.0f);
+    dirLight->SetIntensity(6.0f);
     dirLight->SetColor(ZNVector3(0.5f, 0.5f, 0.5f));
-    dirLight->SetAmbientIntensity(5.0f);
+    dirLight->SetAmbientIntensity(1.0f);
     dirLight->SetShadowFocusPoint(ZNVector3(0.0f, 0.0f, 0.0f));
     dirLight->SetShadowBounds(50.0f, 0.1f, 100.0f);
     SetDirectionalLight(dirLight);
@@ -179,9 +179,9 @@ void TestGameScene::Initialize()
     SetupSpotLightDebug(debug.spotLight1, spotLight1, ZNVector4(0.0f, 1.0f, 0.0f, 1.0f),
         defaultShader, debugConeShader, 4.0f, this);
 
-    // Debug: Spotlight 2 (Cyan)
-    //SetupSpotLightDebug(debug.spotLight2, spotLight2, ZNVector4(0.0f, 1.0f, 1.0f, 1.0f),
-    //    defaultShader, debugConeShader, 4.0f, this);
+    // Debug: Spotlight 2 (Red)
+    SetupSpotLightDebug(debug.spotLight2, spotLight2, ZNVector4(1.0f, 0.0f, 0.0f, 1.0f),
+        defaultShader, debugConeShader, 4.0f, this);
 
     // Debug: Grid plane
     debug.gridMaterial = ZNMaterialFactory::CreatePBR(gridShader,
