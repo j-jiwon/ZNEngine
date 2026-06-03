@@ -40,11 +40,10 @@ void TestGameScene::Initialize()
     spotLight->SetColor(ZNVector3(0.0f, 1.0f, 0.0f)); // Green
     spotLight->SetAmbientIntensity(0.1f);
     spotLight->SetCutoffAngle(12.0f, 17.0f);
-    spotLight->SetAttenuation(1.0f, 0.045f, 0.0075f);
-    //spotLight->SetAttenuation(0.5f, 0.045f, 0.0075f);
+    spotLight->SetAttenuation(0.5f, 0.045f, 0.0075f);
     SetLight(spotLight);
     
-    // Setup directional light - RED
+    // Setup directional light
     ZNDirectionalLight* dirLight = ZNFramework::Platform::CreateDirectionalLight();
     dirLight->SetDirection(ZNVector3(0.5f, -1.0f, 0.3f));
     dirLight->SetIntensity(8.0f);
@@ -57,7 +56,7 @@ void TestGameScene::Initialize()
     if (d3dDirLight)
     {
         d3dDirLight->SetShadowFocusPoint(ZNVector3(0.0f, 0.0f, 0.0f));
-        d3dDirLight->SetShadowBounds(50.0f, 0.1f, 100.0f); // 더 넓은 범위
+        d3dDirLight->SetShadowBounds(50.0f, 0.1f, 100.0f);
     }
 
     std::cout << "Lights initialized - Spot light (flashlight mode) + Green directional light" << std::endl;
@@ -73,15 +72,8 @@ void TestGameScene::Initialize()
                 std::cout << "FBX Model loaded successfully!" << std::endl;
 
                 // Red Plastic
-                ZNMaterial* plasticMat = ZNFramework::Platform::CreateMaterial();
-                plasticMat->Init();
-                plasticMat->SetShader(defaultShader);
-                MaterialParams plasticParams;
-                plasticParams.albedoColor = ZNVector4(0.8f, 0.1f, 0.1f, 1.0f);
-                plasticParams.metallic = 0.0f;
-                plasticParams.roughness = 0.3f;
-                plasticParams.ao = 1.0f;
-                plasticMat->SetParams(plasticParams);
+                ZNMaterial* plasticMat = ZNMaterialFactory::CreatePBR(defaultShader,
+                    ZNVector4(0.8f, 0.1f, 0.1f, 1.0f), 0.0f, 0.3f);
                 materials.push_back(plasticMat);
 
                 ZNMaterial* mat = plasticMat;
@@ -121,59 +113,11 @@ void TestGameScene::Initialize()
 
     // Debug visualization - Materials
     {
-        debugMaterial = ZNFramework::Platform::CreateMaterial();
-        debugMaterial->Init();
-        debugMaterial->SetShader(defaultShader);
-        MaterialParams debugParams;
-        debugParams.albedoColor = ZNVector4(1.0f, 1.0f, 0.0f, 1.0f);
-        debugParams.metallic = 0.0f;
-        debugParams.roughness = 1.0f;
-        debugParams.ao = 1.0f;
-        debugMaterial->SetParams(debugParams);
-
-        // Grid material for plane
-        gridMaterial = ZNFramework::Platform::CreateMaterial();
-        gridMaterial->Init();
-        gridMaterial->SetShader(gridShader);
-        MaterialParams gridParams;
-        gridParams.albedoColor = ZNVector4(1.0f, 1.0f, 1.0f, 1.0f);
-        gridParams.metallic = 0.0f;
-        gridParams.roughness = 1.0f;
-        gridParams.ao = 1.0f;
-        gridMaterial->SetParams(gridParams);
-
-        // Red material for X axis
-        redMaterial = ZNFramework::Platform::CreateMaterial();
-        redMaterial->Init();
-        redMaterial->SetShader(defaultShader);
-        MaterialParams redParams;
-        redParams.albedoColor = ZNVector4(1.0f, 1.0f, 0.0f, 1.0f);
-        redParams.metallic = 0.0f;
-        redParams.roughness = 1.0f;
-        redParams.ao = 1.0f;
-        redMaterial->SetParams(redParams);
-
-        // Green material for Y axis
-        greenMaterial = ZNFramework::Platform::CreateMaterial();
-        greenMaterial->Init();
-        greenMaterial->SetShader(defaultShader);
-        MaterialParams greenParams;
-        greenParams.albedoColor = ZNVector4(0.0f, 1.0f, 0.0f, 1.0f);
-        greenParams.metallic = 0.0f;
-        greenParams.roughness = 1.0f;
-        greenParams.ao = 1.0f;
-        greenMaterial->SetParams(greenParams);
-
-        // Blue material for Z axis
-        blueMaterial = ZNFramework::Platform::CreateMaterial();
-        blueMaterial->Init();
-        blueMaterial->SetShader(defaultShader);
-        MaterialParams blueParams;
-        blueParams.albedoColor = ZNVector4(0.0f, 0.0f, 1.0f, 1.0f);
-        blueParams.metallic = 0.0f;
-        blueParams.roughness = 1.0f;
-        blueParams.ao = 1.0f;
-        blueMaterial->SetParams(blueParams);
+        debugMaterial = ZNMaterialFactory::CreatePBR(defaultShader, ZNVector4(1.0f, 1.0f, 0.0f, 1.0f), 0.0f, 1.0f);
+        gridMaterial = ZNMaterialFactory::CreatePBR(gridShader, ZNVector4(1.0f, 1.0f, 1.0f, 1.0f), 0.0f, 1.0f);
+        redMaterial = ZNMaterialFactory::CreatePBR(defaultShader, ZNVector4(1.0f, 1.0f, 0.0f, 1.0f), 0.0f, 1.0f);
+        greenMaterial = ZNMaterialFactory::CreatePBR(defaultShader, ZNVector4(0.0f, 1.0f, 0.0f, 1.0f), 0.0f, 1.0f);
+        blueMaterial = ZNMaterialFactory::CreatePBR(defaultShader, ZNVector4(0.0f, 0.0f, 1.0f, 1.0f), 0.0f, 1.0f);
     }
 
     // Debug visualization - Crosshair
@@ -211,15 +155,8 @@ void TestGameScene::Initialize()
 
     // Cube
     {
-        cubeMaterial = ZNFramework::Platform::CreateMaterial();
-        cubeMaterial->Init();
-        cubeMaterial->SetShader(defaultShader);
-        MaterialParams cubeParams;
-        cubeParams.albedoColor = ZNVector4(0.2f, 0.4f, 0.9f, 1.0f); // 파란색
-        cubeParams.metallic = 0.0f;
-        cubeParams.roughness = 0.4f;
-        cubeParams.ao = 1.0f;
-        cubeMaterial->SetParams(cubeParams);
+        cubeMaterial = ZNMaterialFactory::CreatePBR(defaultShader,
+            ZNVector4(0.2f, 0.4f, 0.9f, 1.0f), 0.0f, 0.4f); // 파란색
 
         cube = new ZNGameObject();
         ZNMesh* cubeMesh = ZNMeshFactory::CreateCube(1.0f);
@@ -233,15 +170,8 @@ void TestGameScene::Initialize()
 
     // Sphere (UV sphere)
     {
-        sphereMaterial = ZNFramework::Platform::CreateMaterial();
-        sphereMaterial->Init();
-        sphereMaterial->SetShader(defaultShader);
-        MaterialParams sphereParams;
-        sphereParams.albedoColor = ZNVector4(0.9f, 0.7f, 0.1f, 1.0f); // 금색
-        sphereParams.metallic = 0.8f;
-        sphereParams.roughness = 0.2f;
-        sphereParams.ao = 1.0f;
-        sphereMaterial->SetParams(sphereParams);
+        sphereMaterial = ZNMaterialFactory::CreatePBR(defaultShader,
+            ZNVector4(0.9f, 0.7f, 0.1f, 1.0f), 0.8f, 0.2f); // 금색
 
         sphere = new ZNGameObject();
         ZNMesh* sphereMesh = ZNMeshFactory::CreateSphere(1.0f, 16, 16);
@@ -264,15 +194,8 @@ void TestGameScene::Initialize()
 
     // Floor Plane - deferred pass로 렌더링하여 그림자를 받음
     {
-        floorMaterial = ZNFramework::Platform::CreateMaterial();
-        floorMaterial->Init();
-        floorMaterial->SetShader(defaultShader);
-        MaterialParams floorParams;
-        floorParams.albedoColor = ZNVector4(0.6f, 0.6f, 0.6f, 1.0f); // 회색
-        floorParams.metallic = 0.0f;
-        floorParams.roughness = 0.8f;
-        floorParams.ao = 1.0f;
-        floorMaterial->SetParams(floorParams);
+        floorMaterial = ZNMaterialFactory::CreatePBR(defaultShader,
+            ZNVector4(0.6f, 0.6f, 0.6f, 1.0f), 0.0f, 0.8f); // 회색
 
         floorPlane = new ZNGameObject();
         ZNMesh* floorMesh = ZNMeshFactory::CreatePlane(10.0f);
@@ -318,10 +241,6 @@ void TestGameScene::OnKeyboardEvent(const ZNFramework::KeyboardEvent& event)
         std::cout << "Plane: " << (planeVisible ? "VISIBLE" : "HIDDEN") << std::endl;
         break;
     }
-
-
-
-
 }
 
 void TestGameScene::Render()

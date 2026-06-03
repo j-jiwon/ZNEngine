@@ -47,6 +47,7 @@ using uint64 = unsigned __int64;
 #include "ZNFramework/Graphics/ZNModelLoader.h"
 #include "ZNFramework/Graphics/ZNLight.h"
 #include "ZNFramework/Graphics/ZNMeshFactory.h"
+#include "ZNFramework/Graphics/ZNMaterialFactory.h"
 
 #include "ZNFramework/Graphics/ZNGraphicsContext.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/ZNUtils.h"
