@@ -33,12 +33,13 @@ void ZNFramework::ZNCamera::SetView(const ZNVector3& pos, const ZNVector3& targe
 	float tY = -ZNVector3::Dot(yAxis, pos);
 	float tZ = -ZNVector3::Dot(zAxis, pos);
 
-	// DirectX row-major format
+	// Row-major view matrix for mul(v, M) with row_major in HLSL
+	// Rotation is transposed, translation goes in row 3
 	ZNMatrix4 mat(
-		xAxis.x, xAxis.y, xAxis.z, tX,
-		yAxis.x, yAxis.y, yAxis.z, tY,
-		zAxis.x, zAxis.y, zAxis.z, tZ,
-		0.0f, 0.0f, 0.0f, 1.0f);
+		xAxis.x, yAxis.x, zAxis.x, 0.0f,
+		xAxis.y, yAxis.y, zAxis.y, 0.0f,
+		xAxis.z, yAxis.z, zAxis.z, 0.0f,
+		tX, tY, tZ, 1.0f);
 
 	SetView(mat);
 }
@@ -55,7 +56,8 @@ void ZNFramework::ZNCamera::SetProjection(const ZNMatrix4& m)
 
 void ZNFramework::ZNCamera::SetPerspective(float fov, float aspect, float nearZ, float farZ)
 {
-	// DirectX perspective projection (Left-Handed, row-major)
+	// DirectX perspective projection (Left-Handed)
+	// For mul(v, M) with row_major in HLSL
 	float yScale = 1.0f / tan(fov / 2.0f);
 	float xScale = yScale / aspect;
 	float fRange = farZ / (farZ - nearZ);
@@ -63,19 +65,21 @@ void ZNFramework::ZNCamera::SetPerspective(float fov, float aspect, float nearZ,
 	ZNMatrix4 mat(
 		xScale, 0.0f, 0.0f, 0.0f,
 		0.0f, yScale, 0.0f, 0.0f,
-		0.0f, 0.0f, fRange, -fRange * nearZ,
-		0.0f, 0.0f, 1.0f, 0.0f);
+		0.0f, 0.0f, fRange, 1.0f,
+		0.0f, 0.0f, -fRange * nearZ, 0.0f);
 
 	SetProjection(mat);
 }
 
 void ZNFramework::ZNCamera::SetOrthographic(float width, float height, float nearZ, float farZ)
 {
+	// Orthographic projection for mul(v, M) with row_major in HLSL
+	// DirectX left-handed, depth range [0, 1]
 	ZNMatrix4 mat(
 		2.0f / width, 0.0f, 0.0f, 0.0f,
 		0.0f, 2.0f / height, 0.0f, 0.0f,
-		0.0f, 0.0f, 2.0f / (nearZ - farZ), 0.0f,
-		0.0f, 0.0f, (farZ + nearZ) / (nearZ - farZ), 1.0f);
+		0.0f, 0.0f, 1.0f / (farZ - nearZ), 0.0f,
+		0.0f, 0.0f, -nearZ / (farZ - nearZ), 1.0f);
 
 	SetProjection(mat);
 }

@@ -17,6 +17,6 @@ namespace ZNFramework
 
 	private:
 		ComPtr<ID3D12RootSignature> signature;
-		D3D12_STATIC_SAMPLER_DESC samplerDesc;
+		D3D12_STATIC_SAMPLER_DESC samplerDesc[2];  // s0: default, s1: shadow comparison
 	};
 }

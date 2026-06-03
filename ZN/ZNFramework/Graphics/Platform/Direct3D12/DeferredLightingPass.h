@@ -5,12 +5,13 @@ namespace ZNFramework
 {
     class GBufferManager;
     class Shader;
+    class ShadowMap;
 
     class DeferredLightingPass
     {
     public:
         void Init();
-        void Render(GBufferManager* gbufferManager, uint32 screenWidth, uint32 screenHeight);
+        void Render(GBufferManager* gbufferManager, ShadowMap* shadowMap, uint32 screenWidth, uint32 screenHeight);
 
     private:
         void CreateFullscreenQuad();

@@ -93,9 +93,26 @@ void Shader::CreatePixelShader(const wstring& path, const string& name, const st
 void Shader::SetRenderTargetFormats(uint32 numRenderTargets, const DXGI_FORMAT* formats)
 {
 	pipelineDesc.NumRenderTargets = numRenderTargets;
+
+	// Clear all RTV formats first
+	for (uint32 i = 0; i < 8; ++i)
+	{
+		pipelineDesc.RTVFormats[i] = DXGI_FORMAT_UNKNOWN;
+	}
+
+	// Set provided formats
 	for (uint32 i = 0; i < numRenderTargets; ++i)
 	{
 		pipelineDesc.RTVFormats[i] = formats[i];
+	}
+
+	// For depth-only pass (no render targets), configure for shadow mapping
+	if (numRenderTargets == 0)
+	{
+		// Set depth format for shadow map
+		pipelineDesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
+		// Disable pixel shader for depth-only rendering (more efficient)
+		pipelineDesc.PS = { nullptr, 0 };
 	}
 
 	// Recreate pipeline state with new configuration

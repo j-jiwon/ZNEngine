@@ -5,8 +5,16 @@
 #include "TableDescriptorHeap.h"
 #include "Texture.h"
 #include "Material.h"
+#include "Shader.h"
 
 using namespace ZNFramework;
+
+// Shadow pass constant buffer (matches shadow_depth.hlsli)
+struct ShadowTransformCB
+{
+    ZNMatrix4 world;
+    ZNMatrix4 lightViewProj;
+};
 
 namespace ZNFramework::Platform::Direct3D
 {
@@ -98,6 +106,36 @@ void Mesh::SetTexture(ZNTexture* inTexture)
 void Mesh::SetMaterial(ZNMaterial* inMaterial)
 {
 	material = dynamic_cast<Material*>(inMaterial);
+}
+
+void Mesh::RenderShadow(const ZNMatrix4& lightViewProj, ZNShader* shadowShader)
+{
+	CommandQueue* queue = GraphicsContext::GetInstance().GetAs<CommandQueue>();
+	queue->CommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	queue->CommandList()->IASetVertexBuffers(0, 1, &vertexBufferView);
+	queue->CommandList()->IASetIndexBuffer(&indexBufferView);
+
+	// Bind shadow shader
+	if (shadowShader)
+	{
+		shadowShader->Bind();
+	}
+
+	// Build ShadowTransformCB (cbShadowTransform : register(b0))
+	ShadowTransformCB shadowTransform;
+	shadowTransform.world = transform.GetWorldMatrix();
+	shadowTransform.lightViewProj = lightViewProj;
+
+	ConstantBuffer* constantBuffer = GraphicsContext::GetInstance().GetAs<ConstantBuffer>();
+	TableDescriptorHeap* tableDescHeap = GraphicsContext::GetInstance().GetAs<TableDescriptorHeap>();
+
+	// Set shadow transform matrices (b0)
+	D3D12_CPU_DESCRIPTOR_HANDLE handle = constantBuffer->PushData(0, &shadowTransform, sizeof(ShadowTransformCB));
+	tableDescHeap->SetCBV(handle, CBV_REGISTER::b0);
+
+	tableDescHeap->CommitTable();
+
+	queue->CommandList()->DrawIndexedInstanced(indexCount, 1, 0, 0, 0);
 }
 
 void Mesh::CreateVertexBuffer(const vector<Vertex>& buffer)

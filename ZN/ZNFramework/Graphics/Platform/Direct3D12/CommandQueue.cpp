@@ -8,6 +8,7 @@
 #include "GBufferManager.h"
 #include "DeferredLightingPass.h"
 #include "DebugViewportRenderer.h"
+#include "ShadowMap.h"
 #include "ZNFramework.h"
 
 using namespace ZNFramework;
@@ -63,6 +64,51 @@ void CommandQueue::RenderBegin()
 
 	commandList->RSSetViewports(1, &vp);
 	commandList->RSSetScissorRects(1, &rect);
+
+	// === SHADOW PASS ===
+	if (shadowMap && shadowRenderCallback)
+	{
+		// Transition shadow map to DEPTH_WRITE if not first frame
+		if (!shadowPassFirstFrame)
+		{
+			D3D12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+				shadowMap->GetResource(),
+				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+				D3D12_RESOURCE_STATE_DEPTH_WRITE);
+			commandList->ResourceBarrier(1, &barrier);
+		}
+
+		// Set shadow map viewport
+		uint32 shadowWidth = shadowMap->GetWidth();
+		uint32 shadowHeight = shadowMap->GetHeight();
+		D3D12_VIEWPORT shadowVp = { 0, 0, static_cast<FLOAT>(shadowWidth), static_cast<FLOAT>(shadowHeight), 0.f, 1.f };
+		D3D12_RECT shadowRect = CD3DX12_RECT(0, 0, shadowWidth, shadowHeight);
+		commandList->RSSetViewports(1, &shadowVp);
+		commandList->RSSetScissorRects(1, &shadowRect);
+
+		// Clear and bind shadow depth buffer (no render target)
+		D3D12_CPU_DESCRIPTOR_HANDLE shadowDSV = shadowMap->GetDSV();
+		commandList->ClearDepthStencilView(shadowDSV, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+		commandList->OMSetRenderTargets(0, nullptr, FALSE, &shadowDSV);
+
+		// Execute shadow render callback
+		isShadowPass = true;
+		shadowRenderCallback();
+		isShadowPass = false;
+
+		// Transition shadow map to SHADER_RESOURCE for lighting pass
+		D3D12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+			shadowMap->GetResource(),
+			D3D12_RESOURCE_STATE_DEPTH_WRITE,
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		commandList->ResourceBarrier(1, &barrier);
+
+		shadowPassFirstFrame = false;
+
+		// Restore main viewport
+		commandList->RSSetViewports(1, &vp);
+		commandList->RSSetScissorRects(1, &rect);
+	}
 
 	if (enableGBuffer)
 	{
@@ -207,7 +253,7 @@ void CommandQueue::RenderEnd()
 		// Render deferred lighting to main view (fullscreen)
 		if (deferredLightingPass)
 		{
-			deferredLightingPass->Render(gbufferManager, swapChain->Width(), swapChain->Height());
+			deferredLightingPass->Render(gbufferManager, shadowMap, swapChain->Width(), swapChain->Height());
 		}
 
 		// Forward pass - render objects that need forward rendering (e.g., grid)
