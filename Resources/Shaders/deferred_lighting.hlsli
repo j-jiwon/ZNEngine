@@ -63,8 +63,12 @@ struct VS_OUT
 // Calculate shadow factor using PCF (Percentage-Closer Filtering)
 float CalculateShadow(float3 worldPos, float3 normal, float3 lightDir)
 {
+    // Normal offset bias - move sample position along surface normal to reduce shadow acne
+    float normalOffsetScale = 0.05f;
+    float3 offsetWorldPos = worldPos + normal * normalOffsetScale;
+
     // Transform world position to light clip space
-    float4 lightSpacePos = mul(float4(worldPos, 1.0f), lightViewProj);
+    float4 lightSpacePos = mul(float4(offsetWorldPos, 1.0f), lightViewProj);
 
     // Perspective divide
     float3 projCoords = lightSpacePos.xyz / lightSpacePos.w;

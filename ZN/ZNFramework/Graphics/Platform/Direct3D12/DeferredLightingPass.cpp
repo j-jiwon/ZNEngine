@@ -160,7 +160,7 @@ void DeferredLightingPass::Render(GBufferManager* gbufferManager, ShadowMap* sha
             memcpy(lightData.lightViewProj, lightVP.value, sizeof(float) * 16);
             lightData.shadowMapSize[0] = static_cast<float>(shadowMap->GetWidth());
             lightData.shadowMapSize[1] = static_cast<float>(shadowMap->GetHeight());
-            lightData.shadowBias = 0.001f;
+            lightData.shadowBias = 0.005f;
             lightData.shadowPCFRadius = 1.0f;
         }
     }
