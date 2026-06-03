@@ -221,38 +221,8 @@ void TestGameScene::Initialize()
         cubeParams.ao = 1.0f;
         cubeMaterial->SetParams(cubeParams);
 
-        std::vector<Vertex> cubeVerts;
-        std::vector<uint32> cubeIndices;
-        ZNVector4 c(1, 1, 1, 1);
-
-        // 각 면을 독립 버텍스로 (노말이 면마다 달라야 하므로)
-        auto addFace = [&](ZNVector3 p0, ZNVector3 p1, ZNVector3 p2, ZNVector3 p3, ZNVector3 normal)
-        {
-            uint32 base = (uint32)cubeVerts.size();
-            cubeVerts.push_back(Vertex(p0, c, ZNVector2(0, 0), normal));
-            cubeVerts.push_back(Vertex(p1, c, ZNVector2(1, 0), normal));
-            cubeVerts.push_back(Vertex(p2, c, ZNVector2(1, 1), normal));
-            cubeVerts.push_back(Vertex(p3, c, ZNVector2(0, 1), normal));
-            cubeIndices.insert(cubeIndices.end(),
-                { base, base + 1, base + 2, base, base + 2, base + 3 });
-        };
-
-        // +Y (top)
-        addFace({ -1,1,-1 }, { 1,1,-1 }, { 1,1,1 }, { -1,1,1 }, { 0,1,0 });
-        // -Y (bottom)
-        addFace({ -1,-1,1 }, { 1,-1,1 }, { 1,-1,-1 }, { -1,-1,-1 }, { 0,-1,0 });
-        // +Z (front)
-        addFace({ -1,-1,1 }, { 1,-1,1 }, { 1,1,1 }, { -1,1,1 }, { 0,0,1 });
-        // -Z (back)
-        addFace({ 1,-1,-1 }, { -1,-1,-1 }, { -1,1,-1 }, { 1,1,-1 }, { 0,0,-1 });
-        // +X (right)
-        addFace({ 1,-1,1 }, { 1,-1,-1 }, { 1,1,-1 }, { 1,1,1 }, { 1,0,0 });
-        // -X (left)
-        addFace({ -1,-1,-1 }, { -1,-1,1 }, { -1,1,1 }, { -1,1,-1 }, { -1,0,0 });
-
         cube = new ZNGameObject();
-        ZNMesh* cubeMesh = ZNFramework::Platform::CreateMesh();
-        cubeMesh->Init(cubeVerts, cubeIndices);
+        ZNMesh* cubeMesh = ZNMeshFactory::CreateCube(1.0f);
         cubeMesh->SetMaterial(cubeMaterial);
         cube->SetMesh(cubeMesh);
         cube->GetTransform().position = ZNVector3(2.5f, 0.5f, 1.5f);
@@ -273,45 +243,8 @@ void TestGameScene::Initialize()
         sphereParams.ao = 1.0f;
         sphereMaterial->SetParams(sphereParams);
 
-        std::vector<Vertex> sphereVerts;
-        std::vector<uint32> sphereIndices;
-
-        const int stacks = 16;
-        const int slices = 16;
-        const float radius = 1.0f;
-        const float PI = 3.14159265f;
-
-        for (int i = 0; i <= stacks; ++i)
-        {
-            float phi = PI * i / stacks; // 0 ~ PI
-            for (int j = 0; j <= slices; ++j)
-            {
-                float theta = 2.0f * PI * j / slices; // 0 ~ 2PI
-                float x = radius * sinf(phi) * cosf(theta);
-                float y = radius * cosf(phi);
-                float z = radius * sinf(phi) * sinf(theta);
-                ZNVector3 pos(x, y, z);
-                ZNVector3 normal(x, y, z); // 단위 구이므로 pos == normal
-                ZNVector2 uv((float)j / slices, (float)i / stacks);
-                sphereVerts.push_back(Vertex(pos, ZNVector4(1, 1, 1, 1), uv, normal));
-            }
-        }
-
-        for (int i = 0; i < stacks; ++i)
-        {
-            for (int j = 0; j < slices; ++j)
-            {
-                uint32 a = i * (slices + 1) + j;
-                uint32 b = a + 1;
-                uint32 c2 = a + (slices + 1);
-                uint32 d = c2 + 1;
-                sphereIndices.insert(sphereIndices.end(), { a, c2, b, b, c2, d });
-            }
-        }
-
         sphere = new ZNGameObject();
-        ZNMesh* sphereMesh = ZNFramework::Platform::CreateMesh();
-        sphereMesh->Init(sphereVerts, sphereIndices);
+        ZNMesh* sphereMesh = ZNMeshFactory::CreateSphere(1.0f, 16, 16);
         sphereMesh->SetMaterial(sphereMaterial);
         sphere->SetMesh(sphereMesh);
         sphere->GetTransform().position = ZNVector3(-2.0f, 0.5f, 0.0f);
@@ -321,24 +254,8 @@ void TestGameScene::Initialize()
 
     // Plane - Horizontal floor grid (XZ plane)
     {
-        std::vector<Vertex> planeVerts;
-        std::vector<uint32> planeIndices;
-
-        ZNVector4 color(0, 1, 1, 1);
-        ZNVector2 uv(0, 0);
-
-        float s = 50.f;
-        // Horizontal plane at y=-2 (below camera), facing up (normal pointing +Y)
-        planeVerts.push_back(Vertex(ZNVector3(-s, 0, -s), color, uv, ZNVector3(0, 1, 0)));
-        planeVerts.push_back(Vertex(ZNVector3(s, 0, -s), color, uv, ZNVector3(0, 1, 0)));
-        planeVerts.push_back(Vertex(ZNVector3(s, 0, s), color, uv, ZNVector3(0, 1, 0)));
-        planeVerts.push_back(Vertex(ZNVector3(-s, 0, s), color, uv, ZNVector3(0, 1, 0)));
-
-        planeIndices = {0, 3, 2, 0, 2, 1};
-
         plane = new ZNGameObject();
-        ZNMesh* planeMesh = ZNFramework::Platform::CreateMesh();
-        planeMesh->Init(planeVerts, planeIndices);
+        ZNMesh* planeMesh = ZNMeshFactory::CreatePlane(50.0f);
         planeMesh->SetMaterial(gridMaterial);
         plane->SetMesh(planeMesh);
         // Grid uses forward rendering (after deferred lighting pass)
@@ -357,20 +274,8 @@ void TestGameScene::Initialize()
         floorParams.ao = 1.0f;
         floorMaterial->SetParams(floorParams);
 
-        std::vector<Vertex> floorVerts;
-        std::vector<uint32> floorIndices;
-        float s = 10.0f;
-        ZNVector4 c(1, 1, 1, 1);
-        ZNVector3 n(0, 1, 0);
-        floorVerts.push_back(Vertex(ZNVector3(-s, 0, -s), c, ZNVector2(0, 0), n));
-        floorVerts.push_back(Vertex(ZNVector3(s, 0, -s), c, ZNVector2(1, 0), n));
-        floorVerts.push_back(Vertex(ZNVector3(s, 0, s), c, ZNVector2(1, 1), n));
-        floorVerts.push_back(Vertex(ZNVector3(-s, 0, s), c, ZNVector2(0, 1), n));
-        floorIndices = { 0, 3, 2, 0, 2, 1 };
-
         floorPlane = new ZNGameObject();
-        ZNMesh* floorMesh = ZNFramework::Platform::CreateMesh();
-        floorMesh->Init(floorVerts, floorIndices);
+        ZNMesh* floorMesh = ZNMeshFactory::CreatePlane(10.0f);
         floorMesh->SetMaterial(floorMaterial);
         floorPlane->SetMesh(floorMesh);
         floorPlane->GetTransform().position = ZNVector3(0.0f, -0.3f, 0.0f);
