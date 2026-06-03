@@ -47,6 +47,9 @@ namespace ZNFramework
 		void SetDirectionalLight(ZNDirectionalLight* light);
 		ZNDirectionalLight* GetDirectionalLight() const { return directionalLight; }
 
+		ZNGameObject* FindGameObjectWithTag(const std::string& tag);
+		ZNGameObject* FindGameObjectWithName(const std::string& name);
+
 	protected:
 		std::vector<ZNGameObject*> gameObjects;
 		std::vector<ZNGameObject*> forwardGameObjects;  // Objects rendered in forward pass

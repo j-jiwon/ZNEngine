@@ -106,3 +106,23 @@ void ZNScene::SetDirectionalLight(ZNDirectionalLight* light)
 {
 	directionalLight = light;
 }
+
+ZNGameObject* ZNScene::FindGameObjectWithTag(const std::string& tag)
+{
+	for (auto* obj : gameObjects)
+	{
+		if (obj && obj->GetTag() == tag)
+			return obj;
+	}
+	return nullptr;
+}
+
+ZNGameObject* ZNScene::FindGameObjectWithName(const std::string& name)
+{
+	for (auto* obj : gameObjects)
+	{
+		if (obj && obj->GetName() == name)
+			return obj;
+	}
+	return nullptr;
+}	

@@ -1,4 +1,5 @@
 #pragma once
+#include <string>
 #include "../ZNTransform.h"
 
 namespace ZNFramework
@@ -32,6 +33,11 @@ namespace ZNFramework
 		Transform& GetTransform() { return transform; }
 		const Transform& GetTransform() const { return transform; }
 
+		std::string GetName() const { return name; }
+		void SetName(const std::string& newName) { name = newName; }
+		std::string GetTag() const { return tag; }
+		void SetTag(const std::string& newTag) { tag = newTag; }	
+
 	protected:
 		ZNMesh* mesh = nullptr;
 		ZNMaterial* material = nullptr;
@@ -39,5 +45,7 @@ namespace ZNFramework
 		bool isActive = true;
 		bool isVisible = true;
 		bool castShadow = true;
+		std::string name;
+		std::string tag;
 	};
 }

@@ -89,6 +89,7 @@ void TestGameScene::Initialize()
                     obj->GetTransform().rotation = ZNVector3(0.f, 90.f, 0.f);
                     obj->GetTransform().position = ZNVector3(0.0f, 0.0f, 0.0f);
                     obj->GetTransform().scale = ZNVector3(0.01f, 0.01f, 0.01f);
+                    obj->SetName("Bunny");
 
                     AddGameObject(obj);
                     modelObjects.push_back(obj);
@@ -149,6 +150,7 @@ void TestGameScene::Initialize()
         crosshairMesh->SetMaterial(debugMaterial);
         crosshair->SetMesh(crosshairMesh);
         crosshair->GetTransform().position = spotLightPos;
+        crosshair->SetName("Crosshair");
 
         AddGameObject(crosshair);
     }
@@ -165,6 +167,8 @@ void TestGameScene::Initialize()
         cube->GetTransform().position = ZNVector3(2.5f, 0.5f, 1.5f);
         cube->GetTransform().scale = ZNVector3(0.5f, 0.5f, 0.5f);
         cube->GetTransform().rotation = ZNVector3(0.0f, 30.0f, 0.0f);
+        cube->SetName("Cube");
+
         AddGameObject(cube);
     }
 
@@ -179,6 +183,8 @@ void TestGameScene::Initialize()
         sphere->SetMesh(sphereMesh);
         sphere->GetTransform().position = ZNVector3(-2.0f, 0.5f, 0.0f);
         sphere->GetTransform().scale = ZNVector3(0.5f, 0.5f, 0.5f);
+        sphere->SetName("Sphere");
+
         AddGameObject(sphere);
     }
 
@@ -188,6 +194,8 @@ void TestGameScene::Initialize()
         ZNMesh* planeMesh = ZNMeshFactory::CreatePlane(50.0f);
         planeMesh->SetMaterial(gridMaterial);
         plane->SetMesh(planeMesh);
+        plane->SetName("Grid");
+
         // Grid uses forward rendering (after deferred lighting pass)
         AddForwardGameObject(plane);
     }
@@ -202,6 +210,7 @@ void TestGameScene::Initialize()
         floorMesh->SetMaterial(floorMaterial);
         floorPlane->SetMesh(floorMesh);
         floorPlane->GetTransform().position = ZNVector3(0.0f, -0.3f, 0.0f);
+        floorPlane->SetName("Floor");
         floorPlane->SetCastShadow(false);
         AddGameObject(floorPlane);
     }
@@ -225,11 +234,18 @@ void TestGameScene::OnKeyboardEvent(const ZNFramework::KeyboardEvent& event)
     if (event.state != KEY_STATE::DOWN)
         return;
 
+    std::string turnObjName;
+    if (turntableObj)
+    {
+        turnObjName = turntableObj->GetName();
+    }
+
     switch (event.type)
     {
     case KEY_TYPE::KEY_T:
         turntableEnabled = !turntableEnabled;
-        std::cout << "Turntable: " << (turntableEnabled ? "ON" : "OFF") << std::endl;
+        
+        std::cout << "Turntable: " << (turntableEnabled ? "ON" : "OFF") << " " << turnObjName << std::endl;
         break;
 
     case KEY_TYPE::KEY_P:
