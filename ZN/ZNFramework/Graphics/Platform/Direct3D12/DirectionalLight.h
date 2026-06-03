@@ -27,9 +27,9 @@ namespace ZNFramework::Platform::Direct3D
 		virtual void SetDirection(const ZNVector3& direction) override { this->direction = direction; }
 		virtual ZNVector3 GetDirection() const override { return direction; }
 
-		// Shadow mapping
-		void SetShadowBounds(float orthoSize, float nearPlane, float farPlane);
-		void SetShadowFocusPoint(const ZNVector3& focusPoint) { shadowFocusPoint = focusPoint; }
+		// Shadow mapping (ZNDirectionalLight interface)
+		virtual void SetShadowBounds(float orthoSize, float nearPlane, float farPlane) override;
+		virtual void SetShadowFocusPoint(const ZNVector3& focusPoint) override { shadowFocusPoint = focusPoint; }
 		ZNMatrix4 GetLightViewMatrix() const;
 		ZNMatrix4 GetLightProjectionMatrix() const;
 		ZNMatrix4 GetLightViewProjectionMatrix() const;

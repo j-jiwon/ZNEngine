@@ -136,7 +136,8 @@ void DeferredLightingPass::Render(GBufferManager* gbufferManager, ShadowMap* sha
     DeferredLightCB lightData = {};
 
     ZNDirectionalLight* dirLight = GraphicsContext::GetInstance().GetDirectionalLight();
-    ZNLight* primaryLight = GraphicsContext::GetInstance().GetLight();
+    const auto& spotLights = GraphicsContext::GetInstance().GetSpotLights();
+    ZNLight* primaryLight = spotLights.empty() ? nullptr : spotLights[0];
     ZNCamera* camera = GraphicsContext::GetInstance().GetCamera();
 
     if (dirLight)

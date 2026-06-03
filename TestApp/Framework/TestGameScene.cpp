@@ -1,219 +1,199 @@
 #include "TestGameScene.h"
-#include <ZNFramework/Graphics/Platform/GraphicsAPI.h>
 #include <iostream>
 #include <filesystem>
-#include <ZNFramework/Graphics/Platform/Direct3D12/DirectionalLight.h>
-
 
 using namespace ZNFramework;
 
+namespace
+{
+    void SetupSpotLightDebug(
+        TestGameScene::SpotLightDebug& debug,
+        ZNSpotLight* spotLight,
+        const ZNVector4& color,
+        ZNShader* defaultShader,
+        ZNShader* coneShader,
+        float coneLength,
+        ZNScene* scene)
+    {
+        ZNVector3 pos = spotLight->GetPosition();
+        ZNVector3 dir = spotLight->GetDirection();
+        float outerAngle = spotLight->GetOuterCutoffAngle();
+
+        // Marker (solid cube)
+        debug.markerMaterial = ZNMaterialFactory::CreatePBR(defaultShader,
+            ZNVector4(color.x, color.y, color.z, 1.0f), 0.0f, 1.0f);
+        debug.marker = new ZNGameObject();
+        debug.marker->SetMesh(ZNMeshFactory::CreateCube(0.1f));
+        debug.marker->GetMesh()->SetMaterial(debug.markerMaterial);
+        debug.marker->SetName("SpotLightMarker");
+        debug.marker->GetTransform().position = pos;
+        debug.marker->SetVisible(false);
+        scene->AddGameObject(debug.marker);
+
+        // Cone (transparent, no depth test)
+        debug.coneMaterial = ZNMaterialFactory::CreatePBR(coneShader,
+            ZNVector4(color.x, color.y, color.z, 0.2f), 0.0f, 1.0f);
+        debug.cone = new ZNGameObject();
+        debug.cone->SetMesh(ZNMeshFactory::CreateConeFromApex(outerAngle, coneLength, 32));
+        debug.cone->GetMesh()->SetMaterial(debug.coneMaterial);
+        debug.cone->SetName("SpotLightCone");
+        debug.cone->GetTransform().position = pos;
+        float zRotation = atan2f(-dir.x, -dir.y) * 180.0f / 3.14159265f;
+        float xRotation = asinf(dir.z) * 180.0f / 3.14159265f;
+        debug.cone->GetTransform().rotation = ZNVector3(xRotation, 0.0f, zRotation);
+        debug.cone->SetVisible(false);
+        debug.cone->SetCastShadow(false);
+        scene->AddForwardGameObject(debug.cone);
+    }
+
+    void SetSpotLightDebugVisible(TestGameScene::SpotLightDebug& debug, bool visible)
+    {
+        if (debug.marker) debug.marker->SetVisible(visible);
+        if (debug.cone) debug.cone->SetVisible(visible);
+    }
+}
+
 void TestGameScene::Initialize()
 {
-    // Load default shader
-    defaultShader = ZNFramework::Platform::CreateShader();
-    std::filesystem::path shaderPath = GetResourcePath() / L"Shaders" / L"deferred_lighting.hlsli";
-    defaultShader->Load(shaderPath);
+    // Load shaders
+    defaultShader = Platform::CreateShader();
+    defaultShader->Load(GetResourcePath() / L"Shaders" / L"deferred_lighting.hlsli");
 
-    // Load grid shader
-    gridShader = ZNFramework::Platform::CreateShader();
-    std::filesystem::path gridShaderPath = GetResourcePath() / L"Shaders" / L"grid.hlsli";
-    gridShader->Load(gridShaderPath);
-    gridShader->EnableAlphaBlend(); // Enable transparency for grid background
+    gridShader = Platform::CreateShader();
+    gridShader->Load(GetResourcePath() / L"Shaders" / L"grid.hlsli");
+    gridShader->EnableAlphaBlend();
 
-    // Create camera - positioned to look down at floor grid
+    debugConeShader = Platform::CreateShader();
+    debugConeShader->Load(GetResourcePath() / L"Shaders" / L"forward_unlit.hlsli");
+    debugConeShader->EnableAlphaBlend();
+    debugConeShader->DisableDepthWrite();
+
+    // Camera
     ZNCamera* cam = new ZNCamera();
     cam->SetPosition(ZNVector3(0.0f, 3.0f, -8.0f));
     cam->SetRotation(-20, 0, 0);
     cam->SetMoveSpeed(3.0f);
     SetCamera(cam);
 
-    std::cout << "Camera initialized at position: (0, 0, -5)" << std::endl;
+    // Spot light 1 (Green)
+    ZNSpotLight* spotLight1 = Platform::CreateSpotLight();
+    spotLight1->SetPosition(ZNVector3(1.0f, 2.0f, 1.0f));
+    spotLight1->SetDirection(ZNVector3(-1.0f, -1.0f, 0.0f).Normalize());
+    spotLight1->SetIntensity(0.5f);
+    spotLight1->SetColor(ZNVector3(0.0f, 1.0f, 0.0f));
+    spotLight1->SetAmbientIntensity(0.1f);
+    spotLight1->SetCutoffAngle(12.0f, 17.0f);
+    spotLight1->SetAttenuation(0.5f, 0.045f, 0.0075f);
+    AddSpotLight(spotLight1);
 
-    // Setup spot light like a flashlight from camera - GREEN
-    ZNSpotLight* spotLight = ZNFramework::Platform::CreateSpotLight();
-    ZNVector3 spotLightPos(1.0f, 2.f, 1.0f);
-    ZNVector3 spotLightDir(-1.0f, -1.0f, 0.0f);
-    spotLightDir = spotLightDir.Normalize();
-    spotLight->SetPosition(spotLightPos);
-    spotLight->SetDirection(spotLightDir);
-    spotLight->SetIntensity(0.5f);
-    spotLight->SetColor(ZNVector3(0.0f, 1.0f, 0.0f)); // Green
-    spotLight->SetAmbientIntensity(0.1f);
-    spotLight->SetCutoffAngle(12.0f, 17.0f);
-    spotLight->SetAttenuation(0.5f, 0.045f, 0.0075f);
-    SetLight(spotLight);
-    
-    // Setup directional light
-    ZNDirectionalLight* dirLight = ZNFramework::Platform::CreateDirectionalLight();
+    // Spot light 2 (Cyan)
+    //ZNSpotLight* spotLight2 = Platform::CreateSpotLight();
+    //spotLight2->SetPosition(ZNVector3(-3.0f, 3.0f, -2.0f));
+    //spotLight2->SetDirection(ZNVector3(1.0f, -2.f, 1.0f).Normalize());
+    //spotLight2->SetIntensity(0.8f);
+    //spotLight2->SetColor(ZNVector3(1.0f, 1.0f, 0.0f));
+    //spotLight2->SetAmbientIntensity(1.0f);
+    //spotLight2->SetCutoffAngle(8.0f, 25.0f);
+    //spotLight2->SetAttenuation(0.5f, 0.045f, 0.0075f);
+    //AddSpotLight(spotLight2);
+
+    // Directional light with shadow
+    ZNDirectionalLight* dirLight = Platform::CreateDirectionalLight();
     dirLight->SetDirection(ZNVector3(0.5f, -1.0f, 0.3f));
     dirLight->SetIntensity(8.0f);
     dirLight->SetColor(ZNVector3(0.5f, 0.5f, 0.5f));
     dirLight->SetAmbientIntensity(5.0f);
+    dirLight->SetShadowFocusPoint(ZNVector3(0.0f, 0.0f, 0.0f));
+    dirLight->SetShadowBounds(50.0f, 0.1f, 100.0f);
     SetDirectionalLight(dirLight);
 
-    Platform::Direct3D::DirectionalLight* d3dDirLight =
-        dynamic_cast<Platform::Direct3D::DirectionalLight*>(dirLight);
-    if (d3dDirLight)
+    // Load bunny model
+    std::filesystem::path modelPath = GetResourcePath() / L"Models" / L"stanford-bunny.fbx";
+    if (std::filesystem::exists(modelPath))
     {
-        d3dDirLight->SetShadowFocusPoint(ZNVector3(0.0f, 0.0f, 0.0f));
-        d3dDirLight->SetShadowBounds(50.0f, 0.1f, 100.0f);
-    }
-
-    std::cout << "Lights initialized - Spot light (flashlight mode) + Green directional light" << std::endl;
-
-    {
-        std::filesystem::path modelPath = GetResourcePath() / L"Models" / L"stanford-bunny.fbx";
-        if (std::filesystem::exists(modelPath))
+        ZNModelLoader* loader = Platform::CreateModelLoader();
+        ModelData modelData;
+        if (loader->Load(modelPath, modelData))
         {
-            ZNModelLoader* modelLoader = ZNFramework::Platform::CreateModelLoader();
-            ModelData modelData;
-            if (modelLoader->Load(modelPath, modelData))
+            ZNMaterial* bunnyMat = ZNMaterialFactory::CreatePBR(defaultShader,
+                ZNVector4(0.8f, 0.1f, 0.1f, 1.0f), 0.0f, 0.3f);
+            models.materials.push_back(bunnyMat);
+
+            for (const auto& meshData : modelData.meshes)
             {
-                std::cout << "FBX Model loaded successfully!" << std::endl;
+                ZNGameObject* obj = new ZNGameObject();
+                ZNMesh* mesh = Platform::CreateMesh();
+                mesh->Init(meshData.vertices, meshData.indices);
+                mesh->SetMaterial(bunnyMat);
 
-                // Red Plastic
-                ZNMaterial* plasticMat = ZNMaterialFactory::CreatePBR(defaultShader,
-                    ZNVector4(0.8f, 0.1f, 0.1f, 1.0f), 0.0f, 0.3f);
-                materials.push_back(plasticMat);
+                obj->SetMesh(mesh);
+                obj->SetName("Bunny");
+                obj->GetTransform().rotation = ZNVector3(0.f, 90.f, 0.f);
+                obj->GetTransform().scale = ZNVector3(0.01f, 0.01f, 0.01f);
 
-                ZNMaterial* mat = plasticMat;
-
-                for (const auto& meshData : modelData.meshes)
-                {
-                    ZNGameObject* obj = new ZNGameObject();
-                    ZNMesh* mesh = ZNFramework::Platform::CreateMesh();
-                    mesh->Init(meshData.vertices, meshData.indices);
-                    mesh->SetMaterial(mat);
-
-                    obj->SetMesh(mesh);
-                    obj->GetTransform().rotation = ZNVector3(0.f, 90.f, 0.f);
-                    obj->GetTransform().position = ZNVector3(0.0f, 0.0f, 0.0f);
-                    obj->GetTransform().scale = ZNVector3(0.01f, 0.01f, 0.01f);
-                    obj->SetName("Bunny");
-
-                    AddGameObject(obj);
-                    modelObjects.push_back(obj);
-                }
-
-                if (!modelObjects.empty())
-                    turntableObj = modelObjects.front();
-
-                std::cout << "Created 3 bunnies (Iron / Gold / Plastic)" << std::endl;
-                delete modelLoader;
+                AddGameObject(obj);
+                models.objects.push_back(obj);
             }
-            else
-            {
-                std::cout << "Failed to load FBX model: " << modelPath << std::endl;
-            }
+
+            if (!models.objects.empty())
+                turntableObj = models.objects.front();
         }
-        else
-        {
-            std::cout << "Model file not found: " << modelPath << std::endl;
-        }
+        delete loader;
     }
 
-    // Debug visualization - Materials
-    {
-        debugMaterial = ZNMaterialFactory::CreatePBR(defaultShader, ZNVector4(1.0f, 1.0f, 0.0f, 1.0f), 0.0f, 1.0f);
-        gridMaterial = ZNMaterialFactory::CreatePBR(gridShader, ZNVector4(1.0f, 1.0f, 1.0f, 1.0f), 0.0f, 1.0f);
-        redMaterial = ZNMaterialFactory::CreatePBR(defaultShader, ZNVector4(1.0f, 1.0f, 0.0f, 1.0f), 0.0f, 1.0f);
-        greenMaterial = ZNMaterialFactory::CreatePBR(defaultShader, ZNVector4(0.0f, 1.0f, 0.0f, 1.0f), 0.0f, 1.0f);
-        blueMaterial = ZNMaterialFactory::CreatePBR(defaultShader, ZNVector4(0.0f, 0.0f, 1.0f, 1.0f), 0.0f, 1.0f);
-    }
+    // Scene: Floor
+    scene.floorMaterial = ZNMaterialFactory::CreatePBR(defaultShader,
+        ZNVector4(0.6f, 0.6f, 0.6f, 1.0f), 0.0f, 0.8f);
+    scene.floor = new ZNGameObject();
+    scene.floor->SetMesh(ZNMeshFactory::CreatePlane(10.0f));
+    scene.floor->GetMesh()->SetMaterial(scene.floorMaterial);
+    scene.floor->SetName("Floor");
+    scene.floor->GetTransform().position = ZNVector3(0.0f, -0.3f, 0.0f);
+    scene.floor->SetCastShadow(false);
+    AddGameObject(scene.floor);
 
-    // Debug visualization - Crosshair
-    {
-        std::vector<Vertex> crosshairVerts;
-        std::vector<uint32> crosshairIndices;
+    // Scene: Cube
+    scene.cubeMaterial = ZNMaterialFactory::CreatePBR(defaultShader,
+        ZNVector4(0.2f, 0.4f, 0.9f, 1.0f), 0.0f, 0.4f);
+    scene.cube = new ZNGameObject();
+    scene.cube->SetMesh(ZNMeshFactory::CreateCube(1.0f));
+    scene.cube->GetMesh()->SetMaterial(scene.cubeMaterial);
+    scene.cube->SetName("Cube");
+    scene.cube->GetTransform().position = ZNVector3(2.5f, 0.5f, 1.5f);
+    scene.cube->GetTransform().scale = ZNVector3(0.5f, 0.5f, 0.5f);
+    scene.cube->GetTransform().rotation = ZNVector3(0.0f, 30.0f, 0.0f);
+    AddGameObject(scene.cube);
 
-        float length = 0.05f;
-        ZNVector4 color(1, 1, 0, 1);
-        ZNVector2 uv(0, 0);
+    // Scene: Sphere
+    scene.sphereMaterial = ZNMaterialFactory::CreatePBR(defaultShader,
+        ZNVector4(0.9f, 0.7f, 0.1f, 1.0f), 0.8f, 0.2f);
+    scene.sphere = new ZNGameObject();
+    scene.sphere->SetMesh(ZNMeshFactory::CreateSphere(1.0f, 16, 16));
+    scene.sphere->GetMesh()->SetMaterial(scene.sphereMaterial);
+    scene.sphere->SetName("Sphere");
+    scene.sphere->GetTransform().position = ZNVector3(-2.0f, 0.5f, 0.0f);
+    scene.sphere->GetTransform().scale = ZNVector3(0.5f, 0.5f, 0.5f);
+    AddGameObject(scene.sphere);
 
-        // spotLightDir에 수직인 벡터 계산 (XY 평면에서 90도 회전)
-        ZNVector3 perpDir(-spotLightDir.y, spotLightDir.x, 0);
-        perpDir = perpDir.Normalize();
+    // Debug: Spotlight 1 (Green)
+    SetupSpotLightDebug(debug.spotLight1, spotLight1, ZNVector4(0.0f, 1.0f, 0.0f, 1.0f),
+        defaultShader, debugConeShader, 4.0f, this);
 
-        // Main line (spotLightDir 방향)
-        crosshairVerts.push_back(Vertex(spotLightDir * -length, color, uv, ZNVector3(0, 0, 1)));
-        crosshairVerts.push_back(Vertex(spotLightDir * length, color, uv, ZNVector3(0, 0, 1)));
+    // Debug: Spotlight 2 (Cyan)
+    //SetupSpotLightDebug(debug.spotLight2, spotLight2, ZNVector4(0.0f, 1.0f, 1.0f, 1.0f),
+    //    defaultShader, debugConeShader, 4.0f, this);
 
-        // Perpendicular line (수직 방향)
-        crosshairVerts.push_back(Vertex(perpDir * -length, color, uv, ZNVector3(0, 0, 1)));
-        crosshairVerts.push_back(Vertex(perpDir * length, color, uv, ZNVector3(0, 0, 1)));
+    // Debug: Grid plane
+    debug.gridMaterial = ZNMaterialFactory::CreatePBR(gridShader,
+        ZNVector4(1.0f, 1.0f, 1.0f, 1.0f), 0.0f, 1.0f);
+    debug.gridPlane = new ZNGameObject();
+    debug.gridPlane->SetMesh(ZNMeshFactory::CreatePlane(50.0f));
+    debug.gridPlane->GetMesh()->SetMaterial(debug.gridMaterial);
+    debug.gridPlane->SetName("GridPlane");
+    debug.gridPlane->SetVisible(false);
+    AddForwardGameObject(debug.gridPlane);
 
-        crosshairIndices = { 0, 1, 2, 3 };
-
-        crosshair = new ZNGameObject();
-        ZNMesh* crosshairMesh = ZNFramework::Platform::CreateMesh();
-        crosshairMesh->Init(crosshairVerts, crosshairIndices);
-        crosshairMesh->SetMaterial(debugMaterial);
-        crosshair->SetMesh(crosshairMesh);
-        crosshair->GetTransform().position = spotLightPos;
-        crosshair->SetName("Crosshair");
-
-        AddGameObject(crosshair);
-    }
-
-    // Cube
-    {
-        cubeMaterial = ZNMaterialFactory::CreatePBR(defaultShader,
-            ZNVector4(0.2f, 0.4f, 0.9f, 1.0f), 0.0f, 0.4f); // 파란색
-
-        cube = new ZNGameObject();
-        ZNMesh* cubeMesh = ZNMeshFactory::CreateCube(1.0f);
-        cubeMesh->SetMaterial(cubeMaterial);
-        cube->SetMesh(cubeMesh);
-        cube->GetTransform().position = ZNVector3(2.5f, 0.5f, 1.5f);
-        cube->GetTransform().scale = ZNVector3(0.5f, 0.5f, 0.5f);
-        cube->GetTransform().rotation = ZNVector3(0.0f, 30.0f, 0.0f);
-        cube->SetName("Cube");
-
-        AddGameObject(cube);
-    }
-
-    // Sphere (UV sphere)
-    {
-        sphereMaterial = ZNMaterialFactory::CreatePBR(defaultShader,
-            ZNVector4(0.9f, 0.7f, 0.1f, 1.0f), 0.8f, 0.2f); // 금색
-
-        sphere = new ZNGameObject();
-        ZNMesh* sphereMesh = ZNMeshFactory::CreateSphere(1.0f, 16, 16);
-        sphereMesh->SetMaterial(sphereMaterial);
-        sphere->SetMesh(sphereMesh);
-        sphere->GetTransform().position = ZNVector3(-2.0f, 0.5f, 0.0f);
-        sphere->GetTransform().scale = ZNVector3(0.5f, 0.5f, 0.5f);
-        sphere->SetName("Sphere");
-
-        AddGameObject(sphere);
-    }
-
-    // Plane - Horizontal floor grid (XZ plane)
-    {
-        plane = new ZNGameObject();
-        ZNMesh* planeMesh = ZNMeshFactory::CreatePlane(50.0f);
-        planeMesh->SetMaterial(gridMaterial);
-        plane->SetMesh(planeMesh);
-        plane->SetName("Grid");
-
-        // Grid uses forward rendering (after deferred lighting pass)
-        AddForwardGameObject(plane);
-    }
-
-    // Floor Plane - deferred pass로 렌더링하여 그림자를 받음
-    {
-        floorMaterial = ZNMaterialFactory::CreatePBR(defaultShader,
-            ZNVector4(0.6f, 0.6f, 0.6f, 1.0f), 0.0f, 0.8f); // 회색
-
-        floorPlane = new ZNGameObject();
-        ZNMesh* floorMesh = ZNMeshFactory::CreatePlane(10.0f);
-        floorMesh->SetMaterial(floorMaterial);
-        floorPlane->SetMesh(floorMesh);
-        floorPlane->GetTransform().position = ZNVector3(0.0f, -0.3f, 0.0f);
-        floorPlane->SetName("Floor");
-        floorPlane->SetCastShadow(false);
-        AddGameObject(floorPlane);
-    }
+    std::cout << "Scene initialized. Press F1 to toggle debug visuals." << std::endl;
 }
 
 void TestGameScene::Update(float deltaTime)
@@ -222,41 +202,42 @@ void TestGameScene::Update(float deltaTime)
 
     if (turntableObj && turntableEnabled)
     {
-        turntableObj->GetTransform().rotation.y += 45.0f * deltaTime; // Rotate 45 degrees per second
+        turntableObj->GetTransform().rotation.y += 45.0f * deltaTime;
     }
 }
 
-void TestGameScene::OnKeyboardEvent(const ZNFramework::KeyboardEvent& event)
+void TestGameScene::OnKeyboardEvent(const KeyboardEvent& event)
 {
-    using namespace ZNFramework;
-
-    // Only respond to key down events (not hold/repeat)
     if (event.state != KEY_STATE::DOWN)
         return;
 
-    std::string turnObjName;
-    if (turntableObj)
-    {
-        turnObjName = turntableObj->GetName();
-    }
-
     switch (event.type)
     {
-    case KEY_TYPE::KEY_T:
-        turntableEnabled = !turntableEnabled;
-        
-        std::cout << "Turntable: " << (turntableEnabled ? "ON" : "OFF") << " " << turnObjName << std::endl;
+    case KEY_TYPE::KEY_F1:
+        ToggleDebugVisuals();
         break;
 
-    case KEY_TYPE::KEY_P:
-        planeVisible = !planeVisible;
-        if (plane)
-        {
-            plane->SetVisible(planeVisible);
-        }
-        std::cout << "Plane: " << (planeVisible ? "VISIBLE" : "HIDDEN") << std::endl;
+    case KEY_TYPE::KEY_T:
+        turntableEnabled = !turntableEnabled;
+        std::cout << "Turntable: " << (turntableEnabled ? "ON" : "OFF");
+        if (turntableObj)
+            std::cout << " (" << turntableObj->GetName() << ")";
+        std::cout << std::endl;
         break;
     }
+}
+
+void TestGameScene::ToggleDebugVisuals()
+{
+    debug.visible = !debug.visible;
+
+    SetSpotLightDebugVisible(debug.spotLight1, debug.visible);
+    SetSpotLightDebugVisible(debug.spotLight2, debug.visible);
+
+    if (debug.gridPlane)
+        debug.gridPlane->SetVisible(debug.visible);
+
+    std::cout << "Debug visuals: " << (debug.visible ? "ON" : "OFF") << std::endl;
 }
 
 void TestGameScene::Render()

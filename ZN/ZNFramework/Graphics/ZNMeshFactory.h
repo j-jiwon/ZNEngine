@@ -27,6 +27,12 @@ namespace ZNFramework
 		// size: half-extent of the plane
 		static ZNMesh* CreatePlane(float size = 1.0f);
 
+		// Creates a cone with apex at origin, extending in -Y direction
+		// Useful for spotlight visualization
+		// angleDegrees: half-angle of the cone (e.g., spotlight outer angle)
+		// length: how far the cone extends
+		static ZNMesh* CreateConeFromApex(float angleDegrees, float length, int slices = 16);
+
 	private:
 		ZNMeshFactory() = delete;
 	};

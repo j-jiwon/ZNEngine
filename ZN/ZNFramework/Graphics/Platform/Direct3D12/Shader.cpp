@@ -134,6 +134,19 @@ void Shader::DisableDepthTest()
 	ThrowIfFailed(device->Device()->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&pipelineState)));
 }
 
+void Shader::DisableDepthWrite()
+{
+	// Keep depth testing but disable depth writes
+	// This allows transparent objects to be occluded by opaque objects
+	// but not write to depth buffer (so they don't occlude other objects)
+	pipelineDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+
+	// Recreate pipeline state
+	GraphicsDevice* device = GraphicsContext::GetInstance().GetAs<GraphicsDevice>();
+	pipelineState.Reset();
+	ThrowIfFailed(device->Device()->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&pipelineState)));
+}
+
 void Shader::EnableAlphaBlend()
 {
 	// Enable alpha blending: FinalColor = SrcColor * SrcAlpha + DestColor * (1 - SrcAlpha)

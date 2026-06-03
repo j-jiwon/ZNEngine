@@ -171,4 +171,76 @@ namespace ZNFramework
 		mesh->Init(vertices, indices);
 		return mesh;
 	}
+
+	ZNMesh* ZNMeshFactory::CreateConeFromApex(float angleDegrees, float length, int slices)
+	{
+		std::vector<Vertex> vertices;
+		std::vector<uint32> indices;
+
+		const float PI = 3.14159265f;
+		float angleRad = angleDegrees * PI / 180.0f;
+		float radius = length * tanf(angleRad);
+		ZNVector4 color(1, 1, 1, 1);
+
+		// Apex at origin
+		uint32 apexIndex = 0;
+		vertices.push_back(Vertex(ZNVector3(0, 0, 0), color, ZNVector2(0.5f, 0.0f), ZNVector3(0, 1, 0)));
+
+		// Base circle at -Y (length units down)
+		float baseY = -length;
+		for (int i = 0; i <= slices; ++i)
+		{
+			float theta = 2.0f * PI * i / slices;
+			float x = radius * cosf(theta);
+			float z = radius * sinf(theta);
+
+			ZNVector3 pos(x, baseY, z);
+			// Normal pointing outward along cone surface
+			ZNVector3 toApex = ZNVector3(0, 0, 0) - pos;
+			ZNVector3 tangent(-sinf(theta), 0, cosf(theta));
+			ZNVector3 normal = ZNVector3(
+				toApex.y * tangent.z - toApex.z * tangent.y,
+				toApex.z * tangent.x - toApex.x * tangent.z,
+				toApex.x * tangent.y - toApex.y * tangent.x
+			);
+			float len = sqrtf(normal.x * normal.x + normal.y * normal.y + normal.z * normal.z);
+			if (len > 0) normal = normal * (1.0f / len);
+
+			vertices.push_back(Vertex(pos, color, ZNVector2(static_cast<float>(i) / slices, 1.0f), normal));
+		}
+
+		// Side triangles (apex to base)
+		for (int i = 0; i < slices; ++i)
+		{
+			uint32 base1 = 1 + i;
+			uint32 base2 = 1 + i + 1;
+			indices.insert(indices.end(), { apexIndex, base1, base2 });
+		}
+
+		// Base cap (close the bottom)
+		uint32 baseCenterIndex = static_cast<uint32>(vertices.size());
+		vertices.push_back(Vertex(ZNVector3(0, baseY, 0), color, ZNVector2(0.5f, 0.5f), ZNVector3(0, -1, 0)));
+
+		uint32 baseCapStart = static_cast<uint32>(vertices.size());
+		for (int i = 0; i <= slices; ++i)
+		{
+			float theta = 2.0f * PI * i / slices;
+			float x = radius * cosf(theta);
+			float z = radius * sinf(theta);
+			ZNVector3 pos(x, baseY, z);
+			ZNVector2 uv(0.5f + 0.5f * cosf(theta), 0.5f + 0.5f * sinf(theta));
+			vertices.push_back(Vertex(pos, color, uv, ZNVector3(0, -1, 0)));
+		}
+
+		for (int i = 0; i < slices; ++i)
+		{
+			uint32 curr = baseCapStart + i;
+			uint32 next = baseCapStart + i + 1;
+			indices.insert(indices.end(), { baseCenterIndex, curr, next });
+		}
+
+		ZNMesh* mesh = Platform::CreateMesh();
+		mesh->Init(vertices, indices);
+		return mesh;
+	}
 }

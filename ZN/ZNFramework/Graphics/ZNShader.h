@@ -12,5 +12,7 @@ namespace ZNFramework
 		virtual void Load(const std::wstring& filepath) = 0;
 		virtual void Bind() = 0;
 		virtual void EnableAlphaBlend() {}
+		virtual void DisableDepthTest() {}
+		virtual void DisableDepthWrite() {}
 	};
 }
