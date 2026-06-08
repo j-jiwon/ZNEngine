@@ -285,6 +285,13 @@ void CommandQueue::RenderEnd()
 		{
 			debugViewportRenderer->RenderDebugViews(gbufferManager, shadowMap, swapChain->Width(), swapChain->Height());
 		}
+
+		// ImGui pass - bind its own SRV heap and render UI on top of everything
+		if (imguiRenderCallback && imguiSrvHeap)
+		{
+			commandList->SetDescriptorHeaps(1, &imguiSrvHeap);
+			imguiRenderCallback();
+		}
 	}
 
 	D3D12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(

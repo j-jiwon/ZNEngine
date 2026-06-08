@@ -4,7 +4,10 @@
 #include "ZNInputDef.h"
 #include <iostream>
 #include <windowsx.h>
+#include "imgui_impl_win32.h"
 using namespace ZNFramework;
+
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 Window::Window()
     :hwnd(nullptr)
@@ -128,6 +131,9 @@ LRESULT Window::MainWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 
 LRESULT Window::WindowProc(HWND inHwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+    if (ImGui_ImplWin32_WndProcHandler(inHwnd, uMsg, wParam, lParam))
+        return true;
+
     MouseEvent mouseEvent;
     MOUSE_TYPE mouseType = GetMouseTypeFromMsg(uMsg);
     KeyboardEvent keyboardEvent;

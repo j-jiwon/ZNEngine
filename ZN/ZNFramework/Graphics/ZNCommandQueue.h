@@ -2,6 +2,8 @@
 #include "ZNSwapChain.h"
 #include <functional>
 
+struct ID3D12DescriptorHeap;
+
 namespace ZNFramework
 {
 	class ZNWindow;
@@ -18,10 +20,13 @@ namespace ZNFramework
 		virtual void FlushResourceQueue() = 0;
 		virtual void WaitSync() = 0;
 
-		// Forward render callback - called after deferred lighting, before present
 		void SetForwardRenderCallback(std::function<void()> callback) { forwardRenderCallback = callback; }
+		void SetImGuiRenderCallback(std::function<void()> callback) { imguiRenderCallback = callback; }
+		void SetImGuiDescriptorHeap(ID3D12DescriptorHeap* heap) { imguiSrvHeap = heap; }
 
 	protected:
 		std::function<void()> forwardRenderCallback;
+		std::function<void()> imguiRenderCallback;
+		ID3D12DescriptorHeap* imguiSrvHeap = nullptr;
 	};
 }

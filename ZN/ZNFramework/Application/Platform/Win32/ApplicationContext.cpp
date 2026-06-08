@@ -3,9 +3,12 @@
 #include <iostream>
 #include "ApplicationContext.h"
 #include "ZNFramework.h"
+#include "ZNFramework/UI/Platform/Win32_DX12/ImGuiLayer.h"
+#include "imgui.h"
 #include "ZNFramework/Graphics/Platform/GraphicsAPI.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/Shader.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/CommandQueue.h"
+#include "ZNFramework/Graphics/Platform/Direct3D12/GraphicsDevice.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/GBufferManager.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/DeferredLightingPass.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/DebugViewportRenderer.h"
@@ -19,6 +22,16 @@
 using namespace ZNFramework;
 using namespace ZNFramework::Platform::Direct3D;
 using namespace std;
+
+ApplicationContext::~ApplicationContext()
+{
+	if (imguiLayer)
+	{
+		imguiLayer->Shutdown();
+		delete imguiLayer;
+		imguiLayer = nullptr;
+	}
+}
 
 int ApplicationContext::MessageLoop()
 {
@@ -172,6 +185,20 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
     }
 
     commandQueue->WaitSync();
+
+    // ImGui 초기화
+    {
+        using namespace ZNFramework::Platform::Direct3D;
+        ImGuiLayer* guiLayer = new ImGuiLayer();
+        HWND hwnd = (HWND)inWindow->PlatformHandle();
+        GraphicsDevice* gfxDevice = dynamic_cast<GraphicsDevice*>(device);
+        CommandQueue* d3dCmdQueue = dynamic_cast<CommandQueue*>(commandQueue);
+        guiLayer->Init(hwnd, gfxDevice->Device().Get(), d3dCmdQueue->Queue(), SWAP_CHAIN_BUFFER_COUNT, DXGI_FORMAT_R8G8B8A8_UNORM);
+        imguiLayer = guiLayer;
+
+        commandQueue->SetImGuiDescriptorHeap(guiLayer->GetSrvHeap());
+        commandQueue->SetImGuiRenderCallback([this]() { imguiLayer->EndFrame(); });
+    }
 }
 
 void ApplicationContext::SetScene(ZNScene* scene)
@@ -244,6 +271,9 @@ void ApplicationContext::OnResize(uint32 width, uint32 height)
 
 void ApplicationContext::OnMouseEvent(struct MouseEvent event)
 {
+    if (ImGui::GetIO().WantCaptureMouse)
+        return;
+
     if (currentScene && currentScene->GetCamera())
     {
         currentScene->GetCamera()->ProcessMouse(event);
@@ -252,6 +282,9 @@ void ApplicationContext::OnMouseEvent(struct MouseEvent event)
 
 void ApplicationContext::OnKeyboardEvent(struct KeyboardEvent event)
 {
+    if (ImGui::GetIO().WantCaptureKeyboard)
+        return;
+
     if (currentScene)
     {
         static int callCount = 0;
@@ -283,12 +316,13 @@ void ApplicationContext::Update()
 
 void ApplicationContext::Render()
 {
+    if (imguiLayer)
+        imguiLayer->BeginFrame();
+
     RenderBegin();
 
     if (currentScene)
-    {
         currentScene->Render();
-    }
 
     RenderEnd();
 }

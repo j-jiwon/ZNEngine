@@ -1,6 +1,7 @@
 #include "TestGameScene.h"
 #include <iostream>
 #include <filesystem>
+#include <imgui.h>
 
 using namespace ZNFramework;
 
@@ -106,6 +107,7 @@ void TestGameScene::Initialize()
     dirLight->SetShadowFocusPoint(ZNVector3(0.0f, 0.0f, 0.0f));
     dirLight->SetShadowBounds(50.0f, 0.1f, 100.0f);
     SetDirectionalLight(dirLight);
+    this->dirLight = dirLight;
 
     // Load bunny model
     std::filesystem::path modelPath = GetResourcePath() / L"Models" / L"stanford-bunny.fbx";
@@ -204,6 +206,15 @@ void TestGameScene::Update(float deltaTime)
     {
         turntableObj->GetTransform().rotation.y += 45.0f * deltaTime;
     }
+
+    fpsAccum += deltaTime;
+    fpsFrames++;
+    if (fpsAccum >= 0.5f)
+    {
+        fpsDisplay = fpsFrames / fpsAccum;
+        fpsAccum  = 0.0f;
+        fpsFrames = 0;
+    }
 }
 
 void TestGameScene::OnKeyboardEvent(const KeyboardEvent& event)
@@ -243,4 +254,33 @@ void TestGameScene::ToggleDebugVisuals()
 void TestGameScene::Render()
 {
     ZNScene::Render();
+}
+
+void TestGameScene::RenderForward()
+{
+    ZNScene::RenderForward();
+
+    ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(280, 0), ImGuiCond_Always);
+    ImGui::Begin("ZNEngine", nullptr,
+        ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
+
+    ImGui::Text("FPS: %.1f  (%.2f ms)", fpsDisplay, fpsDisplay > 0.0f ? 1000.0f / fpsDisplay : 0.0f);
+
+    ImGui::Separator();
+    ImGui::Text("Directional Light");
+
+    if (dirLight)
+    {
+        ZNVector3 col = dirLight->GetColor();
+        float color[3] = { col.x, col.y, col.z };
+        if (ImGui::ColorEdit3("Color", color))
+            dirLight->SetColor(ZNVector3(color[0], color[1], color[2]));
+
+        float intensity = dirLight->GetIntensity();
+        if (ImGui::SliderFloat("Intensity", &intensity, 0.0f, 20.0f))
+            dirLight->SetIntensity(intensity);
+    }
+
+    ImGui::End();
 }

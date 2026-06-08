@@ -11,6 +11,7 @@ public:
     void Initialize() override;
     void Update(float deltaTime) override;
     void Render() override;
+    void RenderForward() override;
     void OnKeyboardEvent(const ZNFramework::KeyboardEvent& event) override;
 
     ZNFramework::ZNShader* GetDefaultShader() const { return defaultShader; }
@@ -60,4 +61,10 @@ private:
     // Interactive state
     ZNFramework::ZNGameObject* turntableObj = nullptr;
     bool turntableEnabled = false;
+
+    // ImGui state
+    ZNFramework::ZNDirectionalLight* dirLight = nullptr;
+    float fpsAccum = 0.0f;
+    int   fpsFrames = 0;
+    float fpsDisplay = 0.0f;
 };
