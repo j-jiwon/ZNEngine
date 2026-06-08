@@ -1,4 +1,5 @@
 #pragma once
+#include <vector>
 
 namespace ZNFramework
 {
@@ -10,7 +11,7 @@ namespace ZNFramework
     class ZNTableDescriptorHeap;
     class ZNShader;
     class ZNCamera;
-    class ZNLight;
+    class ZNSpotLight;
 
     class GraphicsContext
     {
@@ -83,11 +84,11 @@ namespace ZNFramework
         void SetCamera(ZNCamera* inCamera) { camera = inCamera; }
         ZNCamera* GetCamera() const { return camera; }
 
-        // Light
-        void SetLight(ZNLight* inLight) { light = inLight; }
-        ZNLight* GetLight() const { return light; }
+        // Spot Lights
+        void SetSpotLights(const std::vector<ZNSpotLight*>& lights) { spotLights = lights; }
+        const std::vector<ZNSpotLight*>& GetSpotLights() const { return spotLights; }
 
-        // Directional Light (secondary)
+        // Directional Light
         void SetDirectionalLight(ZNDirectionalLight* inLight) { directionalLight = inLight; }
         ZNDirectionalLight* GetDirectionalLight() const { return directionalLight; }
 
@@ -104,7 +105,7 @@ namespace ZNFramework
         ZNTableDescriptorHeap* descHeap = nullptr;
         ZNShader* gbufferShader = nullptr;
         ZNCamera* camera = nullptr;
-        ZNLight* light = nullptr;
+        std::vector<ZNSpotLight*> spotLights;
         ZNDirectionalLight* directionalLight = nullptr;
 
         GraphicsContext() = default;

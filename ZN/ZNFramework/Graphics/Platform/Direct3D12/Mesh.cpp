@@ -63,8 +63,9 @@ void Mesh::Render()
 		tableDescHeap->SetSRV(texture->GetCpuHandle(), SRV_REGISTER::t0);
 	}
 
-	// Set Light data (b2)
-	ZNLight* light = GraphicsContext::GetInstance().GetLight();
+	// Set Light data (b2) - use first spotlight if available
+	const auto& spotLights = GraphicsContext::GetInstance().GetSpotLights();
+	ZNLight* light = spotLights.empty() ? nullptr : spotLights[0];
 	if (light)
 	{
 		LightData lightData = light->GetLightData();

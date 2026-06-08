@@ -47,6 +47,10 @@ namespace ZNFramework
 
 		virtual void SetDirection(const ZNVector3& direction) = 0;
 		virtual ZNVector3 GetDirection() const = 0;
+
+		// Shadow mapping
+		virtual void SetShadowFocusPoint(const ZNVector3& focusPoint) = 0;
+		virtual void SetShadowBounds(float orthoSize, float nearPlane, float farPlane) = 0;
 	};
 
 	// Spot Light

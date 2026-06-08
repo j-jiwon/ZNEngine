@@ -16,43 +16,48 @@ public:
     ZNFramework::ZNShader* GetDefaultShader() const { return defaultShader; }
     ZNFramework::ZNGameObject* GetTurntableObject() const { return turntableObj; }
 
-private:
-    // Toggle states
-    bool turntableEnabled = false;
-    bool planeVisible = true;
-    bool lightEnabled = true;
+    struct SpotLightDebug {
+        ZNFramework::ZNGameObject* marker = nullptr;
+        ZNFramework::ZNGameObject* cone = nullptr;
+        ZNFramework::ZNMaterial* markerMaterial = nullptr;
+        ZNFramework::ZNMaterial* coneMaterial = nullptr;
+    };
 
-    // Resources
+private:
+    void ToggleDebugVisuals();
+
+    // Shaders
     ZNFramework::ZNShader* defaultShader = nullptr;
     ZNFramework::ZNShader* gridShader = nullptr;
+    ZNFramework::ZNShader* debugConeShader = nullptr;
 
-    // FBX Models
-    std::vector<ZNFramework::ZNGameObject*> modelObjects;
-    std::vector<ZNFramework::ZNMaterial*> materials;
-    std::vector<ZNFramework::ZNTexture*> textures;
+    // Loaded models
+    struct ModelResources {
+        std::vector<ZNFramework::ZNGameObject*> objects;
+        std::vector<ZNFramework::ZNMaterial*> materials;
+        std::vector<ZNFramework::ZNTexture*> textures;
+    } models;
 
-    // Debug visualization
+    // Scene objects (always visible)
+    struct SceneObjects {
+        ZNFramework::ZNGameObject* floor = nullptr;
+        ZNFramework::ZNGameObject* cube = nullptr;
+        ZNFramework::ZNGameObject* sphere = nullptr;
+        ZNFramework::ZNMaterial* floorMaterial = nullptr;
+        ZNFramework::ZNMaterial* cubeMaterial = nullptr;
+        ZNFramework::ZNMaterial* sphereMaterial = nullptr;
+    } scene;
+
+    // Debug visuals (toggle with F1)
+    struct DebugVisuals {
+        SpotLightDebug spotLight1;
+        SpotLightDebug spotLight2;
+        ZNFramework::ZNGameObject* gridPlane = nullptr;
+        ZNFramework::ZNMaterial* gridMaterial = nullptr;
+        bool visible = false;
+    } debug;
+
+    // Interactive state
     ZNFramework::ZNGameObject* turntableObj = nullptr;
-    ZNFramework::ZNGameObject* crosshair = nullptr;
-    ZNFramework::ZNGameObject* lightIndicator = nullptr;
-    ZNFramework::ZNGameObject* plane = nullptr;
-
-    ZNFramework::ZNGameObject* axisX = nullptr;
-    ZNFramework::ZNGameObject* axisY = nullptr;
-    ZNFramework::ZNGameObject* axisZ = nullptr;
-    ZNFramework::ZNMaterial* debugMaterial = nullptr;
-    ZNFramework::ZNMaterial* gridMaterial = nullptr;
-    ZNFramework::ZNMaterial* redMaterial = nullptr;
-    ZNFramework::ZNMaterial* greenMaterial = nullptr;
-    ZNFramework::ZNMaterial* blueMaterial = nullptr;
-
-    // Floor plane (deferred, receives shadows)
-    ZNFramework::ZNGameObject* floorPlane = nullptr;
-    ZNFramework::ZNMaterial* floorMaterial = nullptr;
-
-    // Shadow test objects
-    ZNFramework::ZNGameObject* cube = nullptr;
-    ZNFramework::ZNGameObject* sphere = nullptr;
-    ZNFramework::ZNMaterial* cubeMaterial = nullptr;
-    ZNFramework::ZNMaterial* sphereMaterial = nullptr;
+    bool turntableEnabled = false;
 };

@@ -41,17 +41,21 @@ namespace ZNFramework
 		ZNCamera* GetCamera() const { return camera; }
 
 		// Lighting
-		void SetLight(ZNLight* light);
-		ZNLight* GetLight() const { return primaryLight; }
+		void AddSpotLight(ZNSpotLight* light);
+		void RemoveSpotLight(ZNSpotLight* light);
+		const std::vector<ZNSpotLight*>& GetSpotLights() const { return spotLights; }
 
 		void SetDirectionalLight(ZNDirectionalLight* light);
 		ZNDirectionalLight* GetDirectionalLight() const { return directionalLight; }
 
+		ZNGameObject* FindGameObjectWithTag(const std::string& tag);
+		ZNGameObject* FindGameObjectWithName(const std::string& name);
+
 	protected:
 		std::vector<ZNGameObject*> gameObjects;
 		std::vector<ZNGameObject*> forwardGameObjects;  // Objects rendered in forward pass
+		std::vector<ZNSpotLight*> spotLights;
 		ZNCamera* camera = nullptr;
-		ZNLight* primaryLight = nullptr;
 		ZNDirectionalLight* directionalLight = nullptr;
 	};
 }

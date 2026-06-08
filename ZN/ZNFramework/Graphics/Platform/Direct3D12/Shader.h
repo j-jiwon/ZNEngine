@@ -13,7 +13,8 @@ namespace ZNFramework
 		void Bind() override;
 
 		void SetRenderTargetFormats(uint32 numRenderTargets, const DXGI_FORMAT* formats);
-		void DisableDepthTest();
+		void DisableDepthTest() override;
+		void DisableDepthWrite() override;
 		void EnableAlphaBlend() override;
 
 	private:

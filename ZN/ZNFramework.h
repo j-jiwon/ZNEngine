@@ -1,5 +1,8 @@
 #pragma once
 
+#include <windows.h>
+#include <filesystem>
+
 using int8 = __int8;
 using int16 = __int16;
 using int32 = __int32;
@@ -8,8 +11,6 @@ using uint8 = unsigned __int8;
 using uint16 = unsigned __int16;
 using uint32 = unsigned __int32;
 using uint64 = unsigned __int64;
-
-#include <filesystem>
 
 #include "ZNFramework/Math/ZNPoint.h"
 #include "ZNFramework/Math/ZNVector2.h"
@@ -46,9 +47,11 @@ using uint64 = unsigned __int64;
 #include "ZNFramework/Graphics/ZNMaterial.h"
 #include "ZNFramework/Graphics/ZNModelLoader.h"
 #include "ZNFramework/Graphics/ZNLight.h"
+#include "ZNFramework/Graphics/ZNMeshFactory.h"
+#include "ZNFramework/Graphics/ZNMaterialFactory.h"
 
 #include "ZNFramework/Graphics/ZNGraphicsContext.h"
-#include "ZNFramework/Graphics/Platform/Direct3D12/ZNUtils.h"
+#include "ZNFramework/Graphics/Platform/GraphicsAPI.h"
 #include "ZNFramework/ZNTransform.h"
 
 namespace ZNFramework

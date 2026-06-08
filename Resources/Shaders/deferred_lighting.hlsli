@@ -1,4 +1,20 @@
 
+#define MAX_SPOT_LIGHTS 8
+
+struct SpotLightData
+{
+    float3 position;
+    float intensity;
+    float3 direction;
+    float innerCutoff;
+    float3 color;
+    float outerCutoff;
+    float attenuationConstant;
+    float attenuationLinear;
+    float attenuationQuadratic;
+    float padding;
+};
+
 cbuffer cbLight : register(b0)
 {
     // Directional Light
@@ -7,28 +23,18 @@ cbuffer cbLight : register(b0)
     float3 dirLightColor;
     float dirAmbientIntensity;
 
-    // Spot Light
-    float3 spotLightPosition;
-    float spotLightIntensity;
-    float3 spotLightDirection;
-    float spotInnerCutoff;
-    float3 spotLightColor;
-    float spotOuterCutoff;
-
+    // Camera
     float3 viewPosition;
-    float padding;
-
-    // Spot light attenuation (constant, linear, quadratic)
-    float spotAttenuationConstant;
-    float spotAttenuationLinear;
-    float spotAttenuationQuadratic;
-    float padding2;
+    int numSpotLights;
 
     // Shadow mapping
     row_major float4x4 lightViewProj;
     float2 shadowMapSize;
     float shadowBias;
     float shadowPCFRadius;
+
+    // Spot Lights array
+    SpotLightData spotLights[MAX_SPOT_LIGHTS];
 };
 
 // G-Buffer textures
@@ -280,23 +286,28 @@ float4 PS_Main(VS_OUT input) : SV_Target
     float3 radiance_dir = dirLightColor * dirLightIntensity * shadow;
     Lo += CalculatePBR(N, V, L_dir, radiance_dir, albedo, metallic, roughness);
 
-    // SPOT LIGHT (PBR)
-    float3 spotLightVec = spotLightPosition - worldPos;
-    float spotDistance = length(spotLightVec);
-    float3 L_spot = normalize(spotLightVec);
+    // SPOT LIGHTS (PBR) - loop through all active spot lights
+    for (int i = 0; i < numSpotLights; ++i)
+    {
+        SpotLightData spot = spotLights[i];
 
-    // Distance attenuation
-    float attenuation = 1.0f / (spotAttenuationConstant +
-                                 spotAttenuationLinear * spotDistance +
-                                 spotAttenuationQuadratic * spotDistance * spotDistance);
+        float3 spotLightVec = spot.position - worldPos;
+        float spotDistance = length(spotLightVec);
+        float3 L_spot = normalize(spotLightVec);
 
-    // Cone cutoff (inner/outer)
-    float theta = dot(L_spot, normalize(-spotLightDirection));
-    float epsilon = spotInnerCutoff - spotOuterCutoff;
-    float spotIntensity = clamp((theta - spotOuterCutoff) / epsilon, 0.0f, 1.0f);
+        // Distance attenuation
+        float attenuation = 1.0f / (spot.attenuationConstant +
+                                     spot.attenuationLinear * spotDistance +
+                                     spot.attenuationQuadratic * spotDistance * spotDistance);
 
-    float3 radiance_spot = spotLightColor * spotLightIntensity * attenuation * spotIntensity;
-    Lo += CalculatePBR(N, V, L_spot, radiance_spot, albedo, metallic, roughness);
+        // Cone cutoff (inner/outer)
+        float theta = dot(L_spot, normalize(-spot.direction));
+        float epsilon = spot.innerCutoff - spot.outerCutoff;
+        float spotIntensity = clamp((theta - spot.outerCutoff) / epsilon, 0.0f, 1.0f);
+
+        float3 radiance_spot = spot.color * spot.intensity * attenuation * spotIntensity;
+        Lo += CalculatePBR(N, V, L_spot, radiance_spot, albedo, metallic, roughness);
+    }
 
     // Combine ambient and direct lighting
     float3 finalColor = ambient + Lo;

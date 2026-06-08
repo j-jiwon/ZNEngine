@@ -240,7 +240,9 @@
     <ClInclude Include="ZNFramework\Graphics\ZNGraphicsContext.h" />
     <ClInclude Include="ZNFramework\Graphics\ZNLight.h" />
     <ClInclude Include="ZNFramework\Graphics\ZNMaterial.h" />
+    <ClInclude Include="ZNFramework\Graphics\ZNMaterialFactory.h" />
     <ClInclude Include="ZNFramework\Graphics\ZNMesh.h" />
+    <ClInclude Include="ZNFramework\Graphics\ZNMeshFactory.h" />
     <ClInclude Include="ZNFramework\Graphics\ZNModelLoader.h" />
     <ClInclude Include="ZNFramework\Graphics\ZNRootSignature.h" />
     <ClInclude Include="ZNFramework\Graphics\ZNShader.h" />
@@ -301,6 +303,8 @@
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\Texture.cpp" />
     <ClCompile Include="ZNFramework\Graphics\ZNGraphicsDevice.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\ZNUtils.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\ZNMaterialFactory.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\ZNMeshFactory.cpp" />
     <ClCompile Include="ZNFramework\Scene\ZNGameObject.cpp" />
     <ClCompile Include="ZNFramework\Scene\ZNScene.cpp" />
     <ClCompile Include="ZNFramework\Window\Platform\Win32\Window.cpp" />

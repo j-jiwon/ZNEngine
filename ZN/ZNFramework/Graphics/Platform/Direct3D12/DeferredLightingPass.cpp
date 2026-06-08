@@ -20,6 +20,22 @@ struct LightingVertex
     float normal[3];
 };
 
+#define MAX_SPOT_LIGHTS 8
+
+struct SpotLightData
+{
+    float position[3];
+    float intensity;
+    float direction[3];
+    float innerCutoff;
+    float color[3];
+    float outerCutoff;
+    float attenuationConstant;
+    float attenuationLinear;
+    float attenuationQuadratic;
+    float padding;
+};
+
 struct DeferredLightCB
 {
     // Directional Light
@@ -28,28 +44,18 @@ struct DeferredLightCB
     float dirLightColor[3];
     float dirAmbientIntensity;
 
-    // Spot Light
-    float spotLightPosition[3];
-    float spotLightIntensity;
-    float spotLightDirection[3];
-    float spotInnerCutoff;
-    float spotLightColor[3];
-    float spotOuterCutoff;
-
+    // Camera
     float viewPosition[3];
-    float padding;
-
-    // Spot light attenuation
-    float spotAttenuationConstant;
-    float spotAttenuationLinear;
-    float spotAttenuationQuadratic;
-    float padding2;
+    int numSpotLights;
 
     // Shadow mapping
-    float lightViewProj[16];    // Light view-projection matrix
-    float shadowMapSize[2];     // Shadow map dimensions
-    float shadowBias;           // Depth bias
-    float shadowPCFRadius;      // PCF filter radius
+    float lightViewProj[16];
+    float shadowMapSize[2];
+    float shadowBias;
+    float shadowPCFRadius;
+
+    // Spot Lights array
+    SpotLightData spotLights[MAX_SPOT_LIGHTS];
 };
 
 void DeferredLightingPass::Init()
@@ -136,7 +142,7 @@ void DeferredLightingPass::Render(GBufferManager* gbufferManager, ShadowMap* sha
     DeferredLightCB lightData = {};
 
     ZNDirectionalLight* dirLight = GraphicsContext::GetInstance().GetDirectionalLight();
-    ZNLight* primaryLight = GraphicsContext::GetInstance().GetLight();
+    const auto& spotLights = GraphicsContext::GetInstance().GetSpotLights();
     ZNCamera* camera = GraphicsContext::GetInstance().GetCamera();
 
     if (dirLight)
@@ -165,30 +171,40 @@ void DeferredLightingPass::Render(GBufferManager* gbufferManager, ShadowMap* sha
         }
     }
 
-    if (primaryLight && primaryLight->GetType() == LightType::Spot)
+    // Fill spotlight array
+    int numSpots = 0;
+    for (size_t i = 0; i < spotLights.size() && i < MAX_SPOT_LIGHTS; ++i)
     {
-        ZNSpotLight* spotLight = static_cast<ZNSpotLight*>(primaryLight);
-        ZNVector3 pos = spotLight->GetPosition();
-        ZNVector3 dir = spotLight->GetDirection();
-        ZNVector3 color = spotLight->GetColor();
+        ZNLight* light = spotLights[i];
+        if (light && light->GetType() == LightType::Spot)
+        {
+            ZNSpotLight* spotLight = static_cast<ZNSpotLight*>(light);
+            ZNVector3 pos = spotLight->GetPosition();
+            ZNVector3 dir = spotLight->GetDirection();
+            ZNVector3 color = spotLight->GetColor();
 
-        lightData.spotLightPosition[0] = pos.x;
-        lightData.spotLightPosition[1] = pos.y;
-        lightData.spotLightPosition[2] = pos.z;
-        lightData.spotLightIntensity = spotLight->GetIntensity();
-        lightData.spotLightDirection[0] = dir.x;
-        lightData.spotLightDirection[1] = dir.y;
-        lightData.spotLightDirection[2] = dir.z;
-        lightData.spotInnerCutoff = cos(spotLight->GetInnerCutoffAngle() * 3.14159f / 180.0f);
-        lightData.spotLightColor[0] = color.x;
-        lightData.spotLightColor[1] = color.y;
-        lightData.spotLightColor[2] = color.z;
-        lightData.spotOuterCutoff = cos(spotLight->GetOuterCutoffAngle() * 3.14159f / 180.0f);
+            SpotLightData& data = lightData.spotLights[numSpots];
+            data.position[0] = pos.x;
+            data.position[1] = pos.y;
+            data.position[2] = pos.z;
+            data.intensity = spotLight->GetIntensity();
+            data.direction[0] = dir.x;
+            data.direction[1] = dir.y;
+            data.direction[2] = dir.z;
+            data.innerCutoff = cos(spotLight->GetInnerCutoffAngle() * 3.14159f / 180.0f);
+            data.color[0] = color.x;
+            data.color[1] = color.y;
+            data.color[2] = color.z;
+            data.outerCutoff = cos(spotLight->GetOuterCutoffAngle() * 3.14159f / 180.0f);
 
-        lightData.spotAttenuationConstant = spotLight->GetConstantAttenuation();
-        lightData.spotAttenuationLinear = spotLight->GetLinearAttenuation();
-        lightData.spotAttenuationQuadratic = spotLight->GetQuadraticAttenuation();
+            data.attenuationConstant = spotLight->GetConstantAttenuation();
+            data.attenuationLinear = spotLight->GetLinearAttenuation();
+            data.attenuationQuadratic = spotLight->GetQuadraticAttenuation();
+
+            ++numSpots;
+        }
     }
+    lightData.numSpotLights = numSpots;
 
     if (camera)
     {

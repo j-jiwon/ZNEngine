@@ -42,6 +42,8 @@
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\DeferredLightingPass.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\DebugViewportRenderer.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\ShadowMap.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\ZNMeshFactory.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\ZNMaterialFactory.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\d3dx12.h" />
@@ -108,5 +110,7 @@
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\DeferredLightingPass.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\DebugViewportRenderer.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\ShadowMap.h" />
+    <ClInclude Include="ZNFramework\Graphics\ZNMeshFactory.h" />
+    <ClInclude Include="ZNFramework\Graphics\ZNMaterialFactory.h" />
   </ItemGroup>
 </Project>
