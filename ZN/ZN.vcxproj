@@ -339,6 +339,9 @@
     <ClCompile Include="ZNFramework\Math\ZNVector3.cpp" />
     <ClCompile Include="ZNFramework\Math\ZNVector4.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="claude.md" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

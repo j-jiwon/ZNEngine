@@ -6,6 +6,9 @@
 
 using namespace ZNFramework;
 
+int ZNGameObject::sDrawCalls = 0;
+int ZNGameObject::sLastFrameDrawCalls = 0;
+
 void ZNGameObject::Render()
 {
 	if (!mesh)
@@ -17,6 +20,7 @@ void ZNGameObject::Render()
 	// Render mesh (material is already set on mesh if available)
 	if (isVisible)
 	{
+		++sDrawCalls;
 		mesh->Render();
 	}
 }
@@ -31,6 +35,7 @@ void ZNGameObject::RenderShadow(const ZNMatrix4& lightViewProj, ZNShader* shadow
 	// Render mesh for shadow pass
 	if (isVisible)
 	{
+		++sDrawCalls;
 		mesh->RenderShadow(lightViewProj, shadowShader);
 	}
 }

@@ -31,43 +31,35 @@ void SwapChain::Init(ZNCommandQueue* inQueue)
 
 void SwapChain::Resize(uint32 inWidth, uint32 inHeight)
 {
-    //if (width != inWidth || height != inHeight)
-    //{
-    //    width = inWidth;
-    //    height = inHeight;
+    if (inWidth == 0 || inHeight == 0)
+        return;
+    if (width == inWidth && height == inHeight)
+        return;
 
-    //    for (int i = 0; i < SWAP_CHAIN_BUFFER_COUNT; i++)
-    //    {
-    //        rtvBuffer[i].Reset();
-    //    }
+    width = inWidth;
+    height = inHeight;
 
-    //    // 스왑 체인 버퍼 리사이즈
-    //    ThrowIfFailed(swapChain->ResizeBuffers(
-    //        FRAME_BUFFER_COUNT,          // 새로운 버퍼 수
-    //        width,                       // 새로운 너비
-    //        height,                      // 새로운 높이
-    //        DXGI_FORMAT_R8G8B8A8_UNORM,  // 버퍼 포맷
-    //        DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH // 추가 플래그
-    //    ));
+    queue->WaitSync();
 
-    //    backBufferIndex = 0;
+    for (int i = 0; i < SWAP_CHAIN_BUFFER_COUNT; i++)
+        rtvBuffer[i].Reset();
 
-    //    // 새로운 렌더 타겟 뷰를 가져오기
-    //    for (int i = 0; i < SWAP_CHAIN_BUFFER_COUNT; i++)
-    //    {
-    //        ThrowIfFailed(swapChain->GetBuffer(i, IID_PPV_ARGS(&rtvBuffer[i])));
-    //    }
+    ThrowIfFailed(swapChain->ResizeBuffers(
+        SWAP_CHAIN_BUFFER_COUNT,
+        width,
+        height,
+        DXGI_FORMAT_R8G8B8A8_UNORM,
+        DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH
+    ));
 
-    //    // descriptor resize
-    //    D3D12_CPU_DESCRIPTOR_HANDLE rtvHeapBegin = rtvHeap->GetCPUDescriptorHandleForHeapStart();
+    backBufferIndex = 0;
 
-    //    for (int i = 0; i < SWAP_CHAIN_BUFFER_COUNT; i++)
-    //    {
-    //        CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(rtvHeap->GetCPUDescriptorHandleForHeapStart());
-    //        rtvHandle.Offset(i, rtvHeapSize);
-    //        device->Device()->CreateRenderTargetView(rtvBuffer[i].Get(), nullptr, rtvHandle);
-    //    }
-    //}
+    for (int i = 0; i < SWAP_CHAIN_BUFFER_COUNT; i++)
+    {
+        ThrowIfFailed(swapChain->GetBuffer(i, IID_PPV_ARGS(&rtvBuffer[i])));
+        rtvHandle[i] = CD3DX12_CPU_DESCRIPTOR_HANDLE(rtvHeap->GetCPUDescriptorHandleForHeapStart(), i * rtvHeapSize);
+        device->Device()->CreateRenderTargetView(rtvBuffer[i].Get(), nullptr, rtvHandle[i]);
+    }
 }
 
 void SwapChain::Present()

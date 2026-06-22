@@ -173,9 +173,10 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
         lightingPass->Init();
         cmdQueue->SetDeferredLightingPass(lightingPass);
 
-        // Initialize Debug Viewport Renderer
+        // Initialize Debug Viewport Renderer (disabled — replaced by ImGui GBuffer Preview)
         DebugViewportRenderer* debugViewport = new DebugViewportRenderer();
         debugViewport->Init();
+        debugViewport->SetEnabled(false);
         cmdQueue->SetDebugViewportRenderer(debugViewport);
 
         // Initialize Shadow Map (2048x2048)
@@ -197,7 +198,45 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
         imguiLayer = guiLayer;
 
         commandQueue->SetImGuiDescriptorHeap(guiLayer->GetSrvHeap());
-        commandQueue->SetImGuiRenderCallback([this]() { imguiLayer->EndFrame(); });
+
+        // Register GBuffer SRVs as ImGui textures for debug windows
+        GBufferManager* gbufferMgr = d3dCmdQueue->GetGBufferManager();
+        ShadowMap* shadowMapPtr    = d3dCmdQueue->GetShadowMap();
+        DebugViewportRenderer* debugRenderer = d3dCmdQueue->GetDebugViewportRenderer();
+
+        const bool hasShadow = (shadowMapPtr != nullptr);
+
+        commandQueue->SetImGuiRenderCallback([this, guiLayer, gfxDevice, d3dCmdQueue, hasShadow]()
+        {
+            GBufferManager* gbufferMgr = d3dCmdQueue->GetGBufferManager();
+            ShadowMap* shadowMapPtr    = d3dCmdQueue->GetShadowMap();
+
+            // Refresh descriptors every frame so GBuffer resize is automatically reflected
+            ImTextureID baseColorTexId = guiLayer->SetTexture(gfxDevice->Device().Get(), gbufferMgr->GetBaseColorSRV(), 1);
+            ImTextureID normalTexId    = guiLayer->SetTexture(gfxDevice->Device().Get(), gbufferMgr->GetNormalSRV(), 2);
+            ImTextureID worldPosTexId  = guiLayer->SetTexture(gfxDevice->Device().Get(), gbufferMgr->GetWorldPosSRV(), 3);
+            ImTextureID armTexId       = guiLayer->SetTexture(gfxDevice->Device().Get(), gbufferMgr->GetARMSRV(), 4);
+            ImTextureID depthTexId     = guiLayer->SetGrayscaleTexture(gfxDevice->Device().Get(), gbufferMgr->GetDepthCopyResource(), DXGI_FORMAT_R32_FLOAT, 5);
+            ImTextureID shadowTexId    = (hasShadow && shadowMapPtr) ? guiLayer->SetGrayscaleTexture(gfxDevice->Device().Get(), shadowMapPtr->GetResource(), DXGI_FORMAT_R32_FLOAT, 6) : 0;
+
+            ImVec2 thumbSize(160.0f, 90.0f);
+            ImGui::SetNextWindowSize(ImVec2(200.0f, 0.0f), ImGuiCond_FirstUseEver);
+            ImGui::Begin("GBuffer Preview");
+            auto thumb = [&](const char* label, ImTextureID tex) {
+                ImGui::Text("%s", label);
+                ImGui::Image(tex, thumbSize);
+            };
+            thumb("BaseColor", baseColorTexId);
+            thumb("Normal",    normalTexId);
+            thumb("WorldPos",  worldPosTexId);
+            thumb("ARM",       armTexId);
+            thumb("Depth",     depthTexId);
+            if (shadowTexId != 0)
+                thumb("Shadow", shadowTexId);
+            ImGui::End();
+
+            imguiLayer->EndFrame();
+        });
     }
 }
 
@@ -256,16 +295,29 @@ ZNScene* ApplicationContext::GetScene() const
 
 void ApplicationContext::OnResize(uint32 width, uint32 height)
 {
+    if (width == 0 || height == 0)
+        return;
+
     swapChain->Resize(width, height);
     depthStencilBuffer->Init();
+
+    CommandQueue* cmdQueue = dynamic_cast<CommandQueue*>(commandQueue);
+    if (cmdQueue)
+    {
+        GBufferManager* gbufferMgr = cmdQueue->GetGBufferManager();
+        if (gbufferMgr)
+        {
+            gbufferMgr->Resize(width, height);
+            cmdQueue->NotifyGBufferResized();
+        }
+    }
 
     // Update camera projection from scene
     if (currentScene && currentScene->GetCamera())
     {
         ZNCamera* camera = currentScene->GetCamera();
         float aspect = static_cast<float>(width) / static_cast<float>(height);
-        camera->SetPerspective(3.141592f / 4.0f, aspect, 0.1f, 100.0f); // 45 degrees FOV
-        std::cout << "Resize: width=" << width << ", height=" << height << ", aspect=" << aspect << std::endl;
+        camera->SetPerspective(3.141592f / 4.0f, aspect, 0.1f, 100.0f);
     }
 }
 
@@ -316,6 +368,8 @@ void ApplicationContext::Update()
 
 void ApplicationContext::Render()
 {
+    ZNGameObject::FlushDrawCalls();
+
     if (imguiLayer)
         imguiLayer->BeginFrame();
 

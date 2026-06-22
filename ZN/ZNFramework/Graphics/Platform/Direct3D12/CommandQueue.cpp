@@ -120,8 +120,8 @@ void CommandQueue::RenderBegin()
 		}
 
 		// Transition G-Buffer resources from SHADER_RESOURCE to RENDER_TARGET
-		// Skip on first frame since resources are created in RENDER_TARGET state
-		if (!isFirstFrame)
+		// Skip on first frame or immediately after a GBuffer resize (resources start in RENDER_TARGET)
+		if (!isFirstFrame && !gbufferJustResized)
 		{
 			D3D12_RESOURCE_BARRIER barriers[5];
 			barriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(
@@ -146,6 +146,7 @@ void CommandQueue::RenderBegin()
 				D3D12_RESOURCE_STATE_RENDER_TARGET);
 			commandList->ResourceBarrier(5, barriers);
 		}
+		gbufferJustResized = false;
 
 		// Clear all G-Buffer render targets
 		float clearColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
@@ -278,12 +279,6 @@ void CommandQueue::RenderEnd()
 			isForwardPass = true;
 			forwardRenderCallback();
 			isForwardPass = false;
-		}
-
-		// Render debug viewports on top
-		if (debugViewportRenderer)
-		{
-			debugViewportRenderer->RenderDebugViews(gbufferManager, shadowMap, swapChain->Width(), swapChain->Height());
 		}
 
 		// ImGui pass - bind its own SRV heap and render UI on top of everything

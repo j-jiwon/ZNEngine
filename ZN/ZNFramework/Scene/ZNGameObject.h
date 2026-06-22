@@ -30,6 +30,15 @@ namespace ZNFramework
 		ZNMesh* GetMesh() const { return mesh; }
 		ZNMaterial* GetMaterial() const { return material; }
 
+		static void FlushDrawCalls() { sLastFrameDrawCalls = sDrawCalls; sDrawCalls = 0; }
+		static int GetLastFrameDrawCalls() { return sLastFrameDrawCalls; }
+
+	private:
+		static int sDrawCalls;
+		static int sLastFrameDrawCalls;
+
+	public:
+
 		Transform& GetTransform() { return transform; }
 		const Transform& GetTransform() const { return transform; }
 

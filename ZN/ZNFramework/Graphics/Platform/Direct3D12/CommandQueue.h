@@ -31,6 +31,7 @@ namespace ZNFramework
         void SetGBufferManager(GBufferManager* manager) { gbufferManager = manager; }
         void SetDeferredLightingPass(DeferredLightingPass* pass) { deferredLightingPass = pass; }
         void SetDebugViewportRenderer(DebugViewportRenderer* renderer) { debugViewportRenderer = renderer; }
+        DebugViewportRenderer* GetDebugViewportRenderer() { return debugViewportRenderer; }
         void SetGBufferEnabled(bool enabled) { enableGBuffer = enabled; }
         bool IsForwardPass() const { return isForwardPass; }
         void SetForwardPass(bool forward) { isForwardPass = forward; }
@@ -40,6 +41,8 @@ namespace ZNFramework
         ShadowMap* GetShadowMap() { return shadowMap; }
         void SetShadowRenderCallback(std::function<void()> callback) { shadowRenderCallback = callback; }
         bool IsShadowPass() const { return isShadowPass; }
+
+        void NotifyGBufferResized() { gbufferJustResized = true; }
 
     private:
         ComPtr<ID3D12CommandQueue> queue;
@@ -69,5 +72,7 @@ namespace ZNFramework
         std::function<void()> shadowRenderCallback;
         bool isShadowPass = false;
         bool shadowPassFirstFrame = true;
+
+        bool gbufferJustResized = false;
     };
 }

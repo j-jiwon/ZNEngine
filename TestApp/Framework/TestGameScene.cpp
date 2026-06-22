@@ -1,6 +1,7 @@
 #include "TestGameScene.h"
 #include <iostream>
 #include <filesystem>
+#include <string>
 #include <imgui.h>
 
 using namespace ZNFramework;
@@ -27,6 +28,7 @@ namespace
         debug.marker->SetMesh(ZNMeshFactory::CreateCube(0.1f));
         debug.marker->GetMesh()->SetMaterial(debug.markerMaterial);
         debug.marker->SetName("SpotLightMarker");
+        debug.marker->SetTag("Debug");
         debug.marker->GetTransform().position = pos;
         debug.marker->SetVisible(false);
         scene->AddGameObject(debug.marker);
@@ -38,6 +40,7 @@ namespace
         debug.cone->SetMesh(ZNMeshFactory::CreateConeFromApex(outerAngle, coneLength, 32));
         debug.cone->GetMesh()->SetMaterial(debug.coneMaterial);
         debug.cone->SetName("SpotLightCone");
+        debug.cone->SetTag("Debug");
         debug.cone->GetTransform().position = pos;
         float zRotation = atan2f(-dir.x, -dir.y) * 180.0f / 3.14159265f;
         float xRotation = asinf(dir.z) * 180.0f / 3.14159265f;
@@ -129,6 +132,7 @@ void TestGameScene::Initialize()
                 mesh->SetMaterial(bunnyMat);
 
                 obj->SetMesh(mesh);
+                obj->SetMaterial(bunnyMat);
                 obj->SetName("Bunny");
                 obj->GetTransform().rotation = ZNVector3(0.f, 90.f, 0.f);
                 obj->GetTransform().scale = ZNVector3(0.01f, 0.01f, 0.01f);
@@ -149,6 +153,7 @@ void TestGameScene::Initialize()
     scene.floor = new ZNGameObject();
     scene.floor->SetMesh(ZNMeshFactory::CreatePlane(10.0f));
     scene.floor->GetMesh()->SetMaterial(scene.floorMaterial);
+    scene.floor->SetMaterial(scene.floorMaterial);
     scene.floor->SetName("Floor");
     scene.floor->GetTransform().position = ZNVector3(0.0f, -0.3f, 0.0f);
     scene.floor->SetCastShadow(false);
@@ -160,6 +165,7 @@ void TestGameScene::Initialize()
     scene.cube = new ZNGameObject();
     scene.cube->SetMesh(ZNMeshFactory::CreateCube(1.0f));
     scene.cube->GetMesh()->SetMaterial(scene.cubeMaterial);
+    scene.cube->SetMaterial(scene.cubeMaterial);
     scene.cube->SetName("Cube");
     scene.cube->GetTransform().position = ZNVector3(2.5f, 0.5f, 1.5f);
     scene.cube->GetTransform().scale = ZNVector3(0.5f, 0.5f, 0.5f);
@@ -172,6 +178,7 @@ void TestGameScene::Initialize()
     scene.sphere = new ZNGameObject();
     scene.sphere->SetMesh(ZNMeshFactory::CreateSphere(1.0f, 16, 16));
     scene.sphere->GetMesh()->SetMaterial(scene.sphereMaterial);
+    scene.sphere->SetMaterial(scene.sphereMaterial);
     scene.sphere->SetName("Sphere");
     scene.sphere->GetTransform().position = ZNVector3(-2.0f, 0.5f, 0.0f);
     scene.sphere->GetTransform().scale = ZNVector3(0.5f, 0.5f, 0.5f);
@@ -192,6 +199,7 @@ void TestGameScene::Initialize()
     debug.gridPlane->SetMesh(ZNMeshFactory::CreatePlane(50.0f));
     debug.gridPlane->GetMesh()->SetMaterial(debug.gridMaterial);
     debug.gridPlane->SetName("GridPlane");
+    debug.gridPlane->SetTag("Debug");
     debug.gridPlane->SetVisible(false);
     AddForwardGameObject(debug.gridPlane);
 
@@ -260,26 +268,172 @@ void TestGameScene::RenderForward()
 {
     ZNScene::RenderForward();
 
+    // --- Stats ---
+    const float cpuMs = fpsDisplay > 0.0f ? 1000.0f / fpsDisplay : 0.0f;
+    const int   totalObjs   = static_cast<int>(GetGameObjects().size());
+    const int   visibleObjs = [&]{ int n=0; for (auto* o : GetGameObjects()) if (o->IsVisible()) ++n; return n; }();
+
     ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always);
-    ImGui::SetNextWindowSize(ImVec2(280, 0), ImGuiCond_Always);
-    ImGui::Begin("ZNEngine", nullptr,
+    ImGui::SetNextWindowSize(ImVec2(220, 0), ImGuiCond_Always);
+    ImGui::Begin("Stats", nullptr,
         ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
 
-    ImGui::Text("FPS: %.1f  (%.2f ms)", fpsDisplay, fpsDisplay > 0.0f ? 1000.0f / fpsDisplay : 0.0f);
-
+    ImGui::Text("FPS        %.1f", fpsDisplay);
+    ImGui::Text("CPU        %.2f ms", cpuMs);
     ImGui::Separator();
-    ImGui::Text("Directional Light");
+    ImGui::Text("Draw Calls %d", ZNGameObject::GetLastFrameDrawCalls());
+    ImGui::Text("Objects    %d / %d", visibleObjs, totalObjs);
+    ImGui::Separator();
+    ImGui::TextDisabled("GPU Time   (needs timestamp queries)");
+    ImGui::TextDisabled("GPU Mem    (needs IDXGIAdapter3)");
+    ImGui::TextDisabled("Triangles  (needs ZNMesh::GetIndexCount)");
 
-    if (dirLight)
+    ImGui::End();
+
+    // --- Outliner ---
+    ImGui::SetNextWindowSize(ImVec2(220, 400), ImGuiCond_FirstUseEver);
+    ImGui::Begin("Outliner");
+
+    if (ImGui::TreeNodeEx("GameObjects", ImGuiTreeNodeFlags_DefaultOpen))
     {
-        ZNVector3 col = dirLight->GetColor();
+        for (auto* obj : GetGameObjects())
+        {
+            if (obj->GetTag() == "Debug") continue;
+            bool isSelected = (selection.type == SelectedType::GameObject && selection.ptr == obj);
+            if (ImGui::Selectable(obj->GetName().c_str(), isSelected))
+            {
+                selection.type = SelectedType::GameObject;
+                selection.ptr  = obj;
+            }
+        }
+        ImGui::TreePop();
+    }
+
+    if (ImGui::TreeNodeEx("Lights", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        const auto& spots = GetSpotLights();
+        for (int i = 0; i < (int)spots.size(); ++i)
+        {
+            std::string label = "SpotLight " + std::to_string(i);
+            bool isSelected = (selection.type == SelectedType::SpotLight && selection.ptr == spots[i]);
+            if (ImGui::Selectable(label.c_str(), isSelected))
+            {
+                selection.type = SelectedType::SpotLight;
+                selection.ptr  = spots[i];
+            }
+        }
+        ZNDirectionalLight* dl = GetDirectionalLight();
+        if (dl)
+        {
+            bool isSelected = (selection.type == SelectedType::DirectionalLight && selection.ptr == dl);
+            if (ImGui::Selectable("DirectionalLight", isSelected))
+            {
+                selection.type = SelectedType::DirectionalLight;
+                selection.ptr  = dl;
+            }
+        }
+        ImGui::TreePop();
+    }
+
+    ImGui::End();
+
+    // --- Inspector ---
+    ImGui::SetNextWindowSize(ImVec2(280, 400), ImGuiCond_FirstUseEver);
+    ImGui::Begin("Inspector");
+
+    switch (selection.type)
+    {
+    case SelectedType::GameObject:
+    {
+        ZNGameObject* obj = static_cast<ZNGameObject*>(selection.ptr);
+        ImGui::Text("GameObject: %s", obj->GetName().c_str());
+        ImGui::Separator();
+
+        ImGui::Text("Transform");
+        Transform& t = obj->GetTransform();
+        float pos[3] = { t.position.x, t.position.y, t.position.z };
+        if (ImGui::DragFloat3("Position", pos, 0.01f))
+            t.position = ZNVector3(pos[0], pos[1], pos[2]);
+        float rot[3] = { t.rotation.x, t.rotation.y, t.rotation.z };
+        if (ImGui::DragFloat3("Rotation", rot, 0.5f))
+            t.rotation = ZNVector3(rot[0], rot[1], rot[2]);
+        float sc[3] = { t.scale.x, t.scale.y, t.scale.z };
+        if (ImGui::DragFloat3("Scale", sc, 0.001f, 0.001f, 100.0f))
+            t.scale = ZNVector3(sc[0], sc[1], sc[2]);
+
+        ZNMaterial* mat = obj->GetMaterial();
+        if (mat)
+        {
+            ImGui::Separator();
+            ImGui::Text("Material");
+            MaterialParams p = mat->GetParams();
+            bool changed = false;
+            float col[4] = { p.albedoColor.x, p.albedoColor.y, p.albedoColor.z, p.albedoColor.w };
+            if (ImGui::ColorEdit4("Albedo", col))
+            {
+                p.albedoColor = ZNVector4(col[0], col[1], col[2], col[3]);
+                changed = true;
+            }
+            if (ImGui::SliderFloat("Metallic",  &p.metallic,  0.0f, 1.0f)) changed = true;
+            if (ImGui::SliderFloat("Roughness", &p.roughness, 0.0f, 1.0f)) changed = true;
+            if (changed)
+                mat->SetParams(p);
+        }
+        break;
+    }
+    case SelectedType::SpotLight:
+    {
+        ZNSpotLight* light = static_cast<ZNSpotLight*>(selection.ptr);
+        ImGui::Text("SpotLight");
+        ImGui::Separator();
+
+        ZNVector3 col = light->GetColor();
         float color[3] = { col.x, col.y, col.z };
         if (ImGui::ColorEdit3("Color", color))
-            dirLight->SetColor(ZNVector3(color[0], color[1], color[2]));
+            light->SetColor(ZNVector3(color[0], color[1], color[2]));
 
-        float intensity = dirLight->GetIntensity();
+        float intensity = light->GetIntensity();
+        if (ImGui::SliderFloat("Intensity", &intensity, 0.0f, 10.0f))
+            light->SetIntensity(intensity);
+
+        ZNVector3 pos = light->GetPosition();
+        float posArr[3] = { pos.x, pos.y, pos.z };
+        if (ImGui::DragFloat3("Position", posArr, 0.05f))
+            light->SetPosition(ZNVector3(posArr[0], posArr[1], posArr[2]));
+
+        float innerAngle = light->GetInnerCutoffAngle();
+        float outerAngle = light->GetOuterCutoffAngle();
+        bool cutoffChanged = false;
+        if (ImGui::SliderFloat("Inner Angle", &innerAngle, 0.0f, 89.0f)) cutoffChanged = true;
+        if (ImGui::SliderFloat("Outer Angle", &outerAngle, 0.0f, 89.0f)) cutoffChanged = true;
+        if (cutoffChanged)
+            light->SetCutoffAngle(innerAngle, outerAngle);
+        break;
+    }
+    case SelectedType::DirectionalLight:
+    {
+        ZNDirectionalLight* dl = static_cast<ZNDirectionalLight*>(selection.ptr);
+        ImGui::Text("DirectionalLight");
+        ImGui::Separator();
+
+        ZNVector3 col = dl->GetColor();
+        float color[3] = { col.x, col.y, col.z };
+        if (ImGui::ColorEdit3("Color", color))
+            dl->SetColor(ZNVector3(color[0], color[1], color[2]));
+
+        float intensity = dl->GetIntensity();
         if (ImGui::SliderFloat("Intensity", &intensity, 0.0f, 20.0f))
-            dirLight->SetIntensity(intensity);
+            dl->SetIntensity(intensity);
+
+        ZNVector3 dir = dl->GetDirection();
+        float dirArr[3] = { dir.x, dir.y, dir.z };
+        if (ImGui::SliderFloat3("Direction", dirArr, -1.0f, 1.0f))
+            dl->SetDirection(ZNVector3(dirArr[0], dirArr[1], dirArr[2]).Normalize());
+        break;
+    }
+    default:
+        ImGui::TextDisabled("Nothing selected.");
+        break;
     }
 
     ImGui::End();

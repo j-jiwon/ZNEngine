@@ -16,6 +16,7 @@ namespace ZNFramework
 		void SetShader(ZNShader* shader) override;
 		void SetTexture(TextureType type, ZNTexture* texture) override;
 		void SetParams(const MaterialParams& params) override;
+		const MaterialParams& GetParams() const override { return params; }
 		void Bind() override;
 
 	private:

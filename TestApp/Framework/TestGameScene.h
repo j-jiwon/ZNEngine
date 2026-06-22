@@ -24,6 +24,12 @@ public:
         ZNFramework::ZNMaterial* coneMaterial = nullptr;
     };
 
+    enum class SelectedType { None, GameObject, SpotLight, DirectionalLight };
+    struct Selection {
+        SelectedType type = SelectedType::None;
+        void* ptr = nullptr;
+    };
+
 private:
     void ToggleDebugVisuals();
 
@@ -67,4 +73,5 @@ private:
     float fpsAccum = 0.0f;
     int   fpsFrames = 0;
     float fpsDisplay = 0.0f;
+    Selection selection;
 };

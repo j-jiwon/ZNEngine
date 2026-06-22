@@ -121,7 +121,6 @@
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\ShadowMap.h" />
     <ClInclude Include="ZNFramework\Graphics\ZNMeshFactory.h" />
     <ClInclude Include="ZNFramework\Graphics\ZNMaterialFactory.h" />
-    <ClInclude Include="..\..\..\Users\ziwon\Downloads\imgui-master\imgui-master\imgui.h" />
     <ClInclude Include="ZNFramework\ThirdParty\imgui\imgui.h" />
     <ClInclude Include="ZNFramework\ThirdParty\imgui\imgui_impl_dx12.h" />
     <ClInclude Include="ZNFramework\ThirdParty\imgui\imgui_impl_win32.h" />
@@ -130,5 +129,8 @@
     <ClInclude Include="ZNFramework\ThirdParty\imgui\imstb_textedit.h" />
     <ClInclude Include="ZNFramework\ThirdParty\imgui\imstb_truetype.h" />
     <ClInclude Include="ZNFramework\ThirdParty\imgui\imconfig.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="claude.md" />
   </ItemGroup>
 </Project>
