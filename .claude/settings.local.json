@@ -16,7 +16,17 @@
       "Bash(cmd.exe:*)",
       "Bash(\"C:/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\" ZNEngine.sln /p:Configuration=Debug /p:Platform=x64 /m /v:minimal)",
       "Bash(powershell -Command:*)",
-      "Bash(\"/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\" ZNEngine.sln -p:Configuration=Debug -p:Platform=x64 -t:Build -v:minimal)"
+      "Bash(\"/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\" ZNEngine.sln -p:Configuration=Debug -p:Platform=x64 -t:Build -v:minimal)",
+      "Bash(Get-ChildItem -Force)",
+      "Bash(Select-Object Name, PSIsContainer)",
+      "PowerShell(Get-ChildItem -Path \"c:\\\\Work\\\\ZNEngine\\\\ZN\\\\ZNFramework\" -Recurse | Where-Object {$_.PSIsContainer} | Select-Object FullName | ForEach-Object {$_.FullName.Replace\\(\"c:\\\\Work\\\\ZNEngine\\\\ZN\\\\ZNFramework\\\\\", \"\"\\)} | Sort-Object)",
+      "PowerShell(& \"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Community\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe\" \"C:\\\\Work\\\\ZNEngine\\\\ZNEngine.sln\" /p:Configuration=Debug /p:Platform=x64 /t:Build /m /nologo /v:minimal 2>&1)",
+      "PowerShell(& \"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Community\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe\" \"C:\\\\Work\\\\ZNEngine\\\\ZNEngine.sln\" /p:Configuration=Debug /p:Platform=x64 /t:Build /m /nologo /v:minimal 2>&1 | Where-Object { $_ -match \"error|warning C|fatal\" } | Select-Object -Last 20)",
+      "Bash(\"/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\" ZNEngine.sln /p:Configuration=Debug /p:Platform=x64 /t:Build /m /nologo)",
+      "Bash(\"/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\" \"ZNEngine.sln\" /p:Configuration=Debug /p:Platform=x64 /m /nologo)",
+      "Bash(MSYS_NO_PATHCONV=1 \"/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\" \"ZNEngine.sln\" /p:Configuration=Debug /p:Platform=x64 /m /nologo)",
+      "Bash(MSYS_NO_PATHCONV=1 MSBuild ZNEngine.sln /p:Configuration=Debug /p:Platform=x64 /t:Build /m /v:minimal)",
+      "Bash(xargs grep -l \"DirectionalLight\\\\|SpotLight\")"
     ]
   }
 }

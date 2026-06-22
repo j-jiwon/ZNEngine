@@ -13,11 +13,15 @@ namespace ZNFramework
 		ComPtr<ID3D12Device> Device() const { return device; }
 		ComPtr<IDXGIFactory4> Factory() const { return factory; }
 
+		float GetGpuMemoryUsageMB() const override;
+		float GetGpuMemoryBudgetMB() const override;
+
 	private:
 		ComPtr<ID3D12Debug> debugController;
 
 		ComPtr<ID3D12Device> device;
 		ComPtr<IDXGIFactory4> factory;
 		ComPtr<ID3D12Fence> fence;
+		ComPtr<IDXGIAdapter3> adapter3;
 	};
 }

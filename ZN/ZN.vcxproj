@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -96,7 +96,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;IMGUI_IMPL_WIN32_DISABLE_GAMEPAD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
@@ -106,7 +106,7 @@
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <ObjectFileName>$(IntDir)%(RelativeDir)</ObjectFileName>
       <AdditionalOptions>/Qpar %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Library\Include;$(ProjectDir)ZNFramework;$(ProjectDir);$(ProjectDir)ZNFramework\ThirdParty\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
@@ -125,7 +125,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;IMGUI_IMPL_WIN32_DISABLE_GAMEPAD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
@@ -135,7 +135,7 @@
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <ObjectFileName>$(IntDir)%(RelativeDir)</ObjectFileName>
       <AdditionalOptions>/Qpar %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Library\Include;$(ProjectDir)ZNFramework;$(ProjectDir);$(ProjectDir)ZNFramework\ThirdParty\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
@@ -154,7 +154,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_LIB;IMGUI_IMPL_WIN32_DISABLE_GAMEPAD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
@@ -164,7 +164,7 @@
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <ObjectFileName>$(IntDir)%(RelativeDir)</ObjectFileName>
       <AdditionalOptions>/Qpar %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(SolutionDir)Library\Include;$(ProjectDir)ZNFramework;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Library\Include;$(ProjectDir)ZNFramework;$(ProjectDir);$(ProjectDir)ZNFramework\ThirdParty\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
@@ -194,7 +194,7 @@
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <ObjectFileName>$(IntDir)%(RelativeDir)</ObjectFileName>
       <AdditionalOptions>/Qpar %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(SolutionDir)Library\Include;$(ProjectDir)ZNFramework;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Library\Include;$(ProjectDir)ZNFramework;$(ProjectDir);$(ProjectDir)ZNFramework\ThirdParty\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
@@ -254,6 +254,14 @@
     <ClInclude Include="ZNFramework\Math\ZNMath.h" />
     <ClInclude Include="ZNFramework\Scene\ZNGameObject.h" />
     <ClInclude Include="ZNFramework\Scene\ZNScene.h" />
+    <ClInclude Include="ZNFramework\ThirdParty\imgui\imconfig.h" />
+    <ClInclude Include="ZNFramework\ThirdParty\imgui\imgui.h" />
+    <ClInclude Include="ZNFramework\ThirdParty\imgui\imgui_impl_dx12.h" />
+    <ClInclude Include="ZNFramework\ThirdParty\imgui\imgui_impl_win32.h" />
+    <ClInclude Include="ZNFramework\ThirdParty\imgui\imgui_internal.h" />
+    <ClInclude Include="ZNFramework\ThirdParty\imgui\imstb_rectpack.h" />
+    <ClInclude Include="ZNFramework\ThirdParty\imgui\imstb_textedit.h" />
+    <ClInclude Include="ZNFramework\ThirdParty\imgui\imstb_truetype.h" />
     <ClInclude Include="ZNFramework\Window\Platform\WindowPlatform.h" />
     <ClInclude Include="ZNFramework\Window\Platform\Win32\Window.h" />
     <ClInclude Include="ZNFramework\ZNInputDef.h" />
@@ -276,6 +284,8 @@
     <ClInclude Include="ZNFramework\Math\ZNVector3.h" />
     <ClInclude Include="ZNFramework\Math\ZNVector4.h" />
     <ClInclude Include="ZNFramework\Window\ZNWindow.h" />
+    <ClInclude Include="ZNFramework\UI\ZNImGuiLayer.h" />
+    <ClInclude Include="ZNFramework\UI\Platform\Win32_DX12\ImGuiLayer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ZNFramework\Application\Platform\ApplicationPlatform.h" />
@@ -307,6 +317,13 @@
     <ClCompile Include="ZNFramework\Graphics\ZNMeshFactory.cpp" />
     <ClCompile Include="ZNFramework\Scene\ZNGameObject.cpp" />
     <ClCompile Include="ZNFramework\Scene\ZNScene.cpp" />
+    <ClCompile Include="ZNFramework\ThirdParty\imgui\imgui.cpp" />
+    <ClCompile Include="ZNFramework\ThirdParty\imgui\imgui_draw.cpp" />
+    <ClCompile Include="ZNFramework\ThirdParty\imgui\imgui_impl_dx12.cpp" />
+    <ClCompile Include="ZNFramework\ThirdParty\imgui\imgui_impl_win32.cpp" />
+    <ClCompile Include="ZNFramework\ThirdParty\imgui\imgui_tables.cpp" />
+    <ClCompile Include="ZNFramework\ThirdParty\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="ZNFramework\UI\Platform\Win32_DX12\ImGuiLayer.cpp" />
     <ClCompile Include="ZNFramework\Window\Platform\Win32\Window.cpp" />
     <ClCompile Include="ZNFramework\ZNCamera.cpp" />
     <ClCompile Include="ZNFramework\ZNColor.cpp" />
@@ -321,6 +338,9 @@
     <ClCompile Include="ZNFramework\Math\ZNVector2.cpp" />
     <ClCompile Include="ZNFramework\Math\ZNVector3.cpp" />
     <ClCompile Include="ZNFramework\Math\ZNVector4.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="claude.md" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -10,7 +10,8 @@ namespace ZNFramework
 	{
 	public:
 		ApplicationContext() = default;
-		~ApplicationContext() = default;
+		~ApplicationContext();
+
 		int MessageLoop() override;
 
 		void Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevice) override;
@@ -46,6 +47,9 @@ namespace ZNFramework
 
 		// Current scene
 		class ZNScene* currentScene = nullptr;
+
+		// ImGui
+		class ZNImGuiLayer* imguiLayer = nullptr;
 	};
 }
 

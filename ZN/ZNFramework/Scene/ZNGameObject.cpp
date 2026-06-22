@@ -6,6 +6,13 @@
 
 using namespace ZNFramework;
 
+int ZNGameObject::sDrawCalls = 0;
+int ZNGameObject::sLastFrameDrawCalls = 0;
+int ZNGameObject::sTriangles = 0;
+int ZNGameObject::sLastFrameTriangles = 0;
+int ZNGameObject::sVertices = 0;
+int ZNGameObject::sLastFrameVertices = 0;
+
 void ZNGameObject::Render()
 {
 	if (!mesh)
@@ -17,6 +24,9 @@ void ZNGameObject::Render()
 	// Render mesh (material is already set on mesh if available)
 	if (isVisible)
 	{
+		++sDrawCalls;
+		sTriangles += static_cast<int>(mesh->GetIndexCount() / 3);
+		sVertices  += static_cast<int>(mesh->GetVertexCount());
 		mesh->Render();
 	}
 }
@@ -31,6 +41,9 @@ void ZNGameObject::RenderShadow(const ZNMatrix4& lightViewProj, ZNShader* shadow
 	// Render mesh for shadow pass
 	if (isVisible)
 	{
+		++sDrawCalls;
+		sTriangles += static_cast<int>(mesh->GetIndexCount() / 3);
+		sVertices  += static_cast<int>(mesh->GetVertexCount());
 		mesh->RenderShadow(lightViewProj, shadowShader);
 	}
 }

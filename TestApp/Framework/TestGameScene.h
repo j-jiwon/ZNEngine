@@ -11,6 +11,7 @@ public:
     void Initialize() override;
     void Update(float deltaTime) override;
     void Render() override;
+    void RenderForward() override;
     void OnKeyboardEvent(const ZNFramework::KeyboardEvent& event) override;
 
     ZNFramework::ZNShader* GetDefaultShader() const { return defaultShader; }
@@ -21,6 +22,12 @@ public:
         ZNFramework::ZNGameObject* cone = nullptr;
         ZNFramework::ZNMaterial* markerMaterial = nullptr;
         ZNFramework::ZNMaterial* coneMaterial = nullptr;
+    };
+
+    enum class SelectedType { None, GameObject, SpotLight, DirectionalLight };
+    struct Selection {
+        SelectedType type = SelectedType::None;
+        void* ptr = nullptr;
     };
 
 private:
@@ -48,16 +55,25 @@ private:
         ZNFramework::ZNMaterial* sphereMaterial = nullptr;
     } scene;
 
-    // Debug visuals (toggle with F1)
+    // Debug visuals (toggle with F1, or per-item via Debug window)
     struct DebugVisuals {
         SpotLightDebug spotLight1;
         SpotLightDebug spotLight2;
         ZNFramework::ZNGameObject* gridPlane = nullptr;
         ZNFramework::ZNMaterial* gridMaterial = nullptr;
-        bool visible = false;
+        bool showGrid = false;
+        bool showSpotLights = false;
     } debug;
 
     // Interactive state
     ZNFramework::ZNGameObject* turntableObj = nullptr;
     bool turntableEnabled = false;
+
+    // ImGui state
+    ZNFramework::ZNDirectionalLight* dirLight = nullptr;
+    float fpsAccum = 0.0f;
+    int   fpsFrames = 0;
+    float fpsDisplay = 0.0f;
+    float cpuUsagePercent = 0.0f;
+    Selection selection;
 };

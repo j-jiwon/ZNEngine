@@ -43,12 +43,31 @@ void CommandQueue::Init(ZNSwapChain* inSwapChain)
 
 	device->Device()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence));
 	fenceEvent = ::CreateEvent(nullptr, FALSE, FALSE, nullptr);
+
+	// GPU timestamp query heap (2 slots: frame begin, frame end)
+	D3D12_QUERY_HEAP_DESC queryHeapDesc = {};
+	queryHeapDesc.Type  = D3D12_QUERY_HEAP_TYPE_TIMESTAMP;
+	queryHeapDesc.Count = 2;
+	device->Device()->CreateQueryHeap(&queryHeapDesc, IID_PPV_ARGS(&timestampQueryHeap));
+
+	D3D12_HEAP_PROPERTIES readbackHeap = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_READBACK);
+	D3D12_RESOURCE_DESC   readbackDesc = CD3DX12_RESOURCE_DESC::Buffer(2 * sizeof(UINT64));
+	device->Device()->CreateCommittedResource(
+		&readbackHeap, D3D12_HEAP_FLAG_NONE, &readbackDesc,
+		D3D12_RESOURCE_STATE_COPY_DEST, nullptr,
+		IID_PPV_ARGS(&timestampReadbackBuffer));
+
+	queue->GetTimestampFrequency(&timestampFrequency);
 }
 
 void CommandQueue::RenderBegin()
 {
 	commandAllocator->Reset();
 	commandList->Reset(commandAllocator.Get(), nullptr);
+
+	// Frame-begin timestamp
+	if (timestampQueryHeap)
+		commandList->EndQuery(timestampQueryHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 0);
 
 	RootSignature* rootSignature = GraphicsContext::GetInstance().GetAs<RootSignature>();
 	commandList->SetGraphicsRootSignature(rootSignature->GetSignature().Get());
@@ -120,8 +139,8 @@ void CommandQueue::RenderBegin()
 		}
 
 		// Transition G-Buffer resources from SHADER_RESOURCE to RENDER_TARGET
-		// Skip on first frame since resources are created in RENDER_TARGET state
-		if (!isFirstFrame)
+		// Skip on first frame or immediately after a GBuffer resize (resources start in RENDER_TARGET)
+		if (!isFirstFrame && !gbufferJustResized)
 		{
 			D3D12_RESOURCE_BARRIER barriers[5];
 			barriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(
@@ -146,6 +165,7 @@ void CommandQueue::RenderBegin()
 				D3D12_RESOURCE_STATE_RENDER_TARGET);
 			commandList->ResourceBarrier(5, barriers);
 		}
+		gbufferJustResized = false;
 
 		// Clear all G-Buffer render targets
 		float clearColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
@@ -280,11 +300,21 @@ void CommandQueue::RenderEnd()
 			isForwardPass = false;
 		}
 
-		// Render debug viewports on top
-		if (debugViewportRenderer)
+		// ImGui pass - bind its own SRV heap and render UI on top of everything
+		if (imguiRenderCallback && imguiSrvHeap)
 		{
-			debugViewportRenderer->RenderDebugViews(gbufferManager, shadowMap, swapChain->Width(), swapChain->Height());
+			commandList->SetDescriptorHeaps(1, &imguiSrvHeap);
+			imguiRenderCallback();
 		}
+	}
+
+	// Frame-end timestamp + resolve to readback buffer (before command list is closed)
+	if (timestampQueryHeap)
+	{
+		commandList->EndQuery(timestampQueryHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 1);
+		commandList->ResolveQueryData(
+			timestampQueryHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 0, 2,
+			timestampReadbackBuffer.Get(), 0);
 	}
 
 	D3D12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
@@ -304,7 +334,19 @@ void CommandQueue::RenderEnd()
 
 	swapChain->SwapIndex();
 
-	// Mark that first frame is complete
+	// Read GPU timestamps (first frame skipped — readback buffer not yet written)
+	if (!isFirstFrame && timestampQueryHeap && timestampFrequency > 0)
+	{
+		void* pData = nullptr;
+		D3D12_RANGE readRange = { 0, 2 * sizeof(UINT64) };
+		timestampReadbackBuffer->Map(0, &readRange, &pData);
+		const UINT64* ts = reinterpret_cast<const UINT64*>(pData);
+		gpuFrameTimeMs = static_cast<float>(ts[1] - ts[0])
+		               / static_cast<float>(timestampFrequency) * 1000.0f;
+		D3D12_RANGE writeRange = { 0, 0 };
+		timestampReadbackBuffer->Unmap(0, &writeRange);
+	}
+
 	if (isFirstFrame)
 		isFirstFrame = false;
 }
