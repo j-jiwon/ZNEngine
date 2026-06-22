@@ -51,6 +51,7 @@
     <ClCompile Include="ZNFramework\ThirdParty\imgui\imgui_tables.cpp" />
     <ClCompile Include="ZNFramework\ThirdParty\imgui\imgui_widgets.cpp" />
     <ClCompile Include="ZNFramework\UI\Platform\Win32_DX12\ImGuiLayer.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\RenderGraph.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ZNFramework\UI\ZNImGuiLayer.h" />
@@ -129,6 +130,12 @@
     <ClInclude Include="ZNFramework\ThirdParty\imgui\imstb_textedit.h" />
     <ClInclude Include="ZNFramework\ThirdParty\imgui\imstb_truetype.h" />
     <ClInclude Include="ZNFramework\ThirdParty\imgui\imconfig.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Passes\ShadowPass.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Passes\DeferredLightingRenderPass.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Passes\ForwardRenderPass.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Passes\GBufferPass.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Passes\ImGuiRenderPass.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\RenderGraph.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="claude.md" />

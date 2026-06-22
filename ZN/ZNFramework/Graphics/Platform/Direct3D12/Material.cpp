@@ -63,7 +63,17 @@ void Material::Bind()
 	ConstantBuffer* constantBuffer = GraphicsContext::GetInstance().GetAs<ConstantBuffer>();
 	TableDescriptorHeap* tableDescHeap = GraphicsContext::GetInstance().GetAs<TableDescriptorHeap>();
 
-	D3D12_CPU_DESCRIPTOR_HANDLE paramsHandle = constantBuffer->PushData(1, &params, sizeof(params));
+	MaterialParams paramsToUse = params;
+	if (queue->GetViewMode() == ViewMode::Wireframe)
+	{
+		paramsToUse.albedoColor = queue->IsCurrentObjectSelected()
+			? ZNVector4(1.0f, 0.85f, 0.0f, 1.0f)   // yellow — selected object
+			: ZNVector4(0.55f, 0.55f, 0.55f, 1.0f); // gray — all others
+		paramsToUse.metallic  = 0.0f;
+		paramsToUse.roughness = 1.0f;
+	}
+
+	D3D12_CPU_DESCRIPTOR_HANDLE paramsHandle = constantBuffer->PushData(1, &paramsToUse, sizeof(paramsToUse));
 	tableDescHeap->SetCBV(paramsHandle, CBV_REGISTER::b1);
 
 	// Bind textures (t0 ~ t4)

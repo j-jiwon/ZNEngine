@@ -244,36 +244,31 @@ void ApplicationContext::SetScene(ZNScene* scene)
 {
     currentScene = scene;
 
-    // Set forward render callback
     if (commandQueue && currentScene)
     {
+        // Forward pass: scene UI + transparent objects
         commandQueue->SetForwardRenderCallback([this]() {
-            if (currentScene)
-            {
-                currentScene->RenderForward();
-            }
+            if (currentScene) currentScene->RenderForward();
         });
 
-        // Set shadow render callback
         CommandQueue* cmdQueue = dynamic_cast<CommandQueue*>(commandQueue);
         if (cmdQueue)
         {
+            // GBuffer pass: opaque scene geometry
+            cmdQueue->SetGBufferRenderCallback([this]() {
+                if (currentScene) currentScene->Render();
+            });
+
+            // Shadow pass: scene depth from directional light POV
             cmdQueue->SetShadowRenderCallback([this]() {
-                if (currentScene && shadowDepthShader)
+                if (!currentScene || !shadowDepthShader) return;
+                ZNDirectionalLight* dirLight = currentScene->GetDirectionalLight();
+                if (!dirLight) return;
+                auto* d3dLight = dynamic_cast<Platform::Direct3D::DirectionalLight*>(dirLight);
+                if (d3dLight)
                 {
-                    // Get directional light for shadow mapping
-                    ZNDirectionalLight* dirLight = currentScene->GetDirectionalLight();
-                    if (dirLight)
-                    {
-                        // Get light VP matrix from directional light
-                        Platform::Direct3D::DirectionalLight* d3dDirLight =
-                            dynamic_cast<Platform::Direct3D::DirectionalLight*>(dirLight);
-                        if (d3dDirLight)
-                        {
-                            ZNMatrix4 lightVP = d3dDirLight->GetLightViewProjectionMatrix();
-                            currentScene->RenderShadow(lightVP, shadowDepthShader);
-                        }
-                    }
+                    ZNMatrix4 lightVP = d3dLight->GetLightViewProjectionMatrix();
+                    currentScene->RenderShadow(lightVP, shadowDepthShader);
                 }
             });
         }
@@ -373,11 +368,8 @@ void ApplicationContext::Render()
     if (imguiLayer)
         imguiLayer->BeginFrame();
 
+    // RenderBegin() now runs the full RenderGraph (all passes in order)
     RenderBegin();
-
-    if (currentScene)
-        currentScene->Render();
-
     RenderEnd();
 }
 

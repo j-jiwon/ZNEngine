@@ -54,6 +54,10 @@ struct DeferredLightCB
     float shadowBias;
     float shadowPCFRadius;
 
+    // View mode (must match cbuffer slot after shadowPCFRadius)
+    int unlitMode;
+    int _cbPad[3];
+
     // Spot Lights array
     SpotLightData spotLights[MAX_SPOT_LIGHTS];
 };
@@ -214,6 +218,8 @@ void DeferredLightingPass::Render(GBufferManager* gbufferManager, ShadowMap* sha
         lightData.viewPosition[2] = camPos.z;
     }
 
+    lightData.unlitMode = (queue->GetViewMode() == ViewMode::Wireframe) ? 1 : 0;
+
     memcpy(mappedLightingBuffer, &lightData, sizeof(DeferredLightCB));
 
     // Set fullscreen viewport
@@ -222,10 +228,14 @@ void DeferredLightingPass::Render(GBufferManager* gbufferManager, ShadowMap* sha
     cmdList->RSSetViewports(1, &viewport);
     cmdList->RSSetScissorRects(1, &scissorRect);
 
+    // Fullscreen quad must always be rendered solid (filled) regardless of scene view mode.
+    ViewMode savedViewMode = queue->GetViewMode();
+    queue->SetViewMode(ViewMode::Lit);
+
     if (lightingShader)
-    {
         lightingShader->Bind();
-    }
+
+    queue->SetViewMode(savedViewMode);
 
     uint32 lightingDescSize = device->Device()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 

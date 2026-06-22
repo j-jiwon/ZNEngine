@@ -21,6 +21,7 @@ namespace ZNFramework
 		void CreateShader(const wstring& path, const string& name, const string& version, ComPtr<ID3DBlob>& blob, D3D12_SHADER_BYTECODE& shaderByteCode);
 		void CreateVertexShader(const wstring& path, const string& name, const string& version);
 		void CreatePixelShader(const wstring& path, const string& name, const string& version);
+		void CreateWireframePSO();
 
 	private:
 		ComPtr<ID3DBlob> vsBlob;
@@ -28,6 +29,7 @@ namespace ZNFramework
 		ComPtr<ID3DBlob> errBlob;
 
 		ComPtr<ID3D12PipelineState>	pipelineState;
+		ComPtr<ID3D12PipelineState>	pipelineStateWireframe;
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC pipelineDesc = {};
 
 		// Store input layout descriptors to keep them valid

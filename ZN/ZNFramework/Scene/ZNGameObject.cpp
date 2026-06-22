@@ -27,7 +27,11 @@ void ZNGameObject::Render()
 		++sDrawCalls;
 		sTriangles += static_cast<int>(mesh->GetIndexCount() / 3);
 		sVertices  += static_cast<int>(mesh->GetVertexCount());
+
+		ZNCommandQueue* cq = GraphicsContext::GetInstance().GetCommandQueue();
+		cq->SetWireframeCurrentObject(this);
 		mesh->Render();
+		cq->SetWireframeCurrentObject(nullptr);
 	}
 }
 

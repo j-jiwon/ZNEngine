@@ -222,6 +222,12 @@
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\DebugViewportRenderer.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\DeferredLightingPass.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\DirectionalLight.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Passes\DeferredLightingRenderPass.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Passes\ForwardRenderPass.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Passes\GBufferPass.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Passes\ImGuiRenderPass.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Passes\ShadowPass.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\RenderGraph.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\SpotLight.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\GraphicsDevice.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\GBufferManager.h" />
@@ -246,6 +252,7 @@
     <ClInclude Include="ZNFramework\Graphics\ZNModelLoader.h" />
     <ClInclude Include="ZNFramework\Graphics\ZNRootSignature.h" />
     <ClInclude Include="ZNFramework\Graphics\ZNShader.h" />
+    <ClInclude Include="ZNFramework\Graphics\ViewMode.h" />
     <ClInclude Include="ZNFramework\Graphics\ZNSwapChain.h" />
     <ClInclude Include="ZNFramework\Graphics\ZNCommandQueue.h" />
     <ClInclude Include="ZNFramework\Graphics\ZNGraphicsDevice.h" />
@@ -299,6 +306,7 @@
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\DebugViewportRenderer.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\DeferredLightingPass.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\DirectionalLight.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\RenderGraph.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\SpotLight.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\GraphicsDevice.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\GBufferManager.cpp" />
