@@ -280,6 +280,10 @@ void TestGameScene::ToggleDebugVisuals()
 
 void TestGameScene::Render()
 {
+    // Update selected object for wireframe highlight before any geometry renders.
+    void* selPtr = (selection.type == SelectedType::GameObject) ? selection.ptr : nullptr;
+    GraphicsContext::GetInstance().GetCommandQueue()->SetWireframeSelectedObject(selPtr);
+
     ZNScene::Render();
 }
 
@@ -332,6 +336,13 @@ void TestGameScene::RenderForward()
         SetSpotLightDebugVisible(debug.spotLight1, debug.showSpotLights);
         SetSpotLightDebugVisible(debug.spotLight2, debug.showSpotLights);
     }
+
+    ImGui::Separator();
+    ImGui::Text("View Mode");
+    ZNCommandQueue* cq = GraphicsContext::GetInstance().GetCommandQueue();
+    bool wireframe = (cq->GetViewMode() == ViewMode::Wireframe);
+    if (ImGui::Checkbox("Wireframe", &wireframe))
+        cq->SetViewMode(wireframe ? ViewMode::Wireframe : ViewMode::Lit);
 
     ImGui::End();
 

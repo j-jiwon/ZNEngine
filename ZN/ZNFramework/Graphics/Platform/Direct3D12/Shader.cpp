@@ -46,12 +46,35 @@ void Shader::Load(const wstring& path)
 
 	GraphicsDevice* device = GraphicsContext::GetInstance().GetAs<GraphicsDevice>();
 	ThrowIfFailed(device->Device()->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&pipelineState)));
+	CreateWireframePSO();
 }
 
 void Shader::Bind()
 {
 	CommandQueue* queue = GraphicsContext::GetInstance().GetAs<CommandQueue>();
-	queue->CommandList()->SetPipelineState(pipelineState.Get());
+	ID3D12PipelineState* pso =
+		(queue->GetViewMode() == ViewMode::Wireframe && pipelineStateWireframe)
+		? pipelineStateWireframe.Get() : pipelineState.Get();
+	queue->CommandList()->SetPipelineState(pso);
+}
+
+void Shader::CreateWireframePSO()
+{
+	// Depth-only pipelines (shadow maps) have 0 render targets and must not respond
+	// to wireframe mode — shadow geometry must remain filled to produce correct shadows.
+	if (pipelineDesc.NumRenderTargets == 0)
+	{
+		pipelineStateWireframe = nullptr;
+		return;
+	}
+
+	auto wireDesc = pipelineDesc;
+	wireDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
+	wireDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+
+	GraphicsDevice* device = GraphicsContext::GetInstance().GetAs<GraphicsDevice>();
+	pipelineStateWireframe.Reset();
+	ThrowIfFailed(device->Device()->CreateGraphicsPipelineState(&wireDesc, IID_PPV_ARGS(&pipelineStateWireframe)));
 }
 
 void Shader::CreateShader(const wstring& path, const string& name, const string& version, ComPtr<ID3DBlob>& blob, D3D12_SHADER_BYTECODE& shaderByteCode)
@@ -119,37 +142,33 @@ void Shader::SetRenderTargetFormats(uint32 numRenderTargets, const DXGI_FORMAT* 
 	GraphicsDevice* device = GraphicsContext::GetInstance().GetAs<GraphicsDevice>();
 	pipelineState.Reset();
 	ThrowIfFailed(device->Device()->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&pipelineState)));
+	CreateWireframePSO();
 }
 
 void Shader::DisableDepthTest()
 {
-	// Disable depth testing and depth writes
 	pipelineDesc.DepthStencilState.DepthEnable = FALSE;
 	pipelineDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
 	pipelineDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
 
-	// Recreate pipeline state with depth test disabled
 	GraphicsDevice* device = GraphicsContext::GetInstance().GetAs<GraphicsDevice>();
 	pipelineState.Reset();
 	ThrowIfFailed(device->Device()->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&pipelineState)));
+	CreateWireframePSO();
 }
 
 void Shader::DisableDepthWrite()
 {
-	// Keep depth testing but disable depth writes
-	// This allows transparent objects to be occluded by opaque objects
-	// but not write to depth buffer (so they don't occlude other objects)
 	pipelineDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
 
-	// Recreate pipeline state
 	GraphicsDevice* device = GraphicsContext::GetInstance().GetAs<GraphicsDevice>();
 	pipelineState.Reset();
 	ThrowIfFailed(device->Device()->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&pipelineState)));
+	CreateWireframePSO();
 }
 
 void Shader::EnableAlphaBlend()
 {
-	// Enable alpha blending: FinalColor = SrcColor * SrcAlpha + DestColor * (1 - SrcAlpha)
 	D3D12_RENDER_TARGET_BLEND_DESC& rtBlend = pipelineDesc.BlendState.RenderTarget[0];
 	rtBlend.BlendEnable = TRUE;
 	rtBlend.SrcBlend = D3D12_BLEND_SRC_ALPHA;
@@ -160,8 +179,8 @@ void Shader::EnableAlphaBlend()
 	rtBlend.BlendOpAlpha = D3D12_BLEND_OP_ADD;
 	rtBlend.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
 
-	// Recreate pipeline state with alpha blending enabled
 	GraphicsDevice* device = GraphicsContext::GetInstance().GetAs<GraphicsDevice>();
 	pipelineState.Reset();
 	ThrowIfFailed(device->Device()->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&pipelineState)));
+	CreateWireframePSO();
 }

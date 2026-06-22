@@ -33,6 +33,10 @@ cbuffer cbLight : register(b0)
     float shadowBias;
     float shadowPCFRadius;
 
+    // View mode
+    int unlitMode;  // 1 = skip lighting, output baseColor directly (wireframe/unlit)
+    int3 _cbPad;
+
     // Spot Lights array
     SpotLightData spotLights[MAX_SPOT_LIGHTS];
 };
@@ -209,6 +213,10 @@ float4 PS_Main(VS_OUT input) : SV_Target
 {
     // Sample G-Buffer
     float4 baseColor = baseColorTexture.Sample(sampler0, input.uv);
+
+    // Unlit / wireframe mode: skip all lighting, output raw baseColor
+    if (unlitMode != 0)
+        return float4(baseColor.rgb, baseColor.a);
     float4 encodedNormal = normalTexture.Sample(sampler0, input.uv);
     float depth = depthTexture.Sample(sampler0, input.uv).r;
 
