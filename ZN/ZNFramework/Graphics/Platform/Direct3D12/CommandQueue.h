@@ -1,86 +1,93 @@
 #pragma once
 #include "Graphics/ZNCommandQueue.h"
 #include "ZNUtils.h"
+#include "RenderGraph.h"
 #include <functional>
 
-namespace ZNFramework
+namespace ZNFramework {
+
+class GraphicsDevice;
+class SwapChain;
+class GBufferManager;
+class DeferredLightingPass;
+class DebugViewportRenderer;
+class ShadowMap;
+
+class CommandQueue : public ZNCommandQueue
 {
-    class GraphicsDevice;
-    class SwapChain;
-    class GBufferManager;
-    class DeferredLightingPass;
-    class DebugViewportRenderer;
-    class ShadowMap;
-    class CommandQueue : public ZNCommandQueue
-    {
-    public:
-        CommandQueue() = default;
-        ~CommandQueue() noexcept = default;
+public:
+    CommandQueue() = default;
+    ~CommandQueue() noexcept = default;
 
-        void Init(class ZNSwapChain* inSwapChain) override;
-        void RenderBegin() override;
-        void RenderEnd() override;
-        void FlushResourceQueue() override;
-        void WaitSync() override;
+    void Init(class ZNSwapChain* inSwapChain) override;
+    void RenderBegin() override;
+    void RenderEnd() override;
+    void FlushResourceQueue() override;
+    void WaitSync() override;
 
-        ID3D12CommandQueue* Queue() const { return queue.Get(); }
-        ID3D12GraphicsCommandList* CommandList() { return commandList.Get(); }
-        ID3D12GraphicsCommandList* ResourceCommandList() { return resourceCommandList.Get(); }
+    ID3D12CommandQueue*        Queue()               const { return queue.Get(); }
+    ID3D12GraphicsCommandList* CommandList()               { return commandList.Get(); }
+    ID3D12GraphicsCommandList* ResourceCommandList()       { return resourceCommandList.Get(); }
 
-        float GetGpuFrameTimeMs() const override { return gpuFrameTimeMs; }
+    float GetGpuFrameTimeMs() const override { return gpuFrameTimeMs; }
 
-        GBufferManager* GetGBufferManager() { return gbufferManager; }
-        void SetGBufferManager(GBufferManager* manager) { gbufferManager = manager; }
-        void SetDeferredLightingPass(DeferredLightingPass* pass) { deferredLightingPass = pass; }
-        void SetDebugViewportRenderer(DebugViewportRenderer* renderer) { debugViewportRenderer = renderer; }
-        DebugViewportRenderer* GetDebugViewportRenderer() { return debugViewportRenderer; }
-        void SetGBufferEnabled(bool enabled) { enableGBuffer = enabled; }
-        bool IsForwardPass() const { return isForwardPass; }
-        void SetForwardPass(bool forward) { isForwardPass = forward; }
+    GBufferManager*       GetGBufferManager()    { return gbufferManager; }
+    DebugViewportRenderer* GetDebugViewportRenderer() { return debugViewportRenderer; }
+    ShadowMap*            GetShadowMap()         { return shadowMap; }
 
-        // Shadow mapping
-        void SetShadowMap(ShadowMap* shadow) { shadowMap = shadow; }
-        ShadowMap* GetShadowMap() { return shadowMap; }
-        void SetShadowRenderCallback(std::function<void()> callback) { shadowRenderCallback = callback; }
-        bool IsShadowPass() const { return isShadowPass; }
+    void SetGBufferManager(GBufferManager* manager)            { gbufferManager = manager; }
+    void SetDeferredLightingPass(DeferredLightingPass* pass)   { deferredLightingPass = pass; }
+    void SetDebugViewportRenderer(DebugViewportRenderer* r)    { debugViewportRenderer = r; }
+    void SetShadowMap(ShadowMap* shadow)                       { shadowMap = shadow; }
+    void SetShadowRenderCallback(std::function<void()> cb)     { shadowRenderCallback = std::move(cb); }
+    void SetGBufferRenderCallback(std::function<void()> cb)    { gbufferRenderCallback = std::move(cb); }
 
-        void NotifyGBufferResized() { gbufferJustResized = true; }
+    bool IsForwardPass() const { return isForwardPass; }
 
-    private:
-        ComPtr<ID3D12CommandQueue> queue;
-        ComPtr<ID3D12CommandAllocator> commandAllocator;
-        ComPtr<ID3D12GraphicsCommandList> commandList;
+    // Re-import GBuffer resource pointers after a resize (resources are recreated)
+    void RefreshGBufferResources();
 
-        // resource
-        ComPtr<ID3D12CommandAllocator> resourceCommandAllocator;
-        ComPtr<ID3D12GraphicsCommandList> resourceCommandList;
+    // Kept for backwards compatibility; calls RefreshGBufferResources() internally
+    void NotifyGBufferResized() { RefreshGBufferResources(); }
 
-        ComPtr<ID3D12Fence> fence;
-        uint32 fenceValue = 0;
-        HANDLE fenceEvent = INVALID_HANDLE_VALUE;
+    RenderGraph& GetRenderGraph() { return renderGraph; }
 
-        GraphicsDevice* device;
-        SwapChain* swapChain;
+private:
+    void BuildRenderGraph();
 
-        GBufferManager* gbufferManager = nullptr;
-        DeferredLightingPass* deferredLightingPass = nullptr;
-        DebugViewportRenderer* debugViewportRenderer = nullptr;
-        bool enableGBuffer = true; // Enable MRT by default
-        bool isFirstFrame = true; // Track first frame for resource state
-        bool isForwardPass = false; // Track if currently in forward pass
+    ComPtr<ID3D12CommandQueue>        queue;
+    ComPtr<ID3D12CommandAllocator>    commandAllocator;
+    ComPtr<ID3D12GraphicsCommandList> commandList;
 
-        // Shadow mapping
-        ShadowMap* shadowMap = nullptr;
-        std::function<void()> shadowRenderCallback;
-        bool isShadowPass = false;
-        bool shadowPassFirstFrame = true;
+    ComPtr<ID3D12CommandAllocator>    resourceCommandAllocator;
+    ComPtr<ID3D12GraphicsCommandList> resourceCommandList;
 
-        bool gbufferJustResized = false;
+    ComPtr<ID3D12Fence> fence;
+    uint32              fenceValue = 0;
+    HANDLE              fenceEvent = INVALID_HANDLE_VALUE;
 
-        // GPU timestamp query
-        ComPtr<ID3D12QueryHeap> timestampQueryHeap;
-        ComPtr<ID3D12Resource>  timestampReadbackBuffer;
-        UINT64 timestampFrequency = 0;
-        float  gpuFrameTimeMs = 0.0f;
-    };
-}
+    GraphicsDevice* device    = nullptr;
+    SwapChain*      swapChain = nullptr;
+
+    GBufferManager*        gbufferManager       = nullptr;
+    DeferredLightingPass*  deferredLightingPass  = nullptr;
+    DebugViewportRenderer* debugViewportRenderer = nullptr;
+    ShadowMap*             shadowMap             = nullptr;
+
+    std::function<void()> shadowRenderCallback;
+    std::function<void()> gbufferRenderCallback;
+
+    bool isForwardPass    = false;
+    bool renderGraphBuilt = false;
+    bool isFirstFrame     = true;
+
+    RenderGraph renderGraph;
+
+    // GPU timestamp query
+    ComPtr<ID3D12QueryHeap> timestampQueryHeap;
+    ComPtr<ID3D12Resource>  timestampReadbackBuffer;
+    UINT64 timestampFrequency = 0;
+    float  gpuFrameTimeMs     = 0.0f;
+};
+
+} // namespace ZNFramework

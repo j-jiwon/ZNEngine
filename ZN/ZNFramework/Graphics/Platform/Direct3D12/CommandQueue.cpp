@@ -9,369 +9,214 @@
 #include "DeferredLightingPass.h"
 #include "DebugViewportRenderer.h"
 #include "ShadowMap.h"
+#include "Passes/ShadowPass.h"
+#include "Passes/GBufferPass.h"
+#include "Passes/DeferredLightingRenderPass.h"
+#include "Passes/ForwardRenderPass.h"
+#include "Passes/ImGuiRenderPass.h"
 #include "ZNFramework.h"
 
 using namespace ZNFramework;
 
-namespace ZNFramework::Platform::Direct3D
-{
-	ZNCommandQueue* CreateCommandQueue()
-	{
-		return new CommandQueue();
-	}
+namespace ZNFramework::Platform::Direct3D {
+    ZNCommandQueue* CreateCommandQueue() { return new CommandQueue(); }
 }
 
 void CommandQueue::Init(ZNSwapChain* inSwapChain)
 {
-	// init variables
-	device = GraphicsContext::GetInstance().GetAs<GraphicsDevice>();
-	swapChain = dynamic_cast<SwapChain*>(inSwapChain);
+    device    = GraphicsContext::GetInstance().GetAs<GraphicsDevice>();
+    swapChain = dynamic_cast<SwapChain*>(inSwapChain);
 
-	// init
-	D3D12_COMMAND_QUEUE_DESC queueDesc = {};
-	queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-	queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
+    D3D12_COMMAND_QUEUE_DESC queueDesc = {};
+    queueDesc.Type  = D3D12_COMMAND_LIST_TYPE_DIRECT;
+    queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
 
-	device->Device()->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&queue));
-	device->Device()->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&commandAllocator));
-	device->Device()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, commandAllocator.Get(), nullptr, IID_PPV_ARGS(&commandList));
+    device->Device()->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&queue));
+    device->Device()->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&commandAllocator));
+    device->Device()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, commandAllocator.Get(), nullptr, IID_PPV_ARGS(&commandList));
+    commandList->Close();
 
-	commandList->Close();
+    device->Device()->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&resourceCommandAllocator));
+    device->Device()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, resourceCommandAllocator.Get(), nullptr, IID_PPV_ARGS(&resourceCommandList));
 
-	device->Device()->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&resourceCommandAllocator));
-	device->Device()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, resourceCommandAllocator.Get(), nullptr, IID_PPV_ARGS(&resourceCommandList));
+    device->Device()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence));
+    fenceEvent = ::CreateEvent(nullptr, FALSE, FALSE, nullptr);
 
-	device->Device()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence));
-	fenceEvent = ::CreateEvent(nullptr, FALSE, FALSE, nullptr);
+    D3D12_QUERY_HEAP_DESC queryHeapDesc = {};
+    queryHeapDesc.Type  = D3D12_QUERY_HEAP_TYPE_TIMESTAMP;
+    queryHeapDesc.Count = 2;
+    device->Device()->CreateQueryHeap(&queryHeapDesc, IID_PPV_ARGS(&timestampQueryHeap));
 
-	// GPU timestamp query heap (2 slots: frame begin, frame end)
-	D3D12_QUERY_HEAP_DESC queryHeapDesc = {};
-	queryHeapDesc.Type  = D3D12_QUERY_HEAP_TYPE_TIMESTAMP;
-	queryHeapDesc.Count = 2;
-	device->Device()->CreateQueryHeap(&queryHeapDesc, IID_PPV_ARGS(&timestampQueryHeap));
+    D3D12_HEAP_PROPERTIES readbackHeap = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_READBACK);
+    D3D12_RESOURCE_DESC   readbackDesc = CD3DX12_RESOURCE_DESC::Buffer(2 * sizeof(UINT64));
+    device->Device()->CreateCommittedResource(
+        &readbackHeap, D3D12_HEAP_FLAG_NONE, &readbackDesc,
+        D3D12_RESOURCE_STATE_COPY_DEST, nullptr,
+        IID_PPV_ARGS(&timestampReadbackBuffer));
 
-	D3D12_HEAP_PROPERTIES readbackHeap = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_READBACK);
-	D3D12_RESOURCE_DESC   readbackDesc = CD3DX12_RESOURCE_DESC::Buffer(2 * sizeof(UINT64));
-	device->Device()->CreateCommittedResource(
-		&readbackHeap, D3D12_HEAP_FLAG_NONE, &readbackDesc,
-		D3D12_RESOURCE_STATE_COPY_DEST, nullptr,
-		IID_PPV_ARGS(&timestampReadbackBuffer));
+    queue->GetTimestampFrequency(&timestampFrequency);
+}
 
-	queue->GetTimestampFrequency(&timestampFrequency);
+void CommandQueue::BuildRenderGraph()
+{
+    // Import all tracked resources with their initial D3D12 resource states.
+    // GBuffer textures start as RENDER_TARGET (just created / just resized).
+    // Shadow map starts as DEPTH_WRITE (fresh depth buffer).
+    // Back buffer starts as PRESENT (swap chain initialises it that way).
+    if (shadowMap)
+        renderGraph.Import("ShadowMap", shadowMap->GetResource(), D3D12_RESOURCE_STATE_DEPTH_WRITE);
+
+    if (gbufferManager) {
+        renderGraph.Import("GBuf_BaseColor", gbufferManager->GetBaseColorResource(), D3D12_RESOURCE_STATE_RENDER_TARGET);
+        renderGraph.Import("GBuf_Normal",    gbufferManager->GetNormalResource(),    D3D12_RESOURCE_STATE_RENDER_TARGET);
+        renderGraph.Import("GBuf_DepthCopy", gbufferManager->GetDepthCopyResource(), D3D12_RESOURCE_STATE_RENDER_TARGET);
+        renderGraph.Import("GBuf_WorldPos",  gbufferManager->GetWorldPosResource(),  D3D12_RESOURCE_STATE_RENDER_TARGET);
+        renderGraph.Import("GBuf_ARM",       gbufferManager->GetARMResource(),       D3D12_RESOURCE_STATE_RENDER_TARGET);
+    }
+
+    renderGraph.Import("BackBuffer", swapChain->GetBackRTVBuffer().Get(), D3D12_RESOURCE_STATE_PRESENT);
+
+    // Get concrete types needed by the passes
+    auto* rootSig  = GraphicsContext::GetInstance().GetAs<RootSignature>();
+    auto* tdh      = GraphicsContext::GetInstance().GetAs<TableDescriptorHeap>();
+    auto* dsBuffer = GraphicsContext::GetInstance().GetAs<DepthStencilBuffer>();
+    ZNShader* gbufShader = GraphicsContext::GetInstance().GetGBufferShader();
+
+    // --- Shadow pass ---
+    if (shadowMap) {
+        renderGraph.AddPass(std::make_unique<ShadowPass>(
+            shadowMap,
+            [this]() { if (shadowRenderCallback) shadowRenderCallback(); }));
+    }
+
+    // --- GBuffer pass (scene geometry) ---
+    if (gbufferManager) {
+        renderGraph.AddPass(std::make_unique<GBufferPass>(
+            gbufferManager, gbufShader, dsBuffer, swapChain,
+            [this]() { if (gbufferRenderCallback) gbufferRenderCallback(); }));
+    }
+
+    // --- Deferred lighting pass ---
+    if (deferredLightingPass && gbufferManager) {
+        renderGraph.AddPass(std::make_unique<DeferredLightingRenderPass>(
+            deferredLightingPass, gbufferManager, shadowMap, swapChain));
+    }
+
+    // --- Forward pass ---
+    renderGraph.AddPass(std::make_unique<ForwardRenderPass>(
+        swapChain, dsBuffer,
+        rootSig->GetSignature().Get(),
+        tdh->GetDescriptorHeap().Get(),
+        isForwardPass,
+        [this]() { if (forwardRenderCallback) forwardRenderCallback(); }));
+
+    // --- ImGui pass ---
+    // Pass &imguiSrvHeap so that a late SetImGuiDescriptorHeap() call is picked up automatically
+    renderGraph.AddPass(std::make_unique<ImGuiRenderPass>(
+        &imguiSrvHeap,
+        [this]() { if (imguiRenderCallback) imguiRenderCallback(); }));
+}
+
+void CommandQueue::RefreshGBufferResources()
+{
+    if (!gbufferManager || !renderGraphBuilt) return;
+
+    // After GBufferManager::Resize() the old D3D12 resources are released and new ones created.
+    // Re-import so the RenderGraph state tracker points at the new resources.
+    renderGraph.Import("GBuf_BaseColor", gbufferManager->GetBaseColorResource(), D3D12_RESOURCE_STATE_RENDER_TARGET);
+    renderGraph.Import("GBuf_Normal",    gbufferManager->GetNormalResource(),    D3D12_RESOURCE_STATE_RENDER_TARGET);
+    renderGraph.Import("GBuf_DepthCopy", gbufferManager->GetDepthCopyResource(), D3D12_RESOURCE_STATE_RENDER_TARGET);
+    renderGraph.Import("GBuf_WorldPos",  gbufferManager->GetWorldPosResource(),  D3D12_RESOURCE_STATE_RENDER_TARGET);
+    renderGraph.Import("GBuf_ARM",       gbufferManager->GetARMResource(),       D3D12_RESOURCE_STATE_RENDER_TARGET);
 }
 
 void CommandQueue::RenderBegin()
 {
-	commandAllocator->Reset();
-	commandList->Reset(commandAllocator.Get(), nullptr);
+    // Build the graph lazily on the first frame (all callbacks are set by then)
+    if (!renderGraphBuilt) {
+        BuildRenderGraph();
+        renderGraphBuilt = true;
+    }
 
-	// Frame-begin timestamp
-	if (timestampQueryHeap)
-		commandList->EndQuery(timestampQueryHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 0);
+    commandAllocator->Reset();
+    commandList->Reset(commandAllocator.Get(), nullptr);
 
-	RootSignature* rootSignature = GraphicsContext::GetInstance().GetAs<RootSignature>();
-	commandList->SetGraphicsRootSignature(rootSignature->GetSignature().Get());
-	ConstantBuffer* constantBuffer = GraphicsContext::GetInstance().GetAs<ConstantBuffer>();
-	constantBuffer->Clear();
-	TableDescriptorHeap* tableDescHeap = GraphicsContext::GetInstance().GetAs<TableDescriptorHeap>();
-	tableDescHeap->Clear();
-	ID3D12DescriptorHeap* descHeap = tableDescHeap->GetDescriptorHeap().Get();
-	commandList->SetDescriptorHeaps(1, &descHeap);
+    if (timestampQueryHeap)
+        commandList->EndQuery(timestampQueryHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 0);
 
-	D3D12_VIEWPORT vp = { 0, 0, static_cast<FLOAT>(swapChain->Width()), static_cast<FLOAT>(swapChain->Height()), 0.f, 1.f };
-	D3D12_RECT rect = CD3DX12_RECT(0, 0, swapChain->Width(), swapChain->Height());
+    // Global per-frame setup: root signature, constant buffer, table descriptor heap
+    RootSignature* rootSignature = GraphicsContext::GetInstance().GetAs<RootSignature>();
+    commandList->SetGraphicsRootSignature(rootSignature->GetSignature().Get());
 
-	commandList->RSSetViewports(1, &vp);
-	commandList->RSSetScissorRects(1, &rect);
+    ConstantBuffer* constantBuffer = GraphicsContext::GetInstance().GetAs<ConstantBuffer>();
+    constantBuffer->Clear();
 
-	// === SHADOW PASS ===
-	if (shadowMap && shadowRenderCallback)
-	{
-		// Transition shadow map to DEPTH_WRITE if not first frame
-		if (!shadowPassFirstFrame)
-		{
-			D3D12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
-				shadowMap->GetResource(),
-				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-				D3D12_RESOURCE_STATE_DEPTH_WRITE);
-			commandList->ResourceBarrier(1, &barrier);
-		}
+    TableDescriptorHeap* tableDescHeap = GraphicsContext::GetInstance().GetAs<TableDescriptorHeap>();
+    tableDescHeap->Clear();
+    ID3D12DescriptorHeap* descHeap = tableDescHeap->GetDescriptorHeap().Get();
+    commandList->SetDescriptorHeaps(1, &descHeap);
 
-		// Set shadow map viewport
-		uint32 shadowWidth = shadowMap->GetWidth();
-		uint32 shadowHeight = shadowMap->GetHeight();
-		D3D12_VIEWPORT shadowVp = { 0, 0, static_cast<FLOAT>(shadowWidth), static_cast<FLOAT>(shadowHeight), 0.f, 1.f };
-		D3D12_RECT shadowRect = CD3DX12_RECT(0, 0, shadowWidth, shadowHeight);
-		commandList->RSSetViewports(1, &shadowVp);
-		commandList->RSSetScissorRects(1, &shadowRect);
+    // Update back buffer pointer — it changes every frame after SwapIndex()
+    renderGraph.UpdateResource("BackBuffer", swapChain->GetBackRTVBuffer().Get());
 
-		// Clear and bind shadow depth buffer (no render target)
-		D3D12_CPU_DESCRIPTOR_HANDLE shadowDSV = shadowMap->GetDSV();
-		commandList->ClearDepthStencilView(shadowDSV, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
-		commandList->OMSetRenderTargets(0, nullptr, FALSE, &shadowDSV);
-
-		// Execute shadow render callback
-		isShadowPass = true;
-		shadowRenderCallback();
-		isShadowPass = false;
-
-		// Transition shadow map to SHADER_RESOURCE for lighting pass
-		D3D12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
-			shadowMap->GetResource(),
-			D3D12_RESOURCE_STATE_DEPTH_WRITE,
-			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		commandList->ResourceBarrier(1, &barrier);
-
-		shadowPassFirstFrame = false;
-
-		// Restore main viewport
-		commandList->RSSetViewports(1, &vp);
-		commandList->RSSetScissorRects(1, &rect);
-	}
-
-	if (enableGBuffer)
-	{
-		// Bind G-Buffer shader for MRT rendering
-		ZNShader* gbufferShader = GraphicsContext::GetInstance().GetGBufferShader();
-		if (gbufferShader)
-		{
-			gbufferShader->Bind();
-		}
-
-		// Transition G-Buffer resources from SHADER_RESOURCE to RENDER_TARGET
-		// Skip on first frame or immediately after a GBuffer resize (resources start in RENDER_TARGET)
-		if (!isFirstFrame && !gbufferJustResized)
-		{
-			D3D12_RESOURCE_BARRIER barriers[5];
-			barriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(
-				gbufferManager->GetBaseColorResource(),
-				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-				D3D12_RESOURCE_STATE_RENDER_TARGET);
-			barriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(
-				gbufferManager->GetNormalResource(),
-				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-				D3D12_RESOURCE_STATE_RENDER_TARGET);
-			barriers[2] = CD3DX12_RESOURCE_BARRIER::Transition(
-				gbufferManager->GetDepthCopyResource(),
-				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-				D3D12_RESOURCE_STATE_RENDER_TARGET);
-			barriers[3] = CD3DX12_RESOURCE_BARRIER::Transition(
-				gbufferManager->GetWorldPosResource(),
-				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-				D3D12_RESOURCE_STATE_RENDER_TARGET);
-			barriers[4] = CD3DX12_RESOURCE_BARRIER::Transition(
-				gbufferManager->GetARMResource(),
-				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-				D3D12_RESOURCE_STATE_RENDER_TARGET);
-			commandList->ResourceBarrier(5, barriers);
-		}
-		gbufferJustResized = false;
-
-		// Clear all G-Buffer render targets
-		float clearColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
-		commandList->ClearRenderTargetView(gbufferManager->GetBaseColorRTV(), clearColor, 0, nullptr);
-
-		float clearNormal[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-		commandList->ClearRenderTargetView(gbufferManager->GetNormalRTV(), clearNormal, 0, nullptr);
-
-		float clearDepth[4] = { 1.0f, 0.0f, 0.0f, 0.0f };
-		commandList->ClearRenderTargetView(gbufferManager->GetDepthCopyRTV(), clearDepth, 0, nullptr);
-
-		float clearWorldPos[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-		commandList->ClearRenderTargetView(gbufferManager->GetWorldPosRTV(), clearWorldPos, 0, nullptr);
-
-		float clearARM[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-		commandList->ClearRenderTargetView(gbufferManager->GetARMRTV(), clearARM, 0, nullptr);
-
-		// Set G-Buffer render targets
-		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandles[5];
-		rtvHandles[0] = gbufferManager->GetBaseColorRTV();
-		rtvHandles[1] = gbufferManager->GetNormalRTV();
-		rtvHandles[2] = gbufferManager->GetDepthCopyRTV();
-		rtvHandles[3] = gbufferManager->GetWorldPosRTV();
-		rtvHandles[4] = gbufferManager->GetARMRTV();
-		// depth stencil
-		DepthStencilBuffer* dsBuffer = GraphicsContext::GetInstance().GetAs<DepthStencilBuffer>();
-		D3D12_CPU_DESCRIPTOR_HANDLE depthStencilView = dsBuffer->GetDSVCpuHandle();
-		commandList->ClearDepthStencilView(depthStencilView, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
-
-		// Bind G-Buffer render targets with depth stencil (5 targets: BaseColor, Normal, Depth, WorldPos, ARM)
-		commandList->OMSetRenderTargets(gbufferManager->GetRTVCount(), rtvHandles, FALSE, &depthStencilView);
-	}
-	else
-	{
-		// Original single render target path
-		D3D12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
-			swapChain->GetBackRTVBuffer().Get(),
-			D3D12_RESOURCE_STATE_PRESENT,
-			D3D12_RESOURCE_STATE_RENDER_TARGET);
-
-		commandList->ResourceBarrier(1, &barrier);
-
-		D3D12_CPU_DESCRIPTOR_HANDLE backBufferView = swapChain->GetBackRTV();
-		float clearColor[4] = { 0.2f, 0.3f, 0.4f, 1.0f };
-		commandList->ClearRenderTargetView(backBufferView, clearColor, 0, nullptr);
-
-		// depth stencil
-		DepthStencilBuffer* dsBuffer = GraphicsContext::GetInstance().GetAs<DepthStencilBuffer>();
-		D3D12_CPU_DESCRIPTOR_HANDLE depthStencilView = dsBuffer->GetDSVCpuHandle();
-		commandList->OMSetRenderTargets(1, &backBufferView, FALSE, &depthStencilView);
-		commandList->ClearDepthStencilView(depthStencilView, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
-	}
+    // Execute all render passes (shadow → gbuffer → deferred lighting → forward → imgui)
+    renderGraph.Execute(commandList.Get());
 }
 
 void CommandQueue::RenderEnd()
 {
-	if (enableGBuffer)
-	{
-		// Transition G-Buffer resources back to SHADER_RESOURCE for reading in debug views
-		D3D12_RESOURCE_BARRIER barriers[5];
-		barriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(
-			gbufferManager->GetBaseColorResource(),
-			D3D12_RESOURCE_STATE_RENDER_TARGET,
-			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		barriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(
-			gbufferManager->GetNormalResource(),
-			D3D12_RESOURCE_STATE_RENDER_TARGET,
-			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		barriers[2] = CD3DX12_RESOURCE_BARRIER::Transition(
-			gbufferManager->GetDepthCopyResource(),
-			D3D12_RESOURCE_STATE_RENDER_TARGET,
-			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		barriers[3] = CD3DX12_RESOURCE_BARRIER::Transition(
-			gbufferManager->GetWorldPosResource(),
-			D3D12_RESOURCE_STATE_RENDER_TARGET,
-			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		barriers[4] = CD3DX12_RESOURCE_BARRIER::Transition(
-			gbufferManager->GetARMResource(),
-			D3D12_RESOURCE_STATE_RENDER_TARGET,
-			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+    if (timestampQueryHeap) {
+        commandList->EndQuery(timestampQueryHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 1);
+        commandList->ResolveQueryData(timestampQueryHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP,
+            0, 2, timestampReadbackBuffer.Get(), 0);
+    }
 
-		commandList->ResourceBarrier(5, barriers);
+    // Final transition: back buffer must be PRESENT before the swap
+    RGResource* backBuffer = renderGraph.GetResource("BackBuffer");
+    renderGraph.Transition(commandList.Get(), backBuffer, D3D12_RESOURCE_STATE_PRESENT);
 
-		// Transition back buffer to RENDER_TARGET for composite/debug rendering
-		D3D12_RESOURCE_BARRIER backBufferBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
-			swapChain->GetBackRTVBuffer().Get(),
-			D3D12_RESOURCE_STATE_PRESENT,
-			D3D12_RESOURCE_STATE_RENDER_TARGET);
-		commandList->ResourceBarrier(1, &backBufferBarrier);
+    ThrowIfFailed(commandList->Close());
 
-		// Clear back buffer
-		D3D12_CPU_DESCRIPTOR_HANDLE backBufferView = swapChain->GetBackRTV();
-		float clearColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f }; // Black background
-		commandList->ClearRenderTargetView(backBufferView, clearColor, 0, nullptr);
+    ID3D12CommandList* cmdListArr[] = { commandList.Get() };
+    queue->ExecuteCommandLists(_countof(cmdListArr), cmdListArr);
 
-		// Set back buffer as render target
-		commandList->OMSetRenderTargets(1, &backBufferView, FALSE, nullptr);
+    swapChain->Present();
+    WaitSync();
+    swapChain->SwapIndex();
 
-		// Restore full viewport
-		D3D12_VIEWPORT vp = { 0, 0, static_cast<FLOAT>(swapChain->Width()), static_cast<FLOAT>(swapChain->Height()), 0.f, 1.f };
-		D3D12_RECT rect = CD3DX12_RECT(0, 0, swapChain->Width(), swapChain->Height());
-		commandList->RSSetViewports(1, &vp);
-		commandList->RSSetScissorRects(1, &rect);
+    if (!isFirstFrame && timestampQueryHeap && timestampFrequency > 0) {
+        void* pData = nullptr;
+        D3D12_RANGE readRange = { 0, 2 * sizeof(UINT64) };
+        timestampReadbackBuffer->Map(0, &readRange, &pData);
+        const UINT64* ts = reinterpret_cast<const UINT64*>(pData);
+        gpuFrameTimeMs = static_cast<float>(ts[1] - ts[0]) / static_cast<float>(timestampFrequency) * 1000.0f;
+        D3D12_RANGE writeRange = { 0, 0 };
+        timestampReadbackBuffer->Unmap(0, &writeRange);
+    }
 
-		// Render deferred lighting to main view (fullscreen)
-		if (deferredLightingPass)
-		{
-			deferredLightingPass->Render(gbufferManager, shadowMap, swapChain->Width(), swapChain->Height());
-		}
-
-		// Forward pass - render objects that need forward rendering (e.g., grid)
-		if (forwardRenderCallback)
-		{
-			// Re-bind depth stencil for forward pass
-			DepthStencilBuffer* dsBuffer = GraphicsContext::GetInstance().GetAs<DepthStencilBuffer>();
-			D3D12_CPU_DESCRIPTOR_HANDLE depthStencilView = dsBuffer->GetDSVCpuHandle();
-			D3D12_CPU_DESCRIPTOR_HANDLE backBufferView = swapChain->GetBackRTV();
-			commandList->OMSetRenderTargets(1, &backBufferView, FALSE, &depthStencilView);
-
-			// Re-bind root signature for forward pass (was changed by deferred lighting)
-			RootSignature* rootSignature = GraphicsContext::GetInstance().GetAs<RootSignature>();
-			commandList->SetGraphicsRootSignature(rootSignature->GetSignature().Get());
-
-			// Re-bind table descriptor heap for forward pass
-			TableDescriptorHeap* tableDescHeap = GraphicsContext::GetInstance().GetAs<TableDescriptorHeap>();
-			ID3D12DescriptorHeap* descHeap = tableDescHeap->GetDescriptorHeap().Get();
-			commandList->SetDescriptorHeaps(1, &descHeap);
-
-			// Mark as forward pass so Material::Bind() will bind shaders
-			isForwardPass = true;
-			forwardRenderCallback();
-			isForwardPass = false;
-		}
-
-		// ImGui pass - bind its own SRV heap and render UI on top of everything
-		if (imguiRenderCallback && imguiSrvHeap)
-		{
-			commandList->SetDescriptorHeaps(1, &imguiSrvHeap);
-			imguiRenderCallback();
-		}
-	}
-
-	// Frame-end timestamp + resolve to readback buffer (before command list is closed)
-	if (timestampQueryHeap)
-	{
-		commandList->EndQuery(timestampQueryHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 1);
-		commandList->ResolveQueryData(
-			timestampQueryHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 0, 2,
-			timestampReadbackBuffer.Get(), 0);
-	}
-
-	D3D12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
-		swapChain->GetBackRTVBuffer().Get(),
-		D3D12_RESOURCE_STATE_RENDER_TARGET,
-		D3D12_RESOURCE_STATE_PRESENT);
-
-	commandList->ResourceBarrier(1, &barrier);
-	ThrowIfFailed(commandList->Close());
-
-	ID3D12CommandList* cmdListArr[] = { commandList.Get() };
-	queue->ExecuteCommandLists(_countof(cmdListArr), cmdListArr);
-
-	swapChain->Present();
-
-	WaitSync();
-
-	swapChain->SwapIndex();
-
-	// Read GPU timestamps (first frame skipped — readback buffer not yet written)
-	if (!isFirstFrame && timestampQueryHeap && timestampFrequency > 0)
-	{
-		void* pData = nullptr;
-		D3D12_RANGE readRange = { 0, 2 * sizeof(UINT64) };
-		timestampReadbackBuffer->Map(0, &readRange, &pData);
-		const UINT64* ts = reinterpret_cast<const UINT64*>(pData);
-		gpuFrameTimeMs = static_cast<float>(ts[1] - ts[0])
-		               / static_cast<float>(timestampFrequency) * 1000.0f;
-		D3D12_RANGE writeRange = { 0, 0 };
-		timestampReadbackBuffer->Unmap(0, &writeRange);
-	}
-
-	if (isFirstFrame)
-		isFirstFrame = false;
+    if (isFirstFrame) isFirstFrame = false;
 }
 
 void CommandQueue::FlushResourceQueue()
 {
-	resourceCommandList->Close();
+    resourceCommandList->Close();
 
-	ID3D12CommandList* commandListArray[] = {resourceCommandList.Get()};
-	queue->ExecuteCommandLists(_countof(commandListArray), commandListArray);
+    ID3D12CommandList* commandListArray[] = { resourceCommandList.Get() };
+    queue->ExecuteCommandLists(_countof(commandListArray), commandListArray);
 
-	WaitSync();
+    WaitSync();
 
-	resourceCommandAllocator->Reset();
-	resourceCommandList->Reset(resourceCommandAllocator.Get(), nullptr);
+    resourceCommandAllocator->Reset();
+    resourceCommandList->Reset(resourceCommandAllocator.Get(), nullptr);
 }
 
 void CommandQueue::WaitSync()
 {
-	fenceValue++;
-	queue->Signal(fence.Get(), fenceValue);
+    fenceValue++;
+    queue->Signal(fence.Get(), fenceValue);
 
-	if (fence->GetCompletedValue() < fenceValue)
-	{
-		fence->SetEventOnCompletion(fenceValue, fenceEvent);
-		::WaitForSingleObject(fenceEvent, INFINITE);
-	}
+    if (fence->GetCompletedValue() < fenceValue) {
+        fence->SetEventOnCompletion(fenceValue, fenceEvent);
+        ::WaitForSingleObject(fenceEvent, INFINITE);
+    }
 }
