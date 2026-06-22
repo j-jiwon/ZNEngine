@@ -269,15 +269,13 @@ void TestGameScene::OnKeyboardEvent(const KeyboardEvent& event)
 
 void TestGameScene::ToggleDebugVisuals()
 {
-    debug.visible = !debug.visible;
+    bool anyVisible = debug.showGrid || debug.showSpotLights;
+    debug.showGrid       = !anyVisible;
+    debug.showSpotLights = !anyVisible;
 
-    SetSpotLightDebugVisible(debug.spotLight1, debug.visible);
-    SetSpotLightDebugVisible(debug.spotLight2, debug.visible);
-
-    if (debug.gridPlane)
-        debug.gridPlane->SetVisible(debug.visible);
-
-    std::cout << "Debug visuals: " << (debug.visible ? "ON" : "OFF") << std::endl;
+    if (debug.gridPlane) debug.gridPlane->SetVisible(debug.showGrid);
+    SetSpotLightDebugVisible(debug.spotLight1, debug.showSpotLights);
+    SetSpotLightDebugVisible(debug.spotLight2, debug.showSpotLights);
 }
 
 void TestGameScene::Render()
@@ -319,6 +317,21 @@ void TestGameScene::RenderForward()
     ImGui::Text("GPU Mem    %.0f / %.0f MB", gpuMemUsedMB, gpuMemBudgetMB);
     ImGui::Text("Triangles  %d", ZNGameObject::GetLastFrameTriangles());
     ImGui::Text("Vertices   %d", ZNGameObject::GetLastFrameVertices());
+
+    ImGui::End();
+
+    // --- Debug ---
+    ImGui::SetNextWindowSize(ImVec2(220, 0), ImGuiCond_FirstUseEver);
+    ImGui::Begin("Debug");
+
+    if (ImGui::Checkbox("Grid", &debug.showGrid))
+        if (debug.gridPlane) debug.gridPlane->SetVisible(debug.showGrid);
+
+    if (ImGui::Checkbox("Spot Light Indicators", &debug.showSpotLights))
+    {
+        SetSpotLightDebugVisible(debug.spotLight1, debug.showSpotLights);
+        SetSpotLightDebugVisible(debug.spotLight2, debug.showSpotLights);
+    }
 
     ImGui::End();
 

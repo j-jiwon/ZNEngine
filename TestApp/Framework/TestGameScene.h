@@ -55,13 +55,14 @@ private:
         ZNFramework::ZNMaterial* sphereMaterial = nullptr;
     } scene;
 
-    // Debug visuals (toggle with F1)
+    // Debug visuals (toggle with F1, or per-item via Debug window)
     struct DebugVisuals {
         SpotLightDebug spotLight1;
         SpotLightDebug spotLight2;
         ZNFramework::ZNGameObject* gridPlane = nullptr;
         ZNFramework::ZNMaterial* gridMaterial = nullptr;
-        bool visible = false;
+        bool showGrid = false;
+        bool showSpotLights = false;
     } debug;
 
     // Interactive state
