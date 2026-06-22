@@ -1,4 +1,5 @@
 #include "TestGameScene.h"
+#include <Windows.h>
 #include <iostream>
 #include <filesystem>
 #include <string>
@@ -222,6 +223,26 @@ void TestGameScene::Update(float deltaTime)
         fpsDisplay = fpsFrames / fpsAccum;
         fpsAccum  = 0.0f;
         fpsFrames = 0;
+
+        // CPU usage: system-wide via GetSystemTimes, sampled on the same 0.5s cadence
+        static ULONGLONG prevIdle = 0, prevKernel = 0, prevUser = 0;
+        FILETIME idle, kernel, user;
+        if (GetSystemTimes(&idle, &kernel, &user))
+        {
+            auto toU64 = [](const FILETIME& ft) -> ULONGLONG {
+                return (ULONGLONG(ft.dwHighDateTime) << 32) | ft.dwLowDateTime;
+            };
+            ULONGLONG idleU   = toU64(idle);
+            ULONGLONG kernelU = toU64(kernel);
+            ULONGLONG userU   = toU64(user);
+            ULONGLONG idleDelta   = idleU   - prevIdle;
+            ULONGLONG totalDelta  = (kernelU - prevKernel) + (userU - prevUser);
+            if (totalDelta > 0)
+                cpuUsagePercent = (1.0f - static_cast<float>(idleDelta) / totalDelta) * 100.0f;
+            prevIdle   = idleU;
+            prevKernel = kernelU;
+            prevUser   = userU;
+        }
     }
 }
 
@@ -270,6 +291,15 @@ void TestGameScene::RenderForward()
 
     // --- Stats ---
     const float cpuMs = fpsDisplay > 0.0f ? 1000.0f / fpsDisplay : 0.0f;
+    const float gpuMs = GraphicsContext::GetInstance().GetCommandQueue()
+                      ? GraphicsContext::GetInstance().GetCommandQueue()->GetGpuFrameTimeMs()
+                      : 0.0f;
+    const float gpuMemUsedMB   = GraphicsContext::GetInstance().GetDevice()
+                               ? GraphicsContext::GetInstance().GetDevice()->GetGpuMemoryUsageMB()
+                               : 0.0f;
+    const float gpuMemBudgetMB = GraphicsContext::GetInstance().GetDevice()
+                               ? GraphicsContext::GetInstance().GetDevice()->GetGpuMemoryBudgetMB()
+                               : 0.0f;
     const int   totalObjs   = static_cast<int>(GetGameObjects().size());
     const int   visibleObjs = [&]{ int n=0; for (auto* o : GetGameObjects()) if (o->IsVisible()) ++n; return n; }();
 
@@ -280,13 +310,15 @@ void TestGameScene::RenderForward()
 
     ImGui::Text("FPS        %.1f", fpsDisplay);
     ImGui::Text("CPU        %.2f ms", cpuMs);
+    ImGui::Text("CPU Use    %.1f%%", cpuUsagePercent);
+    ImGui::Text("GPU        %.2f ms", gpuMs);
     ImGui::Separator();
     ImGui::Text("Draw Calls %d", ZNGameObject::GetLastFrameDrawCalls());
     ImGui::Text("Objects    %d / %d", visibleObjs, totalObjs);
     ImGui::Separator();
-    ImGui::TextDisabled("GPU Time   (needs timestamp queries)");
-    ImGui::TextDisabled("GPU Mem    (needs IDXGIAdapter3)");
-    ImGui::TextDisabled("Triangles  (needs ZNMesh::GetIndexCount)");
+    ImGui::Text("GPU Mem    %.0f / %.0f MB", gpuMemUsedMB, gpuMemBudgetMB);
+    ImGui::Text("Triangles  %d", ZNGameObject::GetLastFrameTriangles());
+    ImGui::Text("Vertices   %d", ZNGameObject::GetLastFrameVertices());
 
     ImGui::End();
 

@@ -18,6 +18,9 @@ namespace ZNFramework
 		void SetTexture(ZNTexture* inTexture) override;
 		void SetMaterial(ZNMaterial* inMaterial) override;
 
+		uint32 GetIndexCount() const override { return indexCount; }
+		uint32 GetVertexCount() const override { return vertexCount; }
+
 	private:
 		void CreateVertexBuffer(const vector<Vertex>& buffer);
 		void CreateIndexBuffer(const vector<uint32>& buffer);

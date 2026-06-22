@@ -22,5 +22,8 @@ namespace ZNFramework
 		virtual void SetTransform(const Transform& t) = 0;
 		virtual void SetTexture(ZNTexture* inTexture) = 0;
 		virtual void SetMaterial(ZNMaterial* inMaterial) = 0;
+
+		virtual uint32 GetIndexCount() const { return 0; }
+		virtual uint32 GetVertexCount() const { return 0; }
 	};
 }

@@ -27,6 +27,8 @@ namespace ZNFramework
         ID3D12GraphicsCommandList* CommandList() { return commandList.Get(); }
         ID3D12GraphicsCommandList* ResourceCommandList() { return resourceCommandList.Get(); }
 
+        float GetGpuFrameTimeMs() const override { return gpuFrameTimeMs; }
+
         GBufferManager* GetGBufferManager() { return gbufferManager; }
         void SetGBufferManager(GBufferManager* manager) { gbufferManager = manager; }
         void SetDeferredLightingPass(DeferredLightingPass* pass) { deferredLightingPass = pass; }
@@ -74,5 +76,11 @@ namespace ZNFramework
         bool shadowPassFirstFrame = true;
 
         bool gbufferJustResized = false;
+
+        // GPU timestamp query
+        ComPtr<ID3D12QueryHeap> timestampQueryHeap;
+        ComPtr<ID3D12Resource>  timestampReadbackBuffer;
+        UINT64 timestampFrequency = 0;
+        float  gpuFrameTimeMs = 0.0f;
     };
 }

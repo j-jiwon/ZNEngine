@@ -43,12 +43,31 @@ void CommandQueue::Init(ZNSwapChain* inSwapChain)
 
 	device->Device()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence));
 	fenceEvent = ::CreateEvent(nullptr, FALSE, FALSE, nullptr);
+
+	// GPU timestamp query heap (2 slots: frame begin, frame end)
+	D3D12_QUERY_HEAP_DESC queryHeapDesc = {};
+	queryHeapDesc.Type  = D3D12_QUERY_HEAP_TYPE_TIMESTAMP;
+	queryHeapDesc.Count = 2;
+	device->Device()->CreateQueryHeap(&queryHeapDesc, IID_PPV_ARGS(&timestampQueryHeap));
+
+	D3D12_HEAP_PROPERTIES readbackHeap = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_READBACK);
+	D3D12_RESOURCE_DESC   readbackDesc = CD3DX12_RESOURCE_DESC::Buffer(2 * sizeof(UINT64));
+	device->Device()->CreateCommittedResource(
+		&readbackHeap, D3D12_HEAP_FLAG_NONE, &readbackDesc,
+		D3D12_RESOURCE_STATE_COPY_DEST, nullptr,
+		IID_PPV_ARGS(&timestampReadbackBuffer));
+
+	queue->GetTimestampFrequency(&timestampFrequency);
 }
 
 void CommandQueue::RenderBegin()
 {
 	commandAllocator->Reset();
 	commandList->Reset(commandAllocator.Get(), nullptr);
+
+	// Frame-begin timestamp
+	if (timestampQueryHeap)
+		commandList->EndQuery(timestampQueryHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 0);
 
 	RootSignature* rootSignature = GraphicsContext::GetInstance().GetAs<RootSignature>();
 	commandList->SetGraphicsRootSignature(rootSignature->GetSignature().Get());
@@ -289,6 +308,15 @@ void CommandQueue::RenderEnd()
 		}
 	}
 
+	// Frame-end timestamp + resolve to readback buffer (before command list is closed)
+	if (timestampQueryHeap)
+	{
+		commandList->EndQuery(timestampQueryHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 1);
+		commandList->ResolveQueryData(
+			timestampQueryHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 0, 2,
+			timestampReadbackBuffer.Get(), 0);
+	}
+
 	D3D12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
 		swapChain->GetBackRTVBuffer().Get(),
 		D3D12_RESOURCE_STATE_RENDER_TARGET,
@@ -306,7 +334,19 @@ void CommandQueue::RenderEnd()
 
 	swapChain->SwapIndex();
 
-	// Mark that first frame is complete
+	// Read GPU timestamps (first frame skipped — readback buffer not yet written)
+	if (!isFirstFrame && timestampQueryHeap && timestampFrequency > 0)
+	{
+		void* pData = nullptr;
+		D3D12_RANGE readRange = { 0, 2 * sizeof(UINT64) };
+		timestampReadbackBuffer->Map(0, &readRange, &pData);
+		const UINT64* ts = reinterpret_cast<const UINT64*>(pData);
+		gpuFrameTimeMs = static_cast<float>(ts[1] - ts[0])
+		               / static_cast<float>(timestampFrequency) * 1000.0f;
+		D3D12_RANGE writeRange = { 0, 0 };
+		timestampReadbackBuffer->Unmap(0, &writeRange);
+	}
+
 	if (isFirstFrame)
 		isFirstFrame = false;
 }

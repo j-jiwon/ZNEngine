@@ -8,6 +8,10 @@ using namespace ZNFramework;
 
 int ZNGameObject::sDrawCalls = 0;
 int ZNGameObject::sLastFrameDrawCalls = 0;
+int ZNGameObject::sTriangles = 0;
+int ZNGameObject::sLastFrameTriangles = 0;
+int ZNGameObject::sVertices = 0;
+int ZNGameObject::sLastFrameVertices = 0;
 
 void ZNGameObject::Render()
 {
@@ -21,6 +25,8 @@ void ZNGameObject::Render()
 	if (isVisible)
 	{
 		++sDrawCalls;
+		sTriangles += static_cast<int>(mesh->GetIndexCount() / 3);
+		sVertices  += static_cast<int>(mesh->GetVertexCount());
 		mesh->Render();
 	}
 }
@@ -36,6 +42,8 @@ void ZNGameObject::RenderShadow(const ZNMatrix4& lightViewProj, ZNShader* shadow
 	if (isVisible)
 	{
 		++sDrawCalls;
+		sTriangles += static_cast<int>(mesh->GetIndexCount() / 3);
+		sVertices  += static_cast<int>(mesh->GetVertexCount());
 		mesh->RenderShadow(lightViewProj, shadowShader);
 	}
 }

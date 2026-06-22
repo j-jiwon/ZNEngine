@@ -4,6 +4,8 @@
 #include "ZNInputDef.h"
 #include <iostream>
 #include <windowsx.h>
+#include <dwmapi.h>
+#pragma comment(lib, "dwmapi.lib")
 #include "imgui_impl_win32.h"
 using namespace ZNFramework;
 
@@ -18,6 +20,13 @@ Window::Window()
 
 void Window::Create(uint32 inWidth, uint32 inHeight)
 {
+    width  = inWidth;
+    height = inHeight;
+
+    hInstance = GetModuleHandleW(nullptr);
+
+    SetProcessDPIAware();
+
     // Register the window class
     WNDCLASSEXW wc = { 0 };
     wc.cbSize = sizeof(wc);
@@ -27,26 +36,31 @@ void Window::Create(uint32 inWidth, uint32 inHeight)
     wc.cbWndExtra = 0;
     wc.hInstance = hInstance;
     wc.lpszClassName = CLASS_NAME;
-    wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);
+    wc.hIcon   = LoadIcon(NULL, IDI_APPLICATION);
+    wc.hIconSm = LoadIcon(NULL, IDI_APPLICATION);
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
     RegisterClassExW(&wc);
 
-    RECT R = { 0, 0, width, height };
+    RECT R = { 0, 0, (LONG)width, (LONG)height };
     AdjustWindowRect(&R, WS_OVERLAPPEDWINDOW, false);
-    int _width = R.right - R.left;
+    int _width  = R.right - R.left;
     int _height = R.bottom - R.top;
+
+    // Center on primary monitor
+    int xPos = (GetSystemMetrics(SM_CXSCREEN) - _width)  / 2;
+    int yPos = (GetSystemMetrics(SM_CYSCREEN) - _height) / 2;
 
     // Create window
     hwnd = CreateWindowExW(
         0,                              // Optional window styles.
         CLASS_NAME,                     // Window class
-        L"This is ZNEngine Window",    // Window text
+        L"ZNEngine | TestApp",          // Window text
         WS_OVERLAPPEDWINDOW,            // Window style
 
-        // Size and position
-        CW_USEDEFAULT, CW_USEDEFAULT, _width, _height,
+        // Size and position (centered)
+        xPos, yPos, _width, _height,
 
-        NULL,       // Parent window    
+        NULL,       // Parent window
         NULL,       // Menu
         hInstance,  // Instance handle
         this        // Additional application data
@@ -57,9 +71,20 @@ void Window::Create(uint32 inWidth, uint32 inHeight)
         throw std::exception("hwnd is null");
     }
 
+    // Must set dark mode BEFORE ShowWindow so the first paint uses it
+    BOOL darkMode = TRUE;
+    DwmSetWindowAttribute(hwnd, 19, &darkMode, sizeof(darkMode)); // Windows 10 pre-20H1
+    DwmSetWindowAttribute(hwnd, 20, &darkMode, sizeof(darkMode)); // Windows 10 20H1+
+
     ShowWindow(hwnd, SW_SHOW);
     UpdateWindow(hwnd);
     ::SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)this);
+
+    // Force non-client area repaint to pick up dark mode and title text
+    ::SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
+        SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+    ::SendMessage(hwnd, WM_NCACTIVATE, TRUE, 0);
+
     WindowContext::GetInstance().SetWindow(this);
 }
 
@@ -124,7 +149,7 @@ LRESULT Window::MainWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
     //Window* window = WindowContext::GetInstance().GetAs<Window>();
     if (window == nullptr)
     {
-        return DefWindowProc(hWnd, uMsg, wParam, lParam);
+        return DefWindowProcW(hWnd, uMsg, wParam, lParam);
     }
     return window->WindowProc(hWnd, uMsg, wParam, lParam);
 }
@@ -216,7 +241,7 @@ LRESULT Window::WindowProc(HWND inHwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     default:
         break;
     }
-    return DefWindowProc(inHwnd, uMsg, wParam, lParam);
+    return DefWindowProcW(inHwnd, uMsg, wParam, lParam);
 }
 
 KEY_TYPE Window::ConverWindowsKeyToKeyType(WPARAM wParam)

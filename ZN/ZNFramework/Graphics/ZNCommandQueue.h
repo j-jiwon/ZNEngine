@@ -20,6 +20,8 @@ namespace ZNFramework
 		virtual void FlushResourceQueue() = 0;
 		virtual void WaitSync() = 0;
 
+		virtual float GetGpuFrameTimeMs() const { return 0.0f; }
+
 		void SetForwardRenderCallback(std::function<void()> callback) { forwardRenderCallback = callback; }
 		void SetImGuiRenderCallback(std::function<void()> callback) { imguiRenderCallback = callback; }
 		void SetImGuiDescriptorHeap(ID3D12DescriptorHeap* heap) { imguiSrvHeap = heap; }

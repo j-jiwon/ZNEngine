@@ -73,5 +73,6 @@ private:
     float fpsAccum = 0.0f;
     int   fpsFrames = 0;
     float fpsDisplay = 0.0f;
+    float cpuUsagePercent = 0.0f;
     Selection selection;
 };

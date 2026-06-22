@@ -30,12 +30,23 @@ namespace ZNFramework
 		ZNMesh* GetMesh() const { return mesh; }
 		ZNMaterial* GetMaterial() const { return material; }
 
-		static void FlushDrawCalls() { sLastFrameDrawCalls = sDrawCalls; sDrawCalls = 0; }
+		static void FlushDrawCalls()
+		{
+			sLastFrameDrawCalls = sDrawCalls; sDrawCalls = 0;
+			sLastFrameTriangles = sTriangles; sTriangles = 0;
+			sLastFrameVertices  = sVertices;  sVertices  = 0;
+		}
 		static int GetLastFrameDrawCalls() { return sLastFrameDrawCalls; }
+		static int GetLastFrameTriangles()  { return sLastFrameTriangles; }
+		static int GetLastFrameVertices()   { return sLastFrameVertices; }
 
 	private:
 		static int sDrawCalls;
 		static int sLastFrameDrawCalls;
+		static int sTriangles;
+		static int sLastFrameTriangles;
+		static int sVertices;
+		static int sLastFrameVertices;
 
 	public:
 
