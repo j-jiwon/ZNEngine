@@ -44,4 +44,10 @@ private:
     ZNFramework::ZNGameObject*  tvScreen   = nullptr;
     ZNFramework::ZNMaterial*    tvMat      = nullptr;
 
+    // Room model (loaded from FBX)
+    struct RoomModel {
+        std::vector<ZNFramework::ZNGameObject*> objects;
+        std::vector<ZNFramework::ZNMaterial*>   materials;
+        ZNFramework::ZNMaterial*                cctvMat = nullptr;
+    } room;
 };

@@ -22,12 +22,13 @@ bool AssimpLoader::Load(const std::filesystem::path& filePath, ModelData& outMod
 	// Load scene with common post-processing flags
 	const aiScene* scene = importer.ReadFile(
 		filePath.string(),
-		aiProcess_Triangulate |           // Convert all polygons to triangles
-		aiProcess_GenNormals |            // Generate normals if not present
-		aiProcess_FlipUVs |               // Flip UVs for DirectX
-		aiProcess_CalcTangentSpace |      // Calculate tangent space for normal mapping
-		aiProcess_JoinIdenticalVertices | // Optimize by joining identical vertices
-		aiProcess_SortByPType             // Split meshes by primitive type
+		aiProcess_Triangulate |
+		aiProcess_GenNormals |
+		aiProcess_FlipUVs |
+		aiProcess_CalcTangentSpace |
+		aiProcess_JoinIdenticalVertices |
+		aiProcess_SortByPType |
+		aiProcess_PreTransformVertices    // Bake node-hierarchy transforms into vertex data
 	);
 
 	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)

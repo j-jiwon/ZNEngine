@@ -1,6 +1,8 @@
 #include "CCTVScene.h"
 #include "SceneDebugUI.h"
 #include <imgui.h>
+#include <iostream>
+#include <filesystem>
 #include "ZNFramework/Graphics/Platform/Direct3D12/RenderTexture.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/CommandQueue.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/Material.h"
@@ -128,6 +130,71 @@ void CCTVScene::Initialize()
     tvScreen->SetCastShadow(false);
     AddGameObject(tvScreen);
 
+    // --- Room model (FBX) ---
+    {
+        std::filesystem::path roomPath =
+            GetResourcePath() / L"Models" / L"33-the-room-2" / L"The room" / L"room.fbx";
+
+        if (std::filesystem::exists(roomPath))
+        {
+            std::cout << "[CCTVScene] Loading room.fbx..." << std::endl;
+            ZNModelLoader* loader = Platform::CreateModelLoader();
+            ModelData modelData;
+            if (loader->Load(roomPath, modelData))
+            {
+                // One material per material slot from FBX; clamp near-black albedo to visible
+                for (const auto& matData : modelData.materials)
+                {
+                    ZNVector4 albedo = matData.params.albedoColor;
+                    float lum = albedo.x * 0.299f + albedo.y * 0.587f + albedo.z * 0.114f;
+                    if (lum < 0.05f)
+                        albedo = ZNVector4(0.8f, 0.75f, 0.70f, 1.0f); // fallback warm-white
+                    float roughness = (matData.params.roughness > 0.25f) ? matData.params.roughness : 0.25f;
+                    room.materials.push_back(ZNMaterialFactory::CreatePBR(
+                        defaultShader, albedo, matData.params.metallic, roughness));
+                }
+                if (room.materials.empty())
+                    room.materials.push_back(ZNMaterialFactory::CreatePBR(
+                        defaultShader, ZNVector4(0.8f, 0.75f, 0.70f, 1.0f), 0.0f, 0.6f));
+
+                // Single warm-white material for the CCTV offscreen pass
+                room.cctvMat = ZNMaterialFactory::CreatePBR(
+                    cctvShader, ZNVector4(0.8f, 0.75f, 0.70f, 1.0f), 0.0f, 0.6f);
+
+                for (const auto& meshData : modelData.meshes)
+                {
+                    size_t matIdx = (meshData.materialIndex < room.materials.size())
+                                  ? meshData.materialIndex : 0;
+                    ZNMaterial* mat = room.materials[matIdx];
+
+                    ZNMesh* mesh = Platform::CreateMesh();
+                    mesh->Init(meshData.vertices, meshData.indices);
+                    mesh->SetMaterial(mat);
+
+                    ZNGameObject* obj = new ZNGameObject();
+                    obj->SetMesh(mesh);
+                    obj->SetMaterial(mat);
+                    obj->SetName("Room_" + std::to_string(room.objects.size()));
+                    obj->GetTransform().scale = ZNVector3(0.01f, 0.01f, 0.01f);
+                    obj->SetCastShadow(false);
+                    AddGameObject(obj);
+                    room.objects.push_back(obj);
+                }
+                std::cout << "[CCTVScene] Room loaded: " << room.objects.size()
+                          << " meshes, " << room.materials.size() << " materials." << std::endl;
+            }
+            else
+            {
+                std::cout << "[CCTVScene] Failed to load room.fbx." << std::endl;
+            }
+            delete loader;
+        }
+        else
+        {
+            std::cout << "[CCTVScene] room.fbx not found at: " << roomPath << std::endl;
+        }
+    }
+
     // Register offscreen pass (unique name to avoid conflict with TestGameScene's "CCTV")
     CommandQueue* cmdQ = GraphicsContext::GetInstance().GetAs<CommandQueue>();
     cmdQ->AddOffscreenCamera(cctvCamera, cctvRT, "CCTV_Room",
@@ -139,6 +206,12 @@ void CCTVScene::Initialize()
                 obj->Render();
                 obj->GetMesh()->SetMaterial(orig);
             };
+            // Room model (all meshes use a single warm-white forward-lit mat in CCTV view)
+            if (room.cctvMat)
+            {
+                for (auto* obj : room.objects)
+                    renderWith(obj, room.cctvMat);
+            }
             renderWith(floor,  cctvFloorMat);
             renderWith(boxA,   cctvBoxAMat);
             renderWith(boxB,   cctvBoxBMat);
@@ -156,7 +229,32 @@ void CCTVScene::RenderForward()
 {
     ZNScene::RenderForward();
 
-    // Clear any leftover extensions from a previously active scene.
-    SceneDebugUI::Get().onOutlinerExtras  = nullptr;
     SceneDebugUI::Get().onInspectorExtras = nullptr;
+
+    // Inject room meshes as a collapsible Outliner section so the main GameObjects
+    // list stays readable while the room's 100+ pieces remain accessible.
+    if (!room.objects.empty())
+    {
+        SceneDebugUI::Get().onOutlinerExtras = [this]() {
+            std::string label = "Room Model (" + std::to_string(room.objects.size()) + ")";
+            if (ImGui::TreeNodeEx(label.c_str(), ImGuiTreeNodeFlags_None))
+            {
+                auto& sel = SceneDebugUI::Get().GetSelection();
+                for (auto* obj : room.objects)
+                {
+                    bool isSel = (sel.type == SceneDebugUI::SelectionType::GameObject && sel.ptr == obj);
+                    if (ImGui::Selectable(obj->GetName().c_str(), isSel))
+                    {
+                        sel.type = SceneDebugUI::SelectionType::GameObject;
+                        sel.ptr  = obj;
+                    }
+                }
+                ImGui::TreePop();
+            }
+        };
+    }
+    else
+    {
+        SceneDebugUI::Get().onOutlinerExtras = nullptr;
+    }
 }
