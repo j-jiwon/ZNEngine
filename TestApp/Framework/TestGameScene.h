@@ -2,6 +2,9 @@
 #include <ZNFramework.h>
 #include <vector>
 
+// Forward declare D3D12-specific type to avoid pulling in platform headers here
+namespace ZNFramework { class RenderTexture; }
+
 class TestGameScene : public ZNFramework::ZNScene
 {
 public:
@@ -68,6 +71,19 @@ private:
     // Interactive state
     ZNFramework::ZNGameObject* turntableObj = nullptr;
     bool turntableEnabled = false;
+
+    // CCTV multi-camera demo
+    struct CCTVSetup {
+        ZNFramework::ZNCamera*      camera    = nullptr;
+        ZNFramework::RenderTexture* rt        = nullptr;
+        ZNFramework::ZNShader*      fwdShader = nullptr; // forward_unlit for CCTV view
+        ZNFramework::ZNMaterial*    floorMat  = nullptr;
+        ZNFramework::ZNMaterial*    cubeMat   = nullptr;
+        ZNFramework::ZNMaterial*    sphereMat = nullptr;
+        ZNFramework::ZNMaterial*    bunnyMat  = nullptr;
+        ZNFramework::ZNMaterial*    tvMat     = nullptr; // deferred mat w/ CCTV RT as albedo
+        ZNFramework::ZNGameObject*  tvObj     = nullptr;
+    } cctv;
 
     // ImGui state
     ZNFramework::ZNDirectionalLight* dirLight = nullptr;

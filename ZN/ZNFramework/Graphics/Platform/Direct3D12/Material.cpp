@@ -79,10 +79,10 @@ void Material::Bind()
 	// Bind textures (t0 ~ t4)
 	for (size_t i = 0; i < textures.size(); ++i)
 	{
-		if (textures[i])
-		{
-			SRV_REGISTER srvRegister = static_cast<SRV_REGISTER>(static_cast<int>(SRV_REGISTER::t0) + i);
+		SRV_REGISTER srvRegister = static_cast<SRV_REGISTER>(static_cast<int>(SRV_REGISTER::t0) + i);
+		if (i == 0 && hasAlbedoSRVOverride)
+			tableDescHeap->SetSRV(albedoSRVOverride, SRV_REGISTER::t0);
+		else if (textures[i])
 			tableDescHeap->SetSRV(textures[i]->GetCpuHandle(), srvRegister);
-		}
 	}
 }

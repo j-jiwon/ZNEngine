@@ -4,6 +4,9 @@
 #include <filesystem>
 #include <string>
 #include <imgui.h>
+#include "ZNFramework/Graphics/Platform/Direct3D12/RenderTexture.h"
+#include "ZNFramework/Graphics/Platform/Direct3D12/CommandQueue.h"
+#include "ZNFramework/Graphics/Platform/Direct3D12/Material.h"
 
 using namespace ZNFramework;
 
@@ -203,6 +206,62 @@ void TestGameScene::Initialize()
     debug.gridPlane->SetTag("Debug");
     debug.gridPlane->SetVisible(false);
     AddForwardGameObject(debug.gridPlane);
+
+    // --- CCTV multi-camera demo ---
+    // Render texture for the CCTV feed (16:9)
+    cctv.rt = new RenderTexture();
+    cctv.rt->Init(512, 288);
+
+    // Offscreen camera: side-angle view of the scene
+    cctv.camera = new ZNCamera();
+    cctv.camera->SetPosition(ZNVector3(6.0f, 4.0f, 0.0f));
+    cctv.camera->SetRotation(-25.0f, -100.0f);
+    cctv.camera->SetPerspective(3.141592f / 4.0f, 512.0f / 288.0f, 0.1f, 100.0f);
+
+    // Forward-unlit shader for the CCTV pass (single RT, no GBuffer MRT)
+    cctv.fwdShader = Platform::CreateShader();
+    cctv.fwdShader->Load(GetResourcePath() / L"Shaders" / L"forward_unlit.hlsli");
+
+    // Simple flat-colour materials matching scene object colours
+    cctv.floorMat  = ZNMaterialFactory::CreatePBR(cctv.fwdShader, ZNVector4(0.6f, 0.6f, 0.6f, 1.0f), 0.0f, 1.0f);
+    cctv.cubeMat   = ZNMaterialFactory::CreatePBR(cctv.fwdShader, ZNVector4(0.2f, 0.4f, 0.9f, 1.0f), 0.0f, 1.0f);
+    cctv.sphereMat = ZNMaterialFactory::CreatePBR(cctv.fwdShader, ZNVector4(0.9f, 0.7f, 0.1f, 1.0f), 0.0f, 1.0f);
+    cctv.bunnyMat  = ZNMaterialFactory::CreatePBR(cctv.fwdShader, ZNVector4(0.8f, 0.1f, 0.1f, 1.0f), 0.0f, 1.0f);
+
+    // TV object: deferred material with CCTV RT as albedo
+    cctv.tvMat = ZNMaterialFactory::CreatePBR(defaultShader, ZNVector4(1.0f, 1.0f, 1.0f, 1.0f), 0.0f, 1.0f);
+    static_cast<Material*>(cctv.tvMat)->SetAlbedoSRVHandle(cctv.rt->GetSRVCpuHandle());
+
+    cctv.tvObj = new ZNGameObject();
+    cctv.tvObj->SetMesh(ZNMeshFactory::CreatePlane(0.5f)); // unit-plane, scaled by transform
+    cctv.tvObj->GetMesh()->SetMaterial(cctv.tvMat);
+    cctv.tvObj->SetMaterial(cctv.tvMat);
+    cctv.tvObj->SetName("TV");
+    cctv.tvObj->SetTag("TV");
+    cctv.tvObj->GetTransform().position = ZNVector3(-1.0f, 2.0f, 4.0f);
+    cctv.tvObj->GetTransform().scale    = ZNVector3(3.2f, 1.8f, 0.1f); // 16:9 aspect
+    cctv.tvObj->GetTransform().rotation = ZNVector3(-90.0f, 0.0f, 0.0f); // face -Z (toward cam)
+    cctv.tvObj->SetCastShadow(false);
+    AddGameObject(cctv.tvObj);
+
+    // Register the offscreen pass — renders before the main GBuffer pass
+    CommandQueue* cmdQ = GraphicsContext::GetInstance().GetAs<CommandQueue>();
+    cmdQ->AddOffscreenCamera(cctv.camera, cctv.rt, "CCTV",
+        [this]() {
+            // Render scene objects with forward-unlit materials (skip TV to avoid recursion)
+            auto renderWith = [](ZNGameObject* obj, ZNMaterial* mat) {
+                if (!obj || !obj->IsVisible() || !obj->GetMesh()) return;
+                ZNMaterial* orig = obj->GetMaterial();
+                obj->GetMesh()->SetMaterial(mat);
+                obj->Render();
+                obj->GetMesh()->SetMaterial(orig);
+            };
+            renderWith(scene.floor,  cctv.floorMat);
+            renderWith(scene.cube,   cctv.cubeMat);
+            renderWith(scene.sphere, cctv.sphereMat);
+            for (auto* obj : models.objects)
+                renderWith(obj, cctv.bunnyMat);
+        });
 
     std::cout << "Scene initialized. Press F1 to toggle debug visuals." << std::endl;
 }

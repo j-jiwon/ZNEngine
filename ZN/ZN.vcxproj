@@ -231,6 +231,8 @@
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\SpotLight.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\GraphicsDevice.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\GBufferManager.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\RenderTexture.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Passes\OffscreenCameraPass.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\ShadowMap.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Material.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Mesh.h" />
@@ -310,6 +312,7 @@
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\SpotLight.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\GraphicsDevice.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\GBufferManager.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\RenderTexture.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\ShadowMap.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\Material.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\Mesh.cpp" />
