@@ -18,7 +18,7 @@ public:
 private:
     ZNWindow* window = nullptr;
     ZNGraphicsDevice* device = nullptr;
-};
+}; 
 
 int main()
 {

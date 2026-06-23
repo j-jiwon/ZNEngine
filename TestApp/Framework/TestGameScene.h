@@ -27,7 +27,7 @@ public:
         ZNFramework::ZNMaterial* coneMaterial = nullptr;
     };
 
-    enum class SelectedType { None, GameObject, SpotLight, DirectionalLight };
+    enum class SelectedType { None, GameObject, SpotLight, DirectionalLight, Camera };
     struct Selection {
         SelectedType type = SelectedType::None;
         void* ptr = nullptr;
@@ -64,8 +64,12 @@ private:
         SpotLightDebug spotLight2;
         ZNFramework::ZNGameObject* gridPlane = nullptr;
         ZNFramework::ZNMaterial* gridMaterial = nullptr;
-        bool showGrid = false;
+        ZNFramework::ZNGameObject* cameraMarker = nullptr;
+        ZNFramework::ZNGameObject* cameraLens   = nullptr;
+        ZNFramework::ZNMaterial*   cameraMarkerMaterial = nullptr;
+        bool showGrid       = false;
         bool showSpotLights = false;
+        bool showCameras    = false;
     } debug;
 
     // Interactive state

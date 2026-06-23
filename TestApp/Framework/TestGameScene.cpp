@@ -218,9 +218,9 @@ void TestGameScene::Initialize()
     cctv.camera->SetRotation(-25.0f, -100.0f);
     cctv.camera->SetPerspective(3.141592f / 4.0f, 512.0f / 288.0f, 0.1f, 100.0f);
 
-    // Forward-unlit shader for the CCTV pass (single RT, no GBuffer MRT)
+    // Forward-lit shader for the CCTV pass (single RT, no GBuffer MRT)
     cctv.fwdShader = Platform::CreateShader();
-    cctv.fwdShader->Load(GetResourcePath() / L"Shaders" / L"forward_unlit.hlsli");
+    cctv.fwdShader->Load(GetResourcePath() / L"Shaders" / L"forward_lit.hlsli");
 
     // Simple flat-colour materials matching scene object colours
     cctv.floorMat  = ZNMaterialFactory::CreatePBR(cctv.fwdShader, ZNVector4(0.6f, 0.6f, 0.6f, 1.0f), 0.0f, 1.0f);
@@ -239,7 +239,7 @@ void TestGameScene::Initialize()
     cctv.tvObj->SetName("TV");
     cctv.tvObj->SetTag("TV");
     cctv.tvObj->GetTransform().position = ZNVector3(-1.0f, 2.0f, 4.0f);
-    cctv.tvObj->GetTransform().scale    = ZNVector3(3.2f, 1.8f, 0.1f); // 16:9 aspect
+    cctv.tvObj->GetTransform().scale    = ZNVector3(3.2f, 0.1f, 1.8f); // X=width, Z=height (after -90°X rot)
     cctv.tvObj->GetTransform().rotation = ZNVector3(-90.0f, 0.0f, 0.0f); // face -Z (toward cam)
     cctv.tvObj->SetCastShadow(false);
     AddGameObject(cctv.tvObj);
@@ -263,6 +263,31 @@ void TestGameScene::Initialize()
                 renderWith(obj, cctv.bunnyMat);
         });
 
+    // Debug: CCTV camera position/direction indicator
+    debug.cameraMarkerMaterial = ZNMaterialFactory::CreatePBR(defaultShader,
+        ZNVector4(0.0f, 0.9f, 1.0f, 1.0f), 0.0f, 0.5f); // cyan
+
+    debug.cameraMarker = new ZNGameObject();
+    debug.cameraMarker->SetMesh(ZNMeshFactory::CreateCube(0.1f));
+    debug.cameraMarker->GetMesh()->SetMaterial(debug.cameraMarkerMaterial);
+    debug.cameraMarker->SetName("CCTVCameraMarker");
+    debug.cameraMarker->SetTag("Debug");
+    debug.cameraMarker->GetTransform().position = cctv.camera->GetPosition();
+    debug.cameraMarker->SetVisible(false);
+    debug.cameraMarker->SetCastShadow(false);
+    AddGameObject(debug.cameraMarker);
+
+    debug.cameraLens = new ZNGameObject();
+    debug.cameraLens->SetMesh(ZNMeshFactory::CreateCube(0.05f));
+    debug.cameraLens->GetMesh()->SetMaterial(debug.cameraMarkerMaterial);
+    debug.cameraLens->SetName("CCTVCameraLens");
+    debug.cameraLens->SetTag("Debug");
+    debug.cameraLens->GetTransform().position =
+        cctv.camera->GetPosition() + cctv.camera->GetForward() * 0.35f;
+    debug.cameraLens->SetVisible(false);
+    debug.cameraLens->SetCastShadow(false);
+    AddGameObject(debug.cameraLens);
+
     std::cout << "Scene initialized. Press F1 to toggle debug visuals." << std::endl;
 }
 
@@ -273,6 +298,15 @@ void TestGameScene::Update(float deltaTime)
     if (turntableObj && turntableEnabled)
     {
         turntableObj->GetTransform().rotation.y += 45.0f * deltaTime;
+    }
+
+    if (debug.cameraMarker && debug.cameraMarker->IsVisible())
+    {
+        ZNVector3 camPos = cctv.camera->GetPosition();
+        ZNVector3 camFwd = cctv.camera->GetForward();
+        debug.cameraMarker->GetTransform().position = camPos;
+        if (debug.cameraLens)
+            debug.cameraLens->GetTransform().position = camPos + camFwd * 0.35f;
     }
 
     fpsAccum += deltaTime;
@@ -328,13 +362,16 @@ void TestGameScene::OnKeyboardEvent(const KeyboardEvent& event)
 
 void TestGameScene::ToggleDebugVisuals()
 {
-    bool anyVisible = debug.showGrid || debug.showSpotLights;
+    bool anyVisible = debug.showGrid || debug.showSpotLights || debug.showCameras;
     debug.showGrid       = !anyVisible;
     debug.showSpotLights = !anyVisible;
+    debug.showCameras    = !anyVisible;
 
     if (debug.gridPlane) debug.gridPlane->SetVisible(debug.showGrid);
     SetSpotLightDebugVisible(debug.spotLight1, debug.showSpotLights);
     SetSpotLightDebugVisible(debug.spotLight2, debug.showSpotLights);
+    if (debug.cameraMarker) debug.cameraMarker->SetVisible(debug.showCameras);
+    if (debug.cameraLens)   debug.cameraLens->SetVisible(debug.showCameras);
 }
 
 void TestGameScene::Render()
@@ -395,6 +432,11 @@ void TestGameScene::RenderForward()
         SetSpotLightDebugVisible(debug.spotLight1, debug.showSpotLights);
         SetSpotLightDebugVisible(debug.spotLight2, debug.showSpotLights);
     }
+    if (ImGui::Checkbox("Camera Indicators", &debug.showCameras))
+    {
+        if (debug.cameraMarker) debug.cameraMarker->SetVisible(debug.showCameras);
+        if (debug.cameraLens)   debug.cameraLens->SetVisible(debug.showCameras);
+    }
 
     ImGui::Separator();
     ImGui::Text("View Mode");
@@ -420,6 +462,17 @@ void TestGameScene::RenderForward()
                 selection.type = SelectedType::GameObject;
                 selection.ptr  = obj;
             }
+        }
+        ImGui::TreePop();
+    }
+
+    if (ImGui::TreeNodeEx("Cameras", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        bool isSelected = (selection.type == SelectedType::Camera && selection.ptr == cctv.camera);
+        if (ImGui::Selectable("CCTV Camera", isSelected))
+        {
+            selection.type = SelectedType::Camera;
+            selection.ptr  = cctv.camera;
         }
         ImGui::TreePop();
     }
@@ -544,6 +597,26 @@ void TestGameScene::RenderForward()
         float dirArr[3] = { dir.x, dir.y, dir.z };
         if (ImGui::SliderFloat3("Direction", dirArr, -1.0f, 1.0f))
             dl->SetDirection(ZNVector3(dirArr[0], dirArr[1], dirArr[2]).Normalize());
+        break;
+    }
+    case SelectedType::Camera:
+    {
+        ZNCamera* cam = static_cast<ZNCamera*>(selection.ptr);
+        ImGui::Text("Camera: CCTV");
+        ImGui::Separator();
+
+        ImGui::Text("Transform");
+        ZNVector3 camPos = cam->GetPosition();
+        float posArr[3] = { camPos.x, camPos.y, camPos.z };
+        if (ImGui::DragFloat3("Position", posArr, 0.05f))
+            cam->SetPosition(ZNVector3(posArr[0], posArr[1], posArr[2]));
+
+        const float RAD_TO_DEG = 180.0f / 3.14159265f;
+        float pitchDeg = cam->GetPitch() * RAD_TO_DEG;
+        float yawDeg   = cam->GetYaw()   * RAD_TO_DEG;
+        float rot[2]   = { pitchDeg, yawDeg };
+        if (ImGui::DragFloat2("Pitch / Yaw", rot, 0.5f, -180.0f, 180.0f))
+            cam->SetRotation(rot[0], rot[1]);
         break;
     }
     default:
