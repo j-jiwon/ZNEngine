@@ -216,6 +216,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Framework\App.cpp" />
+    <ClCompile Include="Framework\CCTVScene.cpp" />
+    <ClCompile Include="Framework\SceneDebugUI.cpp" />
     <ClCompile Include="Framework\TestGameScene.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -225,6 +227,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Framework\Math\Helper.h" />
+    <ClInclude Include="Framework\CCTVScene.h" />
+    <ClInclude Include="Framework\SceneDebugUI.h" />
+    <ClInclude Include="Framework\SceneManager.h" />
     <ClInclude Include="Framework\TestGameScene.h" />
     <ClInclude Include="Libs\googletest\include\gmock\gmock-actions.h" />
     <ClInclude Include="Libs\googletest\include\gmock\gmock-cardinalities.h" />

@@ -27,12 +27,6 @@ public:
         ZNFramework::ZNMaterial* coneMaterial = nullptr;
     };
 
-    enum class SelectedType { None, GameObject, SpotLight, DirectionalLight, Camera };
-    struct Selection {
-        SelectedType type = SelectedType::None;
-        void* ptr = nullptr;
-    };
-
 private:
     void ToggleDebugVisuals();
 
@@ -89,11 +83,4 @@ private:
         ZNFramework::ZNGameObject*  tvObj     = nullptr;
     } cctv;
 
-    // ImGui state
-    ZNFramework::ZNDirectionalLight* dirLight = nullptr;
-    float fpsAccum = 0.0f;
-    int   fpsFrames = 0;
-    float fpsDisplay = 0.0f;
-    float cpuUsagePercent = 0.0f;
-    Selection selection;
 };
