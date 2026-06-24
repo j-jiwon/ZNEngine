@@ -130,6 +130,35 @@ void CCTVScene::Initialize()
     tvScreen->SetCastShadow(false);
     AddGameObject(tvScreen);
 
+    // --- Debug: CCTV camera position indicator ---
+    {
+        debug.markerMat = ZNMaterialFactory::CreatePBR(defaultShader,
+            ZNVector4(0.0f, 0.9f, 1.0f, 1.0f), 0.0f, 0.5f); // cyan
+
+        debug.cameraMarker = new ZNGameObject();
+        debug.cameraMarker->SetMesh(ZNMeshFactory::CreateCube(0.1f));
+        debug.cameraMarker->GetMesh()->SetMaterial(debug.markerMat);
+        debug.cameraMarker->SetMaterial(debug.markerMat);
+        debug.cameraMarker->SetName("CCTVCameraMarker");
+        debug.cameraMarker->SetTag("Debug");
+        debug.cameraMarker->GetTransform().position = cctvCamera->GetPosition();
+        debug.cameraMarker->SetVisible(false);
+        debug.cameraMarker->SetCastShadow(false);
+        AddGameObject(debug.cameraMarker);
+
+        debug.cameraLens = new ZNGameObject();
+        debug.cameraLens->SetMesh(ZNMeshFactory::CreateCube(0.05f));
+        debug.cameraLens->GetMesh()->SetMaterial(debug.markerMat);
+        debug.cameraLens->SetMaterial(debug.markerMat);
+        debug.cameraLens->SetName("CCTVCameraLens");
+        debug.cameraLens->SetTag("Debug");
+        debug.cameraLens->GetTransform().position =
+            cctvCamera->GetPosition() + cctvCamera->GetForward() * 0.35f;
+        debug.cameraLens->SetVisible(false);
+        debug.cameraLens->SetCastShadow(false);
+        AddGameObject(debug.cameraLens);
+    }
+
     // --- Room model (FBX) ---
     {
         std::filesystem::path roomPath =
@@ -175,6 +204,7 @@ void CCTVScene::Initialize()
                     obj->SetMesh(mesh);
                     obj->SetMaterial(mat);
                     obj->SetName("Room_" + std::to_string(room.objects.size()));
+                    obj->SetTag("Room");
                     obj->GetTransform().scale = ZNVector3(0.01f, 0.01f, 0.01f);
                     obj->SetCastShadow(false);
                     AddGameObject(obj);
@@ -220,8 +250,26 @@ void CCTVScene::Initialize()
         });
 }
 
+void CCTVScene::Update(float deltaTime)
+{
+    ZNScene::Update(deltaTime);
+
+    if (debug.cameraMarker && debug.cameraMarker->IsVisible())
+    {
+        ZNVector3 camPos = cctvCamera->GetPosition();
+        ZNVector3 camFwd = cctvCamera->GetForward();
+        debug.cameraMarker->GetTransform().position = camPos;
+        if (debug.cameraLens)
+            debug.cameraLens->GetTransform().position = camPos + camFwd * 0.35f;
+    }
+}
+
 void CCTVScene::Render()
 {
+    auto& sel = SceneDebugUI::Get().GetSelection();
+    void* selPtr = (sel.type == SceneDebugUI::SelectionType::GameObject) ? sel.ptr : nullptr;
+    GraphicsContext::GetInstance().GetCommandQueue()->SetWireframeSelectedObject(selPtr);
+
     ZNScene::Render();
 }
 
@@ -229,17 +277,26 @@ void CCTVScene::RenderForward()
 {
     ZNScene::RenderForward();
 
-    SceneDebugUI::Get().onInspectorExtras = nullptr;
+    // Cameras + Room Model in Outliner
+    SceneDebugUI::Get().onOutlinerExtras = [this]() {
+        auto& sel = SceneDebugUI::Get().GetSelection();
 
-    // Inject room meshes as a collapsible Outliner section so the main GameObjects
-    // list stays readable while the room's 100+ pieces remain accessible.
-    if (!room.objects.empty())
-    {
-        SceneDebugUI::Get().onOutlinerExtras = [this]() {
+        if (ImGui::TreeNodeEx("Cameras", ImGuiTreeNodeFlags_DefaultOpen))
+        {
+            bool isSel = (sel.type == SceneDebugUI::SelectionType::Custom && sel.ptr == cctvCamera);
+            if (ImGui::Selectable("CCTV Overhead", isSel))
+            {
+                sel.type = SceneDebugUI::SelectionType::Custom;
+                sel.ptr  = cctvCamera;
+            }
+            ImGui::TreePop();
+        }
+
+        if (!room.objects.empty())
+        {
             std::string label = "Room Model (" + std::to_string(room.objects.size()) + ")";
             if (ImGui::TreeNodeEx(label.c_str(), ImGuiTreeNodeFlags_None))
             {
-                auto& sel = SceneDebugUI::Get().GetSelection();
                 for (auto* obj : room.objects)
                 {
                     bool isSel = (sel.type == SceneDebugUI::SelectionType::GameObject && sel.ptr == obj);
@@ -251,10 +308,51 @@ void CCTVScene::RenderForward()
                 }
                 ImGui::TreePop();
             }
-        };
-    }
-    else
+        }
+    };
+
+    // Inspector for CCTV overhead camera
+    SceneDebugUI::Get().onInspectorExtras = [this](void* ptr) {
+        ZNCamera* cam = static_cast<ZNCamera*>(ptr);
+        ImGui::Text("Camera: CCTV Overhead");
+        ImGui::Separator();
+        ImGui::Text("Transform");
+        ZNVector3 camPos = cam->GetPosition();
+        float posArr[3] = { camPos.x, camPos.y, camPos.z };
+        if (ImGui::DragFloat3("Position", posArr, 0.05f))
+            cam->SetPosition(ZNVector3(posArr[0], posArr[1], posArr[2]));
+        const float RAD_TO_DEG = 180.0f / 3.14159265f;
+        float pitchDeg = cam->GetPitch() * RAD_TO_DEG;
+        float yawDeg   = cam->GetYaw()   * RAD_TO_DEG;
+        float rot[2]   = { pitchDeg, yawDeg };
+        if (ImGui::DragFloat2("Pitch / Yaw", rot, 0.5f, -180.0f, 180.0f))
+            cam->SetRotation(rot[0], rot[1]);
+    };
+
+    if (!SceneDebugUI::Get().IsVisible()) return;
+
+    // --- Debug panel (scene-specific) ---
+    ImGui::SetNextWindowSize(ImVec2(220.0f, 0.0f), ImGuiCond_FirstUseEver);
+    ImGui::Begin("Debug");
+
+    if (ImGui::Checkbox("Camera Indicator", &debug.showCamera))
     {
-        SceneDebugUI::Get().onOutlinerExtras = nullptr;
+        if (debug.cameraMarker) debug.cameraMarker->SetVisible(debug.showCamera);
+        if (debug.cameraLens)   debug.cameraLens->SetVisible(debug.showCamera);
     }
+
+    ImGui::Separator();
+
+    ZNCommandQueue* cq = GraphicsContext::GetInstance().GetCommandQueue();
+    bool wireframe = (cq->GetViewMode() == ViewMode::Wireframe);
+    if (ImGui::Checkbox("Wireframe", &wireframe))
+        cq->SetViewMode(wireframe ? ViewMode::Wireframe : ViewMode::Lit);
+
+    if (!room.objects.empty())
+    {
+        ImGui::Separator();
+        ImGui::Text("Room: %d meshes", (int)room.objects.size());
+    }
+
+    ImGui::End();
 }

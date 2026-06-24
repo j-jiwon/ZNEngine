@@ -138,7 +138,7 @@ void TestGameScene::Initialize()
                 obj->SetMaterial(bunnyMat);
                 obj->SetName("Bunny");
                 obj->GetTransform().rotation = ZNVector3(0.f, 90.f, 0.f);
-                obj->GetTransform().scale = ZNVector3(0.01f, 0.01f, 0.01f);
+                obj->GetTransform().scale = ZNVector3(0.0001f, 0.0001f, 0.0001f);
 
                 AddGameObject(obj);
                 models.objects.push_back(obj);

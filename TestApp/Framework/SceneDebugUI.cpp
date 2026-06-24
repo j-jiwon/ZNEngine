@@ -100,7 +100,7 @@ void SceneDebugUI::Render(ZNScene* scene)
             for (auto* obj : scene->GetGameObjects())
             {
                 const auto& tag = obj->GetTag();
-                if (tag == "Debug") continue;
+                if (tag == "Debug" || tag == "Room") continue;
                 bool isSelected = (selection.type == SelectionType::GameObject && selection.ptr == obj);
                 if (ImGui::Selectable(obj->GetName().c_str(), isSelected))
                 {

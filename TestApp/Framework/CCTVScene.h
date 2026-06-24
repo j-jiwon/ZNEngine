@@ -11,9 +11,10 @@ public:
     CCTVScene()  = default;
     ~CCTVScene() = default;
 
-    void Initialize()  override;
-    void Render()      override;
-    void RenderForward() override;
+    void Initialize()             override;
+    void Update(float deltaTime)  override;
+    void Render()                 override;
+    void RenderForward()          override;
 
 private:
     ZNFramework::ZNShader* defaultShader = nullptr;
@@ -50,4 +51,12 @@ private:
         std::vector<ZNFramework::ZNMaterial*>   materials;
         ZNFramework::ZNMaterial*                cctvMat = nullptr;
     } room;
+
+    // Debug visualizers (camera indicator)
+    struct DebugInfo {
+        bool                       showCamera    = false;
+        ZNFramework::ZNGameObject* cameraMarker  = nullptr;
+        ZNFramework::ZNGameObject* cameraLens    = nullptr;
+        ZNFramework::ZNMaterial*   markerMat     = nullptr;
+    } debug;
 };
