@@ -1,8 +1,8 @@
 // Forward PBR shader for offscreen camera passes (CCTV, etc.)
 // Uses the scene's actual directional light and spotlights from cbForwardLight (b2).
-// Implements Cook-Torrance BRDF (no shadow mapping).
+// Shadow map bound at t3; PCF 3x3 using sampler0.
 
-#define FWD_MAX_SPOTS 3
+#define FWD_MAX_SPOTS 2
 
 struct FwdSpotData
 {
@@ -36,14 +36,17 @@ cbuffer cbMaterial : register(b1)
 
 cbuffer cbForwardLight : register(b2)
 {
-    float3 fwdDirLightDir;
-    float  fwdDirLightIntensity;
-    float3 fwdDirLightColor;
-    float  fwdDirAmbientIntensity;
-    float3 fwdViewPosition;
-    int    fwdNumSpotLights;
-    FwdSpotData fwdSpots[FWD_MAX_SPOTS];
+    float3 fwdDirLightDir;         float fwdDirLightIntensity;    // 16
+    float3 fwdDirLightColor;       float fwdDirAmbientIntensity;  // 16
+    float3 fwdViewPosition;        int   fwdNumSpotLights;        // 16
+    FwdSpotData fwdSpots[FWD_MAX_SPOTS];                          // 128 (2 × 64)
+    row_major float4x4 fwdLightViewProj;                          // 64
+    float fwdShadowBias; float fwdShadowMapW; float fwdShadowMapH; float fwdShadowPad; // 16
+    // Total: 256 bytes
 };
+
+Texture2D<float> fwdShadowMap : register(t3);
+SamplerState     sampler0     : register(s0);
 
 struct VS_IN
 {
@@ -68,6 +71,27 @@ VS_OUT VS_Main(VS_IN input)
     output.worldPos    = wp.xyz;
     output.worldNormal = mul(float4(input.normal, 0.f), gWorld).xyz;
     return output;
+}
+
+// ---- Shadow PCF (3×3, sampler0 point-sample + manual compare) ----------
+
+float FwdShadow(float3 worldPos, float3 N, float3 L)
+{
+    if (fwdShadowMapW <= 0.f) return 1.f; // no shadow map
+    float4 sp = mul(float4(worldPos, 1.f), fwdLightViewProj);
+    sp.xyz /= sp.w;
+    // Clip-space bounds check
+    if (sp.x < -1.f || sp.x > 1.f || sp.y < -1.f || sp.y > 1.f || sp.z < 0.f || sp.z > 1.f)
+        return 1.f;
+    float2 uv    = float2(sp.x * 0.5f + 0.5f, -sp.y * 0.5f + 0.5f);
+    float  bias  = max(fwdShadowBias * (1.f - dot(N, L)), fwdShadowBias * 0.1f);
+    float  depth = sp.z - bias;
+    float2 texel = 1.f / float2(fwdShadowMapW, fwdShadowMapH);
+    float  shadow = 0.f;
+    [unroll] for (int xi = -1; xi <= 1; ++xi)
+    [unroll] for (int yi = -1; yi <= 1; ++yi)
+        shadow += (depth < fwdShadowMap.SampleLevel(sampler0, uv + float2(xi, yi) * texel, 0).r) ? 1.f : 0.f;
+    return shadow / 9.f;
 }
 
 // ---- Cook-Torrance PBR helpers ----------------------------------------
@@ -129,11 +153,12 @@ float4 PS_Main(VS_OUT input) : SV_Target
     float3 ambient = float3(0.03f, 0.03f, 0.03f) * albedo * aoVal * fwdDirAmbientIntensity;
     float3 Lo      = float3(0.f, 0.f, 0.f);
 
-    // Directional light
+    // Directional light (with shadow)
     if (fwdDirLightIntensity > 0.f)
     {
-        float3 Ldir = normalize(-fwdDirLightDir);
-        Lo += FwdPBR(N, V, Ldir, fwdDirLightColor * fwdDirLightIntensity, albedo, met, rough);
+        float3 Ldir   = normalize(-fwdDirLightDir);
+        float  shadow = FwdShadow(input.worldPos, N, Ldir);
+        Lo += FwdPBR(N, V, Ldir, fwdDirLightColor * fwdDirLightIntensity * shadow, albedo, met, rough);
     }
 
     // Spotlights

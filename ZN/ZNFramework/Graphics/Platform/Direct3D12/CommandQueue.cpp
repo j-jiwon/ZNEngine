@@ -83,7 +83,14 @@ void CommandQueue::BuildRenderGraph()
     auto* dsBuffer = GraphicsContext::GetInstance().GetAs<DepthStencilBuffer>();
     ZNShader* gbufShader = GraphicsContext::GetInstance().GetGBufferShader();
 
-    // --- Offscreen camera passes (prepended so their RTs are ready for main passes) ---
+    // --- Shadow pass (runs first so offscreen cameras can sample the shadow map) ---
+    if (shadowMap) {
+        renderGraph.AddPass(std::make_unique<ShadowPass>(
+            shadowMap,
+            [this]() { if (shadowRenderCallback) shadowRenderCallback(); }));
+    }
+
+    // --- Offscreen camera passes (shadow map is now in PIXEL_SHADER_RESOURCE state) ---
     for (auto& entry : offscreenCameras) {
         // Start as RENDER_TARGET (the resource is created in that state)
         renderGraph.Import(entry.resourceName, entry.output->GetResource(),
@@ -96,13 +103,6 @@ void CommandQueue::BuildRenderGraph()
             tdh->GetDescriptorHeap().Get(),
             isForwardPass,
             entry.renderCb));
-    }
-
-    // --- Shadow pass ---
-    if (shadowMap) {
-        renderGraph.AddPass(std::make_unique<ShadowPass>(
-            shadowMap,
-            [this]() { if (shadowRenderCallback) shadowRenderCallback(); }));
     }
 
     // --- GBuffer pass (scene geometry) ---
