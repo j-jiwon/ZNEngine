@@ -96,7 +96,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>./Libs/googletest/include/;$(SolutionDir)ZN;$(SolutionDir)\ZN;$(SolutionDir)ZN\ZNFramework\ThirdParty\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./Libs/googletest/include/;$(SolutionDir)ZN;$(SolutionDir)\ZN;$(SolutionDir)ZN\ZNFramework\ThirdParty\imgui;$(SolutionDir)ZN\ZNFramework;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <ObjectFileName>$(IntDir)%(RelativeDir)</ObjectFileName>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -127,7 +127,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>./Libs/googletest/include/;$(SolutionDir)ZN;$(SolutionDir)\ZN;$(SolutionDir)ZN\ZNFramework\ThirdParty\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./Libs/googletest/include/;$(SolutionDir)ZN;$(SolutionDir)\ZN;$(SolutionDir)ZN\ZNFramework\ThirdParty\imgui;$(SolutionDir)ZN\ZNFramework;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <ObjectFileName>$(IntDir)%(RelativeDir)</ObjectFileName>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -158,7 +158,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)Library\Include\;./Libs/googletest/include/;$(SolutionDir)ZN;$(SolutionDir)ZN;$(ProjectDir)Libs\googletest\include;$(SolutionDir)ZN\ZNFramework\ThirdParty\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Library\Include\;./Libs/googletest/include/;$(SolutionDir)ZN;$(SolutionDir)ZN;$(ProjectDir)Libs\googletest\include;$(SolutionDir)ZN\ZNFramework\ThirdParty\imgui;$(SolutionDir)ZN\ZNFramework;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <ObjectFileName>$(IntDir)%(RelativeDir)</ObjectFileName>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -189,7 +189,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)Library\Include\;./Libs/googletest/include/;$(SolutionDir)ZN;$(SolutionDir)\ZN;$(SolutionDir)ZN\ZNFramework\ThirdParty\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Library\Include\;./Libs/googletest/include/;$(SolutionDir)ZN;$(SolutionDir)\ZN;$(SolutionDir)ZN\ZNFramework\ThirdParty\imgui;$(SolutionDir)ZN\ZNFramework;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <ObjectFileName>$(IntDir)%(RelativeDir)</ObjectFileName>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -216,6 +216,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Framework\App.cpp" />
+    <ClCompile Include="Framework\CCTVScene.cpp" />
+    <ClCompile Include="Framework\SceneDebugUI.cpp" />
     <ClCompile Include="Framework\TestGameScene.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -225,6 +227,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Framework\Math\Helper.h" />
+    <ClInclude Include="Framework\CCTVScene.h" />
+    <ClInclude Include="Framework\SceneDebugUI.h" />
+    <ClInclude Include="Framework\SceneManager.h" />
     <ClInclude Include="Framework\TestGameScene.h" />
     <ClInclude Include="Libs\googletest\include\gmock\gmock-actions.h" />
     <ClInclude Include="Libs\googletest\include\gmock\gmock-cardinalities.h" />

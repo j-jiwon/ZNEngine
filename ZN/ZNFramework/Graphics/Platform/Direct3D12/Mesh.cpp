@@ -6,6 +6,8 @@
 #include "Texture.h"
 #include "Material.h"
 #include "Shader.h"
+#include "ShadowMap.h"
+#include "DirectionalLight.h"
 
 using namespace ZNFramework;
 
@@ -63,35 +65,78 @@ void Mesh::Render()
 		tableDescHeap->SetSRV(texture->GetCpuHandle(), SRV_REGISTER::t0);
 	}
 
-	// Set Light data (b2) - use first spotlight if available
-	const auto& spotLights = GraphicsContext::GetInstance().GetSpotLights();
-	ZNLight* light = spotLights.empty() ? nullptr : spotLights[0];
-	if (light)
+	// Set forward light data (b2): dir light + spotlights + shadow for PBR forward shaders.
+	// Reduced to max 2 spots to fit the lightViewProj matrix within 256-byte CB element.
 	{
-		LightData lightData = light->GetLightData();
-		// Update camera position for specular lighting
-		if (camera)
-		{
-			lightData.cameraPos = camera->GetPosition();
-		}
+		struct FwdSpot {
+			float pos[3];    float intensity;
+			float dir[3];    float innerCutoff;
+			float col[3];    float outerCutoff;
+			float attConst;  float attLinear;  float attQuad;  float padding;
+		}; // 64 bytes
+		struct FwdLightCB {
+			float dirDir[3];   float dirIntensity;   // 16
+			float dirColor[3]; float dirAmbient;     // 16
+			float viewPos[3];  int   numSpots;       // 16
+			FwdSpot spots[2];                        // 128 (2 x 64)
+			float lightVP[16];                       // 64 (row-major 4x4)
+			float shadowBias;  float smW; float smH; float smPad; // 16
+			// Total: 256 bytes
+		} fwdLight = {};
+		static_assert(sizeof(FwdLightCB) == 256, "FwdLightCB must be exactly 256 bytes");
 
-		// Add directional light data if available
 		ZNDirectionalLight* dirLight = GraphicsContext::GetInstance().GetDirectionalLight();
 		if (dirLight)
 		{
-			LightData dirLightData = dirLight->GetLightData();
-			lightData.dirLightDirection = dirLightData.direction;
-			lightData.dirLightIntensity = dirLightData.intensity;
-			lightData.dirLightColor = dirLightData.color;
+			ZNVector3 d = dirLight->GetDirection();
+			fwdLight.dirDir[0] = d.x; fwdLight.dirDir[1] = d.y; fwdLight.dirDir[2] = d.z;
+			fwdLight.dirIntensity = dirLight->GetIntensity();
+			ZNVector3 c = dirLight->GetColor();
+			fwdLight.dirColor[0] = c.x; fwdLight.dirColor[1] = c.y; fwdLight.dirColor[2] = c.z;
+			fwdLight.dirAmbient = dirLight->GetAmbientIntensity();
+
+			auto* d3dDirLight = dynamic_cast<Platform::Direct3D::DirectionalLight*>(dirLight);
+			if (d3dDirLight)
+			{
+				ZNMatrix4 lvp = d3dDirLight->GetLightViewProjectionMatrix();
+				memcpy(fwdLight.lightVP, lvp.value, sizeof(float) * 16);
+			}
 		}
-		else
+		if (camera)
 		{
-			// No directional light - set intensity to 0 to disable
-			lightData.dirLightIntensity = 0.0f;
+			ZNVector3 p = camera->GetPosition();
+			fwdLight.viewPos[0] = p.x; fwdLight.viewPos[1] = p.y; fwdLight.viewPos[2] = p.z;
+		}
+		const auto& spotLights = GraphicsContext::GetInstance().GetSpotLights();
+		int ns = 0;
+		for (size_t si = 0; si < spotLights.size() && ns < 2; ++si)
+		{
+			if (!spotLights[si] || spotLights[si]->GetType() != LightType::Spot) continue;
+			ZNSpotLight* sp = static_cast<ZNSpotLight*>(spotLights[si]);
+			FwdSpot& s = fwdLight.spots[ns++];
+			ZNVector3 p = sp->GetPosition(); s.pos[0]=p.x; s.pos[1]=p.y; s.pos[2]=p.z;
+			s.intensity = sp->GetIntensity();
+			ZNVector3 dd = sp->GetDirection(); s.dir[0]=dd.x; s.dir[1]=dd.y; s.dir[2]=dd.z;
+			s.innerCutoff = cosf(sp->GetInnerCutoffAngle() * 3.14159f / 180.0f);
+			ZNVector3 col = sp->GetColor(); s.col[0]=col.x; s.col[1]=col.y; s.col[2]=col.z;
+			s.outerCutoff = cosf(sp->GetOuterCutoffAngle() * 3.14159f / 180.0f);
+			s.attConst = sp->GetConstantAttenuation();
+			s.attLinear = sp->GetLinearAttenuation();
+			s.attQuad = sp->GetQuadraticAttenuation();
+		}
+		fwdLight.numSpots = ns;
+
+		ShadowMap* sm = queue->GetShadowMap();
+		if (sm)
+		{
+			fwdLight.shadowBias = 0.005f;
+			fwdLight.smW = static_cast<float>(sm->GetWidth());
+			fwdLight.smH = static_cast<float>(sm->GetHeight());
+			tableDescHeap->SetSRV(sm->GetSRV(), SRV_REGISTER::t3);
 		}
 
-		D3D12_CPU_DESCRIPTOR_HANDLE lightHandle = constantBuffer->PushData(0, &lightData, sizeof(LightData));
-		tableDescHeap->SetCBV(lightHandle, CBV_REGISTER::b2);
+		D3D12_CPU_DESCRIPTOR_HANDLE lh = constantBuffer->PushData(0, &fwdLight, sizeof(FwdLightCB));
+		tableDescHeap->SetCBV(lh, CBV_REGISTER::b2);
 	}
 
 	tableDescHeap->CommitTable();

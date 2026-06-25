@@ -1,9 +1,12 @@
 #include "TestGameScene.h"
+#include "SceneDebugUI.h"
 #include <Windows.h>
 #include <iostream>
 #include <filesystem>
 #include <string>
 #include <imgui.h>
+#include "ZNFramework/Graphics/Platform/Direct3D12/RenderTexture.h"
+#include "ZNFramework/Graphics/Platform/Direct3D12/Material.h"
 
 using namespace ZNFramework;
 
@@ -111,8 +114,6 @@ void TestGameScene::Initialize()
     dirLight->SetShadowFocusPoint(ZNVector3(0.0f, 0.0f, 0.0f));
     dirLight->SetShadowBounds(50.0f, 0.1f, 100.0f);
     SetDirectionalLight(dirLight);
-    this->dirLight = dirLight;
-
     // Load bunny model
     std::filesystem::path modelPath = GetResourcePath() / L"Models" / L"stanford-bunny.fbx";
     if (std::filesystem::exists(modelPath))
@@ -136,7 +137,7 @@ void TestGameScene::Initialize()
                 obj->SetMaterial(bunnyMat);
                 obj->SetName("Bunny");
                 obj->GetTransform().rotation = ZNVector3(0.f, 90.f, 0.f);
-                obj->GetTransform().scale = ZNVector3(0.01f, 0.01f, 0.01f);
+                obj->GetTransform().scale = ZNVector3(0.0001f, 0.0001f, 0.0001f);
 
                 AddGameObject(obj);
                 models.objects.push_back(obj);
@@ -204,6 +205,69 @@ void TestGameScene::Initialize()
     debug.gridPlane->SetVisible(false);
     AddForwardGameObject(debug.gridPlane);
 
+    // --- CCTV multi-camera demo ---
+    // Render texture for the CCTV feed (16:9)
+    cctv.rt = new RenderTexture();
+    cctv.rt->Init(512, 288);
+
+    // Offscreen camera: side-angle view of the scene
+    cctv.camera = new ZNCamera();
+    cctv.camera->SetPosition(ZNVector3(6.0f, 4.0f, 0.0f));
+    cctv.camera->SetRotation(-25.0f, -100.0f);
+    cctv.camera->SetPerspective(3.141592f / 4.0f, 512.0f / 288.0f, 0.1f, 100.0f);
+
+    // Forward PBR shader for the CCTV offscreen pass
+    cctv.fwdShader = Platform::CreateShader();
+    cctv.fwdShader->Load(GetResourcePath() / L"Shaders" / L"forward_pbr.hlsli");
+
+    // Unlit textured shader for the TV screen object (no deferred lighting re-applied)
+    cctv.tvUnlitShader = Platform::CreateShader();
+    cctv.tvUnlitShader->Load(GetResourcePath() / L"Shaders" / L"screen_unlit.hlsli");
+
+    // TV object: unlit material — samples CCTV RT directly without deferred lighting
+    cctv.tvMat = ZNMaterialFactory::CreatePBR(cctv.tvUnlitShader, ZNVector4(1.0f, 1.0f, 1.0f, 1.0f), 0.0f, 1.0f);
+    static_cast<Material*>(cctv.tvMat)->SetAlbedoSRVHandle(cctv.rt->GetSRVCpuHandle());
+
+    cctv.tvObj = new ZNGameObject();
+    cctv.tvObj->SetMesh(ZNMeshFactory::CreatePlane(0.5f)); // unit-plane, scaled by transform
+    cctv.tvObj->GetMesh()->SetMaterial(cctv.tvMat);
+    cctv.tvObj->SetMaterial(cctv.tvMat);
+    cctv.tvObj->SetName("TV");
+    cctv.tvObj->SetTag("TV");
+    cctv.tvObj->GetTransform().position = ZNVector3(-1.0f, 2.0f, 4.0f);
+    cctv.tvObj->GetTransform().scale    = ZNVector3(3.2f, 0.1f, 1.8f); // X=width, Z=height (after -90°X rot)
+    cctv.tvObj->GetTransform().rotation = ZNVector3(-90.0f, 0.0f, 0.0f); // face -Z (toward cam)
+    cctv.tvObj->SetCastShadow(false);
+    AddForwardGameObject(cctv.tvObj);
+
+    // Auto-render: all scene gameObjects use their own material params through fwdShader.
+    AddOffscreenCamera(cctv.camera, cctv.rt, "CCTV", cctv.fwdShader);
+
+    // Debug: CCTV camera position/direction indicator
+    debug.cameraMarkerMaterial = ZNMaterialFactory::CreatePBR(defaultShader,
+        ZNVector4(0.0f, 0.9f, 1.0f, 1.0f), 0.0f, 0.5f); // cyan
+
+    debug.cameraMarker = new ZNGameObject();
+    debug.cameraMarker->SetMesh(ZNMeshFactory::CreateCube(0.1f));
+    debug.cameraMarker->GetMesh()->SetMaterial(debug.cameraMarkerMaterial);
+    debug.cameraMarker->SetName("CCTVCameraMarker");
+    debug.cameraMarker->SetTag("Debug");
+    debug.cameraMarker->GetTransform().position = cctv.camera->GetPosition();
+    debug.cameraMarker->SetVisible(false);
+    debug.cameraMarker->SetCastShadow(false);
+    AddGameObject(debug.cameraMarker);
+
+    debug.cameraLens = new ZNGameObject();
+    debug.cameraLens->SetMesh(ZNMeshFactory::CreateCube(0.05f));
+    debug.cameraLens->GetMesh()->SetMaterial(debug.cameraMarkerMaterial);
+    debug.cameraLens->SetName("CCTVCameraLens");
+    debug.cameraLens->SetTag("Debug");
+    debug.cameraLens->GetTransform().position =
+        cctv.camera->GetPosition() + cctv.camera->GetForward() * 0.35f;
+    debug.cameraLens->SetVisible(false);
+    debug.cameraLens->SetCastShadow(false);
+    AddGameObject(debug.cameraLens);
+
     std::cout << "Scene initialized. Press F1 to toggle debug visuals." << std::endl;
 }
 
@@ -216,33 +280,13 @@ void TestGameScene::Update(float deltaTime)
         turntableObj->GetTransform().rotation.y += 45.0f * deltaTime;
     }
 
-    fpsAccum += deltaTime;
-    fpsFrames++;
-    if (fpsAccum >= 0.5f)
+    if (debug.cameraMarker && debug.cameraMarker->IsVisible())
     {
-        fpsDisplay = fpsFrames / fpsAccum;
-        fpsAccum  = 0.0f;
-        fpsFrames = 0;
-
-        // CPU usage: system-wide via GetSystemTimes, sampled on the same 0.5s cadence
-        static ULONGLONG prevIdle = 0, prevKernel = 0, prevUser = 0;
-        FILETIME idle, kernel, user;
-        if (GetSystemTimes(&idle, &kernel, &user))
-        {
-            auto toU64 = [](const FILETIME& ft) -> ULONGLONG {
-                return (ULONGLONG(ft.dwHighDateTime) << 32) | ft.dwLowDateTime;
-            };
-            ULONGLONG idleU   = toU64(idle);
-            ULONGLONG kernelU = toU64(kernel);
-            ULONGLONG userU   = toU64(user);
-            ULONGLONG idleDelta   = idleU   - prevIdle;
-            ULONGLONG totalDelta  = (kernelU - prevKernel) + (userU - prevUser);
-            if (totalDelta > 0)
-                cpuUsagePercent = (1.0f - static_cast<float>(idleDelta) / totalDelta) * 100.0f;
-            prevIdle   = idleU;
-            prevKernel = kernelU;
-            prevUser   = userU;
-        }
+        ZNVector3 camPos = cctv.camera->GetPosition();
+        ZNVector3 camFwd = cctv.camera->GetForward();
+        debug.cameraMarker->GetTransform().position = camPos;
+        if (debug.cameraLens)
+            debug.cameraLens->GetTransform().position = camPos + camFwd * 0.35f;
     }
 }
 
@@ -269,19 +313,22 @@ void TestGameScene::OnKeyboardEvent(const KeyboardEvent& event)
 
 void TestGameScene::ToggleDebugVisuals()
 {
-    bool anyVisible = debug.showGrid || debug.showSpotLights;
+    bool anyVisible = debug.showGrid || debug.showSpotLights || debug.showCameras;
     debug.showGrid       = !anyVisible;
     debug.showSpotLights = !anyVisible;
+    debug.showCameras    = !anyVisible;
 
     if (debug.gridPlane) debug.gridPlane->SetVisible(debug.showGrid);
     SetSpotLightDebugVisible(debug.spotLight1, debug.showSpotLights);
     SetSpotLightDebugVisible(debug.spotLight2, debug.showSpotLights);
+    if (debug.cameraMarker) debug.cameraMarker->SetVisible(debug.showCameras);
+    if (debug.cameraLens)   debug.cameraLens->SetVisible(debug.showCameras);
 }
 
 void TestGameScene::Render()
 {
-    // Update selected object for wireframe highlight before any geometry renders.
-    void* selPtr = (selection.type == SelectedType::GameObject) ? selection.ptr : nullptr;
+    auto& sel = SceneDebugUI::Get().GetSelection();
+    void* selPtr = (sel.type == SceneDebugUI::SelectionType::GameObject) ? sel.ptr : nullptr;
     GraphicsContext::GetInstance().GetCommandQueue()->SetWireframeSelectedObject(selPtr);
 
     ZNScene::Render();
@@ -291,41 +338,44 @@ void TestGameScene::RenderForward()
 {
     ZNScene::RenderForward();
 
-    // --- Stats ---
-    const float cpuMs = fpsDisplay > 0.0f ? 1000.0f / fpsDisplay : 0.0f;
-    const float gpuMs = GraphicsContext::GetInstance().GetCommandQueue()
-                      ? GraphicsContext::GetInstance().GetCommandQueue()->GetGpuFrameTimeMs()
-                      : 0.0f;
-    const float gpuMemUsedMB   = GraphicsContext::GetInstance().GetDevice()
-                               ? GraphicsContext::GetInstance().GetDevice()->GetGpuMemoryUsageMB()
-                               : 0.0f;
-    const float gpuMemBudgetMB = GraphicsContext::GetInstance().GetDevice()
-                               ? GraphicsContext::GetInstance().GetDevice()->GetGpuMemoryBudgetMB()
-                               : 0.0f;
-    const int   totalObjs   = static_cast<int>(GetGameObjects().size());
-    const int   visibleObjs = [&]{ int n=0; for (auto* o : GetGameObjects()) if (o->IsVisible()) ++n; return n; }();
+    // Register scene-specific Outliner and Inspector extensions for this frame.
+    // These lambdas are consumed by SceneDebugUI::Render(), which runs after this call.
+    SceneDebugUI::Get().onOutlinerExtras = [this]() {
+        auto& sel = SceneDebugUI::Get().GetSelection();
+        if (ImGui::TreeNodeEx("Cameras", ImGuiTreeNodeFlags_DefaultOpen))
+        {
+            bool isSelected = (sel.type == SceneDebugUI::SelectionType::Custom
+                               && sel.ptr == cctv.camera);
+            if (ImGui::Selectable("CCTV Camera", isSelected))
+            {
+                sel.type = SceneDebugUI::SelectionType::Custom;
+                sel.ptr  = cctv.camera;
+            }
+            ImGui::TreePop();
+        }
+    };
 
-    ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always);
-    ImGui::SetNextWindowSize(ImVec2(220, 0), ImGuiCond_Always);
-    ImGui::Begin("Stats", nullptr,
-        ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
+    SceneDebugUI::Get().onInspectorExtras = [this](void* ptr) {
+        ZNCamera* cam = static_cast<ZNCamera*>(ptr);
+        ImGui::Text("Camera: CCTV");
+        ImGui::Separator();
+        ImGui::Text("Transform");
+        ZNVector3 camPos = cam->GetPosition();
+        float posArr[3] = { camPos.x, camPos.y, camPos.z };
+        if (ImGui::DragFloat3("Position", posArr, 0.05f))
+            cam->SetPosition(ZNVector3(posArr[0], posArr[1], posArr[2]));
+        const float RAD_TO_DEG = 180.0f / 3.14159265f;
+        float pitchDeg = cam->GetPitch() * RAD_TO_DEG;
+        float yawDeg   = cam->GetYaw()   * RAD_TO_DEG;
+        float rot[2]   = { pitchDeg, yawDeg };
+        if (ImGui::DragFloat2("Pitch / Yaw", rot, 0.5f, -180.0f, 180.0f))
+            cam->SetRotation(rot[0], rot[1]);
+    };
 
-    ImGui::Text("FPS        %.1f", fpsDisplay);
-    ImGui::Text("CPU        %.2f ms", cpuMs);
-    ImGui::Text("CPU Use    %.1f%%", cpuUsagePercent);
-    ImGui::Text("GPU        %.2f ms", gpuMs);
-    ImGui::Separator();
-    ImGui::Text("Draw Calls %d", ZNGameObject::GetLastFrameDrawCalls());
-    ImGui::Text("Objects    %d / %d", visibleObjs, totalObjs);
-    ImGui::Separator();
-    ImGui::Text("GPU Mem    %.0f / %.0f MB", gpuMemUsedMB, gpuMemBudgetMB);
-    ImGui::Text("Triangles  %d", ZNGameObject::GetLastFrameTriangles());
-    ImGui::Text("Vertices   %d", ZNGameObject::GetLastFrameVertices());
+    if (!SceneDebugUI::Get().IsVisible()) return;
 
-    ImGui::End();
-
-    // --- Debug ---
-    ImGui::SetNextWindowSize(ImVec2(220, 0), ImGuiCond_FirstUseEver);
+    // --- Debug (scene-specific toggles) ---
+    ImGui::SetNextWindowSize(ImVec2(220.0f, 0.0f), ImGuiCond_FirstUseEver);
     ImGui::Begin("Debug");
 
     if (ImGui::Checkbox("Grid", &debug.showGrid))
@@ -336,6 +386,11 @@ void TestGameScene::RenderForward()
         SetSpotLightDebugVisible(debug.spotLight1, debug.showSpotLights);
         SetSpotLightDebugVisible(debug.spotLight2, debug.showSpotLights);
     }
+    if (ImGui::Checkbox("Camera Indicators", &debug.showCameras))
+    {
+        if (debug.cameraMarker) debug.cameraMarker->SetVisible(debug.showCameras);
+        if (debug.cameraLens)   debug.cameraLens->SetVisible(debug.showCameras);
+    }
 
     ImGui::Separator();
     ImGui::Text("View Mode");
@@ -343,154 +398,6 @@ void TestGameScene::RenderForward()
     bool wireframe = (cq->GetViewMode() == ViewMode::Wireframe);
     if (ImGui::Checkbox("Wireframe", &wireframe))
         cq->SetViewMode(wireframe ? ViewMode::Wireframe : ViewMode::Lit);
-
-    ImGui::End();
-
-    // --- Outliner ---
-    ImGui::SetNextWindowSize(ImVec2(220, 400), ImGuiCond_FirstUseEver);
-    ImGui::Begin("Outliner");
-
-    if (ImGui::TreeNodeEx("GameObjects", ImGuiTreeNodeFlags_DefaultOpen))
-    {
-        for (auto* obj : GetGameObjects())
-        {
-            if (obj->GetTag() == "Debug") continue;
-            bool isSelected = (selection.type == SelectedType::GameObject && selection.ptr == obj);
-            if (ImGui::Selectable(obj->GetName().c_str(), isSelected))
-            {
-                selection.type = SelectedType::GameObject;
-                selection.ptr  = obj;
-            }
-        }
-        ImGui::TreePop();
-    }
-
-    if (ImGui::TreeNodeEx("Lights", ImGuiTreeNodeFlags_DefaultOpen))
-    {
-        const auto& spots = GetSpotLights();
-        for (int i = 0; i < (int)spots.size(); ++i)
-        {
-            std::string label = "SpotLight " + std::to_string(i);
-            bool isSelected = (selection.type == SelectedType::SpotLight && selection.ptr == spots[i]);
-            if (ImGui::Selectable(label.c_str(), isSelected))
-            {
-                selection.type = SelectedType::SpotLight;
-                selection.ptr  = spots[i];
-            }
-        }
-        ZNDirectionalLight* dl = GetDirectionalLight();
-        if (dl)
-        {
-            bool isSelected = (selection.type == SelectedType::DirectionalLight && selection.ptr == dl);
-            if (ImGui::Selectable("DirectionalLight", isSelected))
-            {
-                selection.type = SelectedType::DirectionalLight;
-                selection.ptr  = dl;
-            }
-        }
-        ImGui::TreePop();
-    }
-
-    ImGui::End();
-
-    // --- Inspector ---
-    ImGui::SetNextWindowSize(ImVec2(280, 400), ImGuiCond_FirstUseEver);
-    ImGui::Begin("Inspector");
-
-    switch (selection.type)
-    {
-    case SelectedType::GameObject:
-    {
-        ZNGameObject* obj = static_cast<ZNGameObject*>(selection.ptr);
-        ImGui::Text("GameObject: %s", obj->GetName().c_str());
-        ImGui::Separator();
-
-        ImGui::Text("Transform");
-        Transform& t = obj->GetTransform();
-        float pos[3] = { t.position.x, t.position.y, t.position.z };
-        if (ImGui::DragFloat3("Position", pos, 0.01f))
-            t.position = ZNVector3(pos[0], pos[1], pos[2]);
-        float rot[3] = { t.rotation.x, t.rotation.y, t.rotation.z };
-        if (ImGui::DragFloat3("Rotation", rot, 0.5f))
-            t.rotation = ZNVector3(rot[0], rot[1], rot[2]);
-        float sc[3] = { t.scale.x, t.scale.y, t.scale.z };
-        if (ImGui::DragFloat3("Scale", sc, 0.001f, 0.001f, 100.0f))
-            t.scale = ZNVector3(sc[0], sc[1], sc[2]);
-
-        ZNMaterial* mat = obj->GetMaterial();
-        if (mat)
-        {
-            ImGui::Separator();
-            ImGui::Text("Material");
-            MaterialParams p = mat->GetParams();
-            bool changed = false;
-            float col[4] = { p.albedoColor.x, p.albedoColor.y, p.albedoColor.z, p.albedoColor.w };
-            if (ImGui::ColorEdit4("Albedo", col))
-            {
-                p.albedoColor = ZNVector4(col[0], col[1], col[2], col[3]);
-                changed = true;
-            }
-            if (ImGui::SliderFloat("Metallic",  &p.metallic,  0.0f, 1.0f)) changed = true;
-            if (ImGui::SliderFloat("Roughness", &p.roughness, 0.0f, 1.0f)) changed = true;
-            if (changed)
-                mat->SetParams(p);
-        }
-        break;
-    }
-    case SelectedType::SpotLight:
-    {
-        ZNSpotLight* light = static_cast<ZNSpotLight*>(selection.ptr);
-        ImGui::Text("SpotLight");
-        ImGui::Separator();
-
-        ZNVector3 col = light->GetColor();
-        float color[3] = { col.x, col.y, col.z };
-        if (ImGui::ColorEdit3("Color", color))
-            light->SetColor(ZNVector3(color[0], color[1], color[2]));
-
-        float intensity = light->GetIntensity();
-        if (ImGui::SliderFloat("Intensity", &intensity, 0.0f, 10.0f))
-            light->SetIntensity(intensity);
-
-        ZNVector3 pos = light->GetPosition();
-        float posArr[3] = { pos.x, pos.y, pos.z };
-        if (ImGui::DragFloat3("Position", posArr, 0.05f))
-            light->SetPosition(ZNVector3(posArr[0], posArr[1], posArr[2]));
-
-        float innerAngle = light->GetInnerCutoffAngle();
-        float outerAngle = light->GetOuterCutoffAngle();
-        bool cutoffChanged = false;
-        if (ImGui::SliderFloat("Inner Angle", &innerAngle, 0.0f, 89.0f)) cutoffChanged = true;
-        if (ImGui::SliderFloat("Outer Angle", &outerAngle, 0.0f, 89.0f)) cutoffChanged = true;
-        if (cutoffChanged)
-            light->SetCutoffAngle(innerAngle, outerAngle);
-        break;
-    }
-    case SelectedType::DirectionalLight:
-    {
-        ZNDirectionalLight* dl = static_cast<ZNDirectionalLight*>(selection.ptr);
-        ImGui::Text("DirectionalLight");
-        ImGui::Separator();
-
-        ZNVector3 col = dl->GetColor();
-        float color[3] = { col.x, col.y, col.z };
-        if (ImGui::ColorEdit3("Color", color))
-            dl->SetColor(ZNVector3(color[0], color[1], color[2]));
-
-        float intensity = dl->GetIntensity();
-        if (ImGui::SliderFloat("Intensity", &intensity, 0.0f, 20.0f))
-            dl->SetIntensity(intensity);
-
-        ZNVector3 dir = dl->GetDirection();
-        float dirArr[3] = { dir.x, dir.y, dir.z };
-        if (ImGui::SliderFloat3("Direction", dirArr, -1.0f, 1.0f))
-            dl->SetDirection(ZNVector3(dirArr[0], dirArr[1], dirArr[2]).Normalize());
-        break;
-    }
-    default:
-        ImGui::TextDisabled("Nothing selected.");
-        break;
-    }
 
     ImGui::End();
 }

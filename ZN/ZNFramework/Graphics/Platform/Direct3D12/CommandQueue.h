@@ -2,7 +2,10 @@
 #include "Graphics/ZNCommandQueue.h"
 #include "ZNUtils.h"
 #include "RenderGraph.h"
+#include "RenderTexture.h"
 #include <functional>
+#include <vector>
+#include <string>
 
 namespace ZNFramework {
 
@@ -12,6 +15,7 @@ class GBufferManager;
 class DeferredLightingPass;
 class DebugViewportRenderer;
 class ShadowMap;
+class ZNCamera;
 
 class CommandQueue : public ZNCommandQueue
 {
@@ -52,6 +56,16 @@ public:
 
     RenderGraph& GetRenderGraph() { return renderGraph; }
 
+    // Off-screen camera: renders to a RenderTexture before the main passes.
+    // resourceName identifies the texture in the RenderGraph (e.g. "CCTV").
+    // Must be called before the first frame (before BuildRenderGraph runs).
+    void AddOffscreenCamera(ZNCamera* cam, RenderTexture* rt,
+                            const std::string& resourceName,
+                            std::function<void()> cb)
+    {
+        offscreenCameras.push_back({ cam, rt, resourceName, std::move(cb) });
+    }
+
 private:
     void BuildRenderGraph();
 
@@ -74,8 +88,16 @@ private:
     DebugViewportRenderer* debugViewportRenderer = nullptr;
     ShadowMap*             shadowMap             = nullptr;
 
+    struct OffscreenCameraEntry {
+        ZNCamera*       camera;
+        RenderTexture*  output;
+        std::string     resourceName;
+        std::function<void()> renderCb;
+    };
+
     std::function<void()> shadowRenderCallback;
     std::function<void()> gbufferRenderCallback;
+    std::vector<OffscreenCameraEntry> offscreenCameras;
 
     bool isForwardPass    = false;
     bool renderGraphBuilt = false;

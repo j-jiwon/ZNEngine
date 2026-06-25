@@ -26,7 +26,19 @@
       "Bash(\"/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\" \"ZNEngine.sln\" /p:Configuration=Debug /p:Platform=x64 /m /nologo)",
       "Bash(MSYS_NO_PATHCONV=1 \"/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\" \"ZNEngine.sln\" /p:Configuration=Debug /p:Platform=x64 /m /nologo)",
       "Bash(MSYS_NO_PATHCONV=1 MSBuild ZNEngine.sln /p:Configuration=Debug /p:Platform=x64 /t:Build /m /v:minimal)",
-      "Bash(xargs grep -l \"DirectionalLight\\\\|SpotLight\")"
+      "Bash(xargs grep -l \"DirectionalLight\\\\|SpotLight\")",
+      "Bash(cmd /c \"\\\\\"C:/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\\\\\" \\\\\"c:/Work/ZNEngine/ZNEngine.sln\\\\\" /p:Configuration=Debug /p:Platform=x64 /t:Build /m /verbosity:minimal 2>&1 | tail -80\")",
+      "Bash(where msbuild *)",
+      "Read(//c/Program Files/Microsoft Visual Studio/**)",
+      "Bash(\"/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\" \"c:/Work/ZNEngine/ZNEngine.sln\" /p:Configuration=Debug /p:Platform=x64 /t:Build /m /verbosity:minimal)",
+      "Bash(\"/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\" \"c:/Work/ZNEngine/ZNEngine.sln\" \"/p:Configuration=Debug\" \"/p:Platform=x64\" \"/t:Build\" \"/m\" \"/verbosity:minimal\")",
+      "Bash(\"/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\" ZNEngine.sln \"/p:Configuration=Debug\" \"/p:Platform=x64\" \"/verbosity:minimal\" \"/nologo\")",
+      "Bash(\"/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\" ZNEngine.sln /p:Configuration=Debug /p:Platform=x64 /t:TestApp /m /nologo)",
+      "Bash(\"/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\" c:/Work/ZNEngine/ZNEngine.sln /p:Configuration=Debug /p:Platform=x64 /t:TestApp /m /nologo)",
+      "Bash(find \"c:/Users\" -name \"room.fbx\" -maxdepth 6 2>/dev/null | head -5)",
+      "Read(//c/Users/**)",
+      "PowerShell(\\(Get-Item \"c:\\\\Work\\\\ZNEngine\\\\Resources\\\\Models\\\\33-the-room-2\\\\The room\\\\room.fbx\"\\).Length / 1MB)",
+      "PowerShell($result = & \"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Community\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe\" \"c:\\\\Work\\\\ZNEngine\\\\ZNEngine.sln\" /t:TestApp:Rebuild /p:Configuration=Debug /p:Platform=x64 /m /nologo /verbosity:minimal 2>&1; $result | Where-Object { $_ -match \"error C|오류|FAILED|succeeded|빌드했습니다\" } | Select-Object -Last 10)"
     ]
   }
 }

@@ -40,7 +40,7 @@ void ConstantBuffer::Clear()
 
 D3D12_CPU_DESCRIPTOR_HANDLE ConstantBuffer::PushData(int32 inRootParamIndex, void* inBuffer, uint32 inSize)
 {
-	assert(currentIndex < elementSize);
+	assert(currentIndex < elementCount);
 
 	::memcpy(&mappedBuffer[currentIndex * elementSize], inBuffer, inSize);
 

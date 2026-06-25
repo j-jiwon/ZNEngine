@@ -2,6 +2,9 @@
 #include <ZNFramework.h>
 #include <vector>
 
+// Forward declare D3D12-specific type to avoid pulling in platform headers here
+namespace ZNFramework { class RenderTexture; }
+
 class TestGameScene : public ZNFramework::ZNScene
 {
 public:
@@ -22,12 +25,6 @@ public:
         ZNFramework::ZNGameObject* cone = nullptr;
         ZNFramework::ZNMaterial* markerMaterial = nullptr;
         ZNFramework::ZNMaterial* coneMaterial = nullptr;
-    };
-
-    enum class SelectedType { None, GameObject, SpotLight, DirectionalLight };
-    struct Selection {
-        SelectedType type = SelectedType::None;
-        void* ptr = nullptr;
     };
 
 private:
@@ -61,19 +58,26 @@ private:
         SpotLightDebug spotLight2;
         ZNFramework::ZNGameObject* gridPlane = nullptr;
         ZNFramework::ZNMaterial* gridMaterial = nullptr;
-        bool showGrid = false;
+        ZNFramework::ZNGameObject* cameraMarker = nullptr;
+        ZNFramework::ZNGameObject* cameraLens   = nullptr;
+        ZNFramework::ZNMaterial*   cameraMarkerMaterial = nullptr;
+        bool showGrid       = false;
         bool showSpotLights = false;
+        bool showCameras    = false;
     } debug;
 
     // Interactive state
     ZNFramework::ZNGameObject* turntableObj = nullptr;
     bool turntableEnabled = false;
 
-    // ImGui state
-    ZNFramework::ZNDirectionalLight* dirLight = nullptr;
-    float fpsAccum = 0.0f;
-    int   fpsFrames = 0;
-    float fpsDisplay = 0.0f;
-    float cpuUsagePercent = 0.0f;
-    Selection selection;
+    // CCTV multi-camera demo
+    struct CCTVSetup {
+        ZNFramework::ZNCamera*      camera       = nullptr;
+        ZNFramework::RenderTexture* rt           = nullptr;
+        ZNFramework::ZNShader*      fwdShader    = nullptr; // forward_pbr for CCTV offscreen view
+        ZNFramework::ZNShader*      tvUnlitShader= nullptr; // screen_unlit for TV display
+        ZNFramework::ZNMaterial*    tvMat        = nullptr;
+        ZNFramework::ZNGameObject*  tvObj        = nullptr;
+    } cctv;
+
 };

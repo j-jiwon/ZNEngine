@@ -19,9 +19,20 @@ namespace ZNFramework
 		const MaterialParams& GetParams() const override { return params; }
 		void Bind() override;
 
+		// Override t0 (albedo) slot with an externally managed SRV — e.g. a RenderTexture.
+		// The caller must keep the descriptor heap alive for the lifetime of this material.
+		void SetAlbedoSRVHandle(D3D12_CPU_DESCRIPTOR_HANDLE handle) {
+			albedoSRVOverride    = handle;
+			hasAlbedoSRVOverride = true;
+		}
+		void ClearAlbedoSRVHandle() { hasAlbedoSRVOverride = false; }
+
 	private:
 		ZNShader* shader = nullptr;
 		std::array<Texture*, static_cast<size_t>(TextureType::Count)> textures = {};
 		MaterialParams params;
+
+		D3D12_CPU_DESCRIPTOR_HANDLE albedoSRVOverride   = {};
+		bool                         hasAlbedoSRVOverride = false;
 	};
 }

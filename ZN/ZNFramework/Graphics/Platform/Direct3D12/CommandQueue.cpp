@@ -14,6 +14,7 @@
 #include "Passes/DeferredLightingRenderPass.h"
 #include "Passes/ForwardRenderPass.h"
 #include "Passes/ImGuiRenderPass.h"
+#include "Passes/OffscreenCameraPass.h"
 #include "ZNFramework.h"
 
 using namespace ZNFramework;
@@ -82,11 +83,26 @@ void CommandQueue::BuildRenderGraph()
     auto* dsBuffer = GraphicsContext::GetInstance().GetAs<DepthStencilBuffer>();
     ZNShader* gbufShader = GraphicsContext::GetInstance().GetGBufferShader();
 
-    // --- Shadow pass ---
+    // --- Shadow pass (runs first so offscreen cameras can sample the shadow map) ---
     if (shadowMap) {
         renderGraph.AddPass(std::make_unique<ShadowPass>(
             shadowMap,
             [this]() { if (shadowRenderCallback) shadowRenderCallback(); }));
+    }
+
+    // --- Offscreen camera passes (shadow map is now in PIXEL_SHADER_RESOURCE state) ---
+    for (auto& entry : offscreenCameras) {
+        // Start as RENDER_TARGET (the resource is created in that state)
+        renderGraph.Import(entry.resourceName, entry.output->GetResource(),
+                           D3D12_RESOURCE_STATE_RENDER_TARGET);
+        renderGraph.AddPass(std::make_unique<OffscreenCameraPass>(
+            entry.resourceName,
+            entry.camera,
+            entry.output,
+            rootSig->GetSignature().Get(),
+            tdh->GetDescriptorHeap().Get(),
+            isForwardPass,
+            entry.renderCb));
     }
 
     // --- GBuffer pass (scene geometry) ---

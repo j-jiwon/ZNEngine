@@ -96,8 +96,8 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
     commandQueue->Init(swapChain);
     swapChain->Init(commandQueue);
     rootSignature->Init();
-    constantBuffer->Init(sizeof(TransformMatrices), 256); // Use TransformMatrices size for MVP
-    tableDescriptorHeap->Init(256);
+    constantBuffer->Init(sizeof(TransformMatrices), 2048);
+    tableDescriptorHeap->Init(2048);
     depthStencilBuffer->Init();
     
     // resize
