@@ -2,6 +2,8 @@
 #include "../ZNTransform.h"
 #include "../ZNInputDef.h"
 #include <vector>
+#include <string>
+#include <unordered_map>
 
 namespace ZNFramework
 {
@@ -12,6 +14,8 @@ namespace ZNFramework
 	class ZNSpotLight;
 	class ZNShader;
 	class ZNMatrix4;
+	class ZNMaterial;
+	class RenderTexture;
 
 	class ZNScene
 	{
@@ -51,11 +55,27 @@ namespace ZNFramework
 		ZNGameObject* FindGameObjectWithTag(const std::string& tag);
 		ZNGameObject* FindGameObjectWithName(const std::string& name);
 
+		// Registers an offscreen camera that auto-renders all scene gameObjects using
+		// their existing material params (metallic, roughness, albedo) through forwardShader.
+		// No manual per-object material matching needed.
+		void AddOffscreenCamera(ZNCamera* cam, RenderTexture* rt,
+		                        const std::string& resourceName, ZNShader* forwardShader);
+
 	protected:
 		std::vector<ZNGameObject*> gameObjects;
 		std::vector<ZNGameObject*> forwardGameObjects;  // Objects rendered in forward pass
 		std::vector<ZNSpotLight*> spotLights;
 		ZNCamera* camera = nullptr;
 		ZNDirectionalLight* directionalLight = nullptr;
+
+	private:
+		struct OffscreenCamEntry {
+			ZNCamera*    cam;
+			RenderTexture* rt;
+			std::string  resourceName;
+			ZNShader*    forwardShader;
+			std::unordered_map<ZNMaterial*, ZNMaterial*> matCache;
+		};
+		std::vector<OffscreenCamEntry> offscreenCamEntries;
 	};
 }

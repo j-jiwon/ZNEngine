@@ -72,15 +72,12 @@ private:
 
     // CCTV multi-camera demo
     struct CCTVSetup {
-        ZNFramework::ZNCamera*      camera    = nullptr;
-        ZNFramework::RenderTexture* rt        = nullptr;
-        ZNFramework::ZNShader*      fwdShader = nullptr; // forward_unlit for CCTV view
-        ZNFramework::ZNMaterial*    floorMat  = nullptr;
-        ZNFramework::ZNMaterial*    cubeMat   = nullptr;
-        ZNFramework::ZNMaterial*    sphereMat = nullptr;
-        ZNFramework::ZNMaterial*    bunnyMat  = nullptr;
-        ZNFramework::ZNMaterial*    tvMat     = nullptr; // deferred mat w/ CCTV RT as albedo
-        ZNFramework::ZNGameObject*  tvObj     = nullptr;
+        ZNFramework::ZNCamera*      camera       = nullptr;
+        ZNFramework::RenderTexture* rt           = nullptr;
+        ZNFramework::ZNShader*      fwdShader    = nullptr; // forward_pbr for CCTV offscreen view
+        ZNFramework::ZNShader*      tvUnlitShader= nullptr; // screen_unlit for TV display
+        ZNFramework::ZNMaterial*    tvMat        = nullptr;
+        ZNFramework::ZNGameObject*  tvObj        = nullptr;
     } cctv;
 
 };

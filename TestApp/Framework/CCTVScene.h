@@ -17,8 +17,9 @@ public:
     void RenderForward()          override;
 
 private:
-    ZNFramework::ZNShader* defaultShader = nullptr;
+    ZNFramework::ZNShader* defaultShader  = nullptr;
     ZNFramework::ZNShader* cctvShader    = nullptr; // forward_lit for offscreen pass
+    ZNFramework::ZNShader* tvUnlitShader = nullptr; // screen_unlit for TV display
 
     // Objects visible in the main view and monitored by CCTV
     ZNFramework::ZNGameObject* floor   = nullptr;
@@ -32,13 +33,6 @@ private:
     ZNFramework::ZNMaterial*   boxCMat   = nullptr;
     ZNFramework::ZNMaterial*   sphereMat = nullptr;
 
-    // Matching forward-lit materials for the offscreen CCTV pass
-    ZNFramework::ZNMaterial* cctvFloorMat  = nullptr;
-    ZNFramework::ZNMaterial* cctvBoxAMat   = nullptr;
-    ZNFramework::ZNMaterial* cctvBoxBMat   = nullptr;
-    ZNFramework::ZNMaterial* cctvBoxCMat   = nullptr;
-    ZNFramework::ZNMaterial* cctvSphereMat = nullptr;
-
     // CCTV infrastructure
     ZNFramework::ZNCamera*      cctvCamera = nullptr;
     ZNFramework::RenderTexture* cctvRT     = nullptr;
@@ -48,8 +42,7 @@ private:
     // Room model (loaded from FBX)
     struct RoomModel {
         std::vector<ZNFramework::ZNGameObject*> objects;
-        std::vector<ZNFramework::ZNMaterial*>   materials;
-        ZNFramework::ZNMaterial*                cctvMat = nullptr;
+        std::vector<ZNFramework::ZNMaterial*>   materials; // main (deferred) materials
     } room;
 
     // Debug visualizers (camera indicator)

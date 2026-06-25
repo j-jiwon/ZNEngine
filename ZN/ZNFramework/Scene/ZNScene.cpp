@@ -3,6 +3,11 @@
 #include "../ZNCamera.h"
 #include "../Graphics/ZNLight.h"
 #include "../Graphics/ZNGraphicsContext.h"
+#include "../Graphics/ZNMaterial.h"
+#include "../Graphics/ZNMaterialParams.h"
+#include "../Graphics/ZNMaterialFactory.h"
+#include "../Graphics/Platform/Direct3D12/CommandQueue.h"
+#include "../Graphics/Platform/Direct3D12/RenderTexture.h"
 #include "../Math/ZNMatrix4.h"
 #include <algorithm>
 
@@ -133,4 +138,48 @@ ZNGameObject* ZNScene::FindGameObjectWithName(const std::string& name)
 			return obj;
 	}
 	return nullptr;
-}	
+}
+
+void ZNScene::AddOffscreenCamera(ZNCamera* cam, RenderTexture* rt,
+                                  const std::string& resourceName, ZNShader* forwardShader)
+{
+	offscreenCamEntries.push_back({ cam, rt, resourceName, forwardShader, {} });
+	const size_t idx = offscreenCamEntries.size() - 1;
+
+	CommandQueue* cmdQ = GraphicsContext::GetInstance().GetAs<CommandQueue>();
+	cmdQ->AddOffscreenCamera(cam, rt, resourceName, [this, idx]()
+	{
+		OffscreenCamEntry& entry = offscreenCamEntries[idx];
+
+		for (auto* obj : gameObjects)
+		{
+			if (!obj || !obj->IsVisible() || !obj->GetMesh()) continue;
+
+			ZNMaterial* mainMat = obj->GetMaterial();
+			if (!mainMat) continue;
+
+			// Lookup or lazily create the forward material for this source material.
+			ZNMaterial* fwdMat = nullptr;
+			auto it = entry.matCache.find(mainMat);
+			if (it == entry.matCache.end())
+			{
+				MaterialParams p = mainMat->GetParams();
+				fwdMat = ZNMaterialFactory::CreatePBR(
+					entry.forwardShader, p.albedoColor, p.metallic, p.roughness, p.ao);
+				entry.matCache[mainMat] = fwdMat;
+			}
+			else
+			{
+				fwdMat = it->second;
+				// Sync params so Inspector edits to the main material are reflected.
+				fwdMat->SetParams(mainMat->GetParams());
+			}
+
+			// Temporarily override the mesh material, render, then restore.
+			ZNMaterial* origMat = obj->GetMaterial();
+			obj->GetMesh()->SetMaterial(fwdMat);
+			obj->Render();
+			obj->GetMesh()->SetMaterial(origMat);
+		}
+	});
+}

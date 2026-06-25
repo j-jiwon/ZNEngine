@@ -1,11 +1,11 @@
 #pragma once
 #include <string>
+#include "ZNMaterialParams.h"
 
 namespace ZNFramework
 {
 	class ZNShader;
 	class ZNTexture;
-	struct MaterialParams;
 	enum class TextureType : unsigned char;
 
 	class ZNMaterial

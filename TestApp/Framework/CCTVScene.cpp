@@ -4,7 +4,6 @@
 #include <iostream>
 #include <filesystem>
 #include "ZNFramework/Graphics/Platform/Direct3D12/RenderTexture.h"
-#include "ZNFramework/Graphics/Platform/Direct3D12/CommandQueue.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/Material.h"
 
 using namespace ZNFramework;
@@ -21,7 +20,10 @@ void CCTVScene::Initialize()
     defaultShader->Load(GetResourcePath() / L"Shaders" / L"deferred_lighting.hlsli");
 
     cctvShader = Platform::CreateShader();
-    cctvShader->Load(GetResourcePath() / L"Shaders" / L"forward_lit.hlsli");
+    cctvShader->Load(GetResourcePath() / L"Shaders" / L"forward_pbr.hlsli");
+
+    tvUnlitShader = Platform::CreateShader();
+    tvUnlitShader->Load(GetResourcePath() / L"Shaders" / L"screen_unlit.hlsli");
 
     // --- Player camera ---
     ZNCamera* cam = new ZNCamera();
@@ -102,19 +104,12 @@ void CCTVScene::Initialize()
 
     // Overhead camera: positioned high, pitching sharply down
     cctvCamera = new ZNCamera();
-    cctvCamera->SetPosition(ZNVector3(0.0f, 7.0f, 1.5f));
-    cctvCamera->SetRotation(-80.0f, 0.0f); // nearly straight down
+    cctvCamera->SetPosition(ZNVector3(-1.1f, 2.f, -1.4f));
+    cctvCamera->SetRotation(-45.0f, 45.0f); // nearly straight down
     cctvCamera->SetPerspective(3.141592f / 3.0f, 512.0f / 288.0f, 0.1f, 50.0f); // 60deg wide
 
-    // Forward-lit materials (same colours as main-pass materials but forward shader)
-    cctvFloorMat  = ZNMaterialFactory::CreatePBR(cctvShader, ZNVector4(0.45f, 0.45f, 0.45f, 1.0f), 0.0f, 0.9f);
-    cctvBoxAMat   = ZNMaterialFactory::CreatePBR(cctvShader, ZNVector4(0.9f,  0.2f,  0.2f,  1.0f), 0.0f, 0.5f);
-    cctvBoxBMat   = ZNMaterialFactory::CreatePBR(cctvShader, ZNVector4(0.2f,  0.5f,  0.9f,  1.0f), 0.0f, 0.5f);
-    cctvBoxCMat   = ZNMaterialFactory::CreatePBR(cctvShader, ZNVector4(0.2f,  0.85f, 0.3f,  1.0f), 0.0f, 0.5f);
-    cctvSphereMat = ZNMaterialFactory::CreatePBR(cctvShader, ZNVector4(1.0f,  0.85f, 0.1f,  1.0f), 0.0f, 0.5f);
-
     // TV screen: CreatePlane is XZ; after -90°X rotation X=width, Z(local)=height(world)
-    tvMat = ZNMaterialFactory::CreatePBR(defaultShader,
+    tvMat = ZNMaterialFactory::CreatePBR(tvUnlitShader,
         ZNVector4(1.0f, 1.0f, 1.0f, 1.0f), 0.0f, 1.0f);
     static_cast<Material*>(tvMat)->SetAlbedoSRVHandle(cctvRT->GetSRVCpuHandle());
 
@@ -128,7 +123,7 @@ void CCTVScene::Initialize()
     tvScreen->GetTransform().scale    = ZNVector3(4.0f, 0.05f, 2.25f); // 16:9
     tvScreen->GetTransform().rotation = ZNVector3(-90.0f, 0.0f, 0.0f);
     tvScreen->SetCastShadow(false);
-    AddGameObject(tvScreen);
+    AddForwardGameObject(tvScreen);
 
     // --- Debug: CCTV camera position indicator ---
     {
@@ -186,10 +181,6 @@ void CCTVScene::Initialize()
                     room.materials.push_back(ZNMaterialFactory::CreatePBR(
                         defaultShader, ZNVector4(0.8f, 0.75f, 0.70f, 1.0f), 0.0f, 0.6f));
 
-                // Single warm-white material for the CCTV offscreen pass
-                room.cctvMat = ZNMaterialFactory::CreatePBR(
-                    cctvShader, ZNVector4(0.8f, 0.75f, 0.70f, 1.0f), 0.0f, 0.6f);
-
                 for (const auto& meshData : modelData.meshes)
                 {
                     size_t matIdx = (meshData.materialIndex < room.materials.size())
@@ -225,29 +216,9 @@ void CCTVScene::Initialize()
         }
     }
 
-    // Register offscreen pass (unique name to avoid conflict with TestGameScene's "CCTV")
-    CommandQueue* cmdQ = GraphicsContext::GetInstance().GetAs<CommandQueue>();
-    cmdQ->AddOffscreenCamera(cctvCamera, cctvRT, "CCTV_Room",
-        [this]() {
-            auto renderWith = [](ZNGameObject* obj, ZNMaterial* mat) {
-                if (!obj || !obj->IsVisible() || !obj->GetMesh()) return;
-                ZNMaterial* orig = obj->GetMaterial();
-                obj->GetMesh()->SetMaterial(mat);
-                obj->Render();
-                obj->GetMesh()->SetMaterial(orig);
-            };
-            // Room model (all meshes use a single warm-white forward-lit mat in CCTV view)
-            if (room.cctvMat)
-            {
-                for (auto* obj : room.objects)
-                    renderWith(obj, room.cctvMat);
-            }
-            renderWith(floor,  cctvFloorMat);
-            renderWith(boxA,   cctvBoxAMat);
-            renderWith(boxB,   cctvBoxBMat);
-            renderWith(boxC,   cctvBoxCMat);
-            renderWith(sphere, cctvSphereMat);
-        });
+    // Auto-render: all scene gameObjects use their own material params through cctvShader.
+    // No manual per-object CCTV material needed.
+    AddOffscreenCamera(cctvCamera, cctvRT, "CCTV_Room", cctvShader);
 }
 
 void CCTVScene::Update(float deltaTime)

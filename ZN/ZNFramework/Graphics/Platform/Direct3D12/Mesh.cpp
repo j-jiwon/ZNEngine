@@ -63,35 +63,59 @@ void Mesh::Render()
 		tableDescHeap->SetSRV(texture->GetCpuHandle(), SRV_REGISTER::t0);
 	}
 
-	// Set Light data (b2) - use first spotlight if available
-	const auto& spotLights = GraphicsContext::GetInstance().GetSpotLights();
-	ZNLight* light = spotLights.empty() ? nullptr : spotLights[0];
-	if (light)
+	// Set forward light data (b2): dir light + spotlights for PBR forward shaders.
+	// Mirrors deferred_lighting.hlsli layout but without shadow data; max 3 spots.
 	{
-		LightData lightData = light->GetLightData();
-		// Update camera position for specular lighting
-		if (camera)
-		{
-			lightData.cameraPos = camera->GetPosition();
-		}
+		struct FwdSpot {
+			float pos[3];    float intensity;
+			float dir[3];    float innerCutoff;
+			float col[3];    float outerCutoff;
+			float attConst;  float attLinear;  float attQuad;  float padding;
+		};
+		struct FwdLightCB {
+			float dirDir[3];   float dirIntensity;
+			float dirColor[3]; float dirAmbient;
+			float viewPos[3];  int   numSpots;
+			FwdSpot spots[3]; // 3 × 64 bytes = 192 → total 240 bytes < 256 element size
+		} fwdLight = {};
+		static_assert(sizeof(FwdLightCB) <= 256, "FwdLightCB too large for constant buffer slot");
 
-		// Add directional light data if available
 		ZNDirectionalLight* dirLight = GraphicsContext::GetInstance().GetDirectionalLight();
 		if (dirLight)
 		{
-			LightData dirLightData = dirLight->GetLightData();
-			lightData.dirLightDirection = dirLightData.direction;
-			lightData.dirLightIntensity = dirLightData.intensity;
-			lightData.dirLightColor = dirLightData.color;
+			ZNVector3 d = dirLight->GetDirection();
+			fwdLight.dirDir[0] = d.x; fwdLight.dirDir[1] = d.y; fwdLight.dirDir[2] = d.z;
+			fwdLight.dirIntensity = dirLight->GetIntensity();
+			ZNVector3 c = dirLight->GetColor();
+			fwdLight.dirColor[0] = c.x; fwdLight.dirColor[1] = c.y; fwdLight.dirColor[2] = c.z;
+			fwdLight.dirAmbient = dirLight->GetAmbientIntensity();
 		}
-		else
+		if (camera)
 		{
-			// No directional light - set intensity to 0 to disable
-			lightData.dirLightIntensity = 0.0f;
+			ZNVector3 p = camera->GetPosition();
+			fwdLight.viewPos[0] = p.x; fwdLight.viewPos[1] = p.y; fwdLight.viewPos[2] = p.z;
 		}
+		const auto& spotLights = GraphicsContext::GetInstance().GetSpotLights();
+		int ns = 0;
+		for (size_t si = 0; si < spotLights.size() && ns < 3; ++si)
+		{
+			if (!spotLights[si] || spotLights[si]->GetType() != LightType::Spot) continue;
+			ZNSpotLight* sp = static_cast<ZNSpotLight*>(spotLights[si]);
+			FwdSpot& s = fwdLight.spots[ns++];
+			ZNVector3 p = sp->GetPosition(); s.pos[0]=p.x; s.pos[1]=p.y; s.pos[2]=p.z;
+			s.intensity = sp->GetIntensity();
+			ZNVector3 d = sp->GetDirection(); s.dir[0]=d.x; s.dir[1]=d.y; s.dir[2]=d.z;
+			s.innerCutoff = cosf(sp->GetInnerCutoffAngle() * 3.14159f / 180.0f);
+			ZNVector3 c = sp->GetColor(); s.col[0]=c.x; s.col[1]=c.y; s.col[2]=c.z;
+			s.outerCutoff = cosf(sp->GetOuterCutoffAngle() * 3.14159f / 180.0f);
+			s.attConst = sp->GetConstantAttenuation();
+			s.attLinear = sp->GetLinearAttenuation();
+			s.attQuad = sp->GetQuadraticAttenuation();
+		}
+		fwdLight.numSpots = ns;
 
-		D3D12_CPU_DESCRIPTOR_HANDLE lightHandle = constantBuffer->PushData(0, &lightData, sizeof(LightData));
-		tableDescHeap->SetCBV(lightHandle, CBV_REGISTER::b2);
+		D3D12_CPU_DESCRIPTOR_HANDLE lh = constantBuffer->PushData(0, &fwdLight, sizeof(FwdLightCB));
+		tableDescHeap->SetCBV(lh, CBV_REGISTER::b2);
 	}
 
 	tableDescHeap->CommitTable();

@@ -39,17 +39,12 @@ VS_OUT VS_Main(VS_IN input)
 
 float4 PS_Main(VS_OUT input) : SV_Target
 {
-    // Scene directional light: direction=(0.5,-1,0.3), intensity=6, color=(0.5,0.5,0.5), ambient=1
     float3 N = normalize(input.worldNormal);
     float3 L = normalize(float3(-0.5f, 1.0f, -0.3f));
 
     float NdotL = max(dot(N, L), 0.0f);
 
-    // Match main scene: ambient = ambientIntensity(1.0) * lightColor(0.5,0.5,0.5)
-    //                   diffuse = NdotL * intensity(6.0) * lightColor(0.5,0.5,0.5)
-    float3 ambient = float3(0.5f, 0.5f, 0.5f);
-    float3 diffuse = NdotL * float3(3.0f, 3.0f, 3.0f);
-
-    float3 finalColor = saturate(albedoColor.rgb * (ambient + diffuse));
+    // ambient + diffuse stay in [0,1] (0.12 + 0.88 = 1.0) — no saturation/washout
+    float3 finalColor = albedoColor.rgb * (0.12f + NdotL * 0.88f);
     return float4(finalColor, albedoColor.a);
 }
