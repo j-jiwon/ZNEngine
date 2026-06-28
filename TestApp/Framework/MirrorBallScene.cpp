@@ -24,7 +24,7 @@ void MirrorBallScene::Initialize()
 
     ZNDirectionalLight* dirLight = Platform::CreateDirectionalLight();
     dirLight->SetDirection(ZNVector3(0.3f, -1.f, 0.5f));
-    dirLight->SetIntensity(5.f);
+    dirLight->SetIntensity(0.f);
     dirLight->SetColor(ZNVector3(0.9f, 0.9f, 1.f));
     dirLight->SetAmbientIntensity(0.5f);
     dirLight->SetShadowFocusPoint(ZNVector3(0.f, 1.f, 0.f));
@@ -33,10 +33,10 @@ void MirrorBallScene::Initialize()
 
     // 4 corner spotlights aimed at the ball center (0, 1, 0)
     static const struct { ZNVector3 pos; ZNVector3 color; } kLights[4] = {
-        { ZNVector3(-3.f, 4.f, -3.f), ZNVector3(1.0f, 0.85f, 0.7f)  },
-        { ZNVector3( 3.f, 4.f, -3.f), ZNVector3(0.7f, 0.85f, 1.0f)  },
-        { ZNVector3(-3.f, 4.f,  3.f), ZNVector3(1.0f, 0.75f, 0.55f) },
-        { ZNVector3( 3.f, 4.f,  3.f), ZNVector3(0.75f, 0.75f, 1.0f) },
+        { ZNVector3(-4.f, 4.f, -3.f), ZNVector3(1.0f, 0.f, 0.f)  },
+        { ZNVector3( 3.f, 4.f, -3.f), ZNVector3(0.f, 1.0f, 0.f)  },
+        { ZNVector3(-4.f, -4.f, -3.f), ZNVector3(0.f, 0.f, 1.0f) },
+        { ZNVector3( 3.f, -4.f, -3.f), ZNVector3(1.0f, 0.0f, 1.0f) },
     };
     static const ZNVector3 kBallCenter(0.f, 1.f, 0.f);
     for (int i = 0; i < 4; ++i)
@@ -47,8 +47,8 @@ void MirrorBallScene::Initialize()
         spotLights[i]->SetDirection(dir);
         spotLights[i]->SetColor(kLights[i].color);
         spotLights[i]->SetIntensity(4.f);
-        spotLights[i]->SetAmbientIntensity(0.f);
-        spotLights[i]->SetCutoffAngle(18.f, 28.f);
+        spotLights[i]->SetAmbientIntensity(0.5f);
+        spotLights[i]->SetCutoffAngle(5.f, 10.f);
         spotLights[i]->SetAttenuation(1.f, 0.045f, 0.0075f);
         AddSpotLight(spotLights[i]);
     }
@@ -78,7 +78,7 @@ void MirrorBallScene::Initialize()
     // --- Mirror ball: Metallic=1.0, Roughness=0.0, deferred ---
     {
         ZNMaterial* mat = ZNMaterialFactory::CreatePBR(defaultShader,
-            ZNVector4(0.95f, 0.95f, 0.95f, 1.f), 0.95f, 0.1f);
+            ZNVector4(0.95f, 0.95f, 0.95f, 1.f), 0.95f, 0.35f);
         mirrorBall.materials.push_back(mat);
 
         for (size_t i = 0; i < meshes.size(); ++i)
