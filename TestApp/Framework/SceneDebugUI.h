@@ -1,8 +1,17 @@
 #pragma once
 #include <functional>
 #include <chrono>
+#include <vector>
+#include <string>
 
-namespace ZNFramework { class ZNScene; }
+namespace ZNFramework {
+    class ZNScene;
+    class ZNCamera;
+    class ZNSpotLight;
+    class ZNShader;
+    class ZNGameObject;
+    class ZNMaterial;
+}
 
 class SceneDebugUI
 {
@@ -15,7 +24,7 @@ public:
         void*         ptr  = nullptr;
     };
 
-    // Render shared panels (Stats, Outliner, Inspector, Scenes). Call after scene's RenderForward().
+    // Render shared panels (Stats, Outliner, Inspector, Scenes, Debug). Call after scene's RenderForward().
     void Render(ZNFramework::ZNScene* scene);
 
     // Always-visible toggle button + F2 hotkey. Call unconditionally every frame.
@@ -28,13 +37,48 @@ public:
     const Selection& GetSelection() const { return selection; }
     void             ClearSelection()     { selection = {}; }
 
-    // Set by the active scene's RenderForward() every frame to inject scene-specific UI.
-    std::function<void()>      onOutlinerExtras;   // e.g. "Cameras" tree node
-    std::function<void(void*)> onInspectorExtras;  // called when SelectionType::Custom is selected
+    // Per-frame callbacks set by the active scene's RenderForward().
+    std::function<void()>      onOutlinerExtras;   // extra tree nodes in Outliner
+    std::function<void(void*)> onInspectorExtras;  // called when SelectionType::Custom selected
+    std::function<void()>      onDebugExtras;      // scene-specific items in Debug panel
+
+    // Debug-overlay state (readable for scenes that toggle them externally, e.g. F1 hotkey)
+    bool showSpotIndicators = false;
+    bool showCamIndicators  = false;
 
 private:
     SceneDebugUI();
 
+    // ---- Shared debug overlay (spotlight + camera indicators) ----
+    struct SpotEntry {
+        ZNFramework::ZNSpotLight*  light          = nullptr;
+        ZNFramework::ZNGameObject* marker         = nullptr;
+        ZNFramework::ZNGameObject* cone           = nullptr;
+        ZNFramework::ZNMaterial*   markerMat      = nullptr;
+        ZNFramework::ZNMaterial*   coneMat        = nullptr;
+        float                      initOuterAngle = 0.f;
+    };
+    struct CamEntry {
+        ZNFramework::ZNCamera*     cam    = nullptr;
+        std::string                name;
+        ZNFramework::ZNGameObject* marker = nullptr;
+        ZNFramework::ZNGameObject* lens   = nullptr;
+        ZNFramework::ZNMaterial*   mat    = nullptr;
+    };
+
+    void EnsureDebugShaders();
+    void OnSceneChanged(ZNFramework::ZNScene* scene);
+    void UpdateDebugEntries();
+    void RenderDebugEntries();
+    void RenderDebugPanel(ZNFramework::ZNScene* scene);
+
+    ZNFramework::ZNShader* dbgSolidShader = nullptr;
+    ZNFramework::ZNShader* dbgAlphaShader = nullptr;
+    ZNFramework::ZNScene*  trackedScene   = nullptr;
+    std::vector<SpotEntry> spotEntries;
+    std::vector<CamEntry>  camEntries;
+
+    // ---- UI state ----
     bool      visible    = true;
     Selection selection;
 

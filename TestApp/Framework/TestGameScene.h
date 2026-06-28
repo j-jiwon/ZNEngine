@@ -20,20 +20,12 @@ public:
     ZNFramework::ZNShader* GetDefaultShader() const { return defaultShader; }
     ZNFramework::ZNGameObject* GetTurntableObject() const { return turntableObj; }
 
-    struct SpotLightDebug {
-        ZNFramework::ZNGameObject* marker = nullptr;
-        ZNFramework::ZNGameObject* cone = nullptr;
-        ZNFramework::ZNMaterial* markerMaterial = nullptr;
-        ZNFramework::ZNMaterial* coneMaterial = nullptr;
-    };
-
 private:
     void ToggleDebugVisuals();
 
     // Shaders
     ZNFramework::ZNShader* defaultShader = nullptr;
     ZNFramework::ZNShader* gridShader = nullptr;
-    ZNFramework::ZNShader* debugConeShader = nullptr;
 
     // Loaded models
     struct ModelResources {
@@ -54,16 +46,9 @@ private:
 
     // Debug visuals (toggle with F1, or per-item via Debug window)
     struct DebugVisuals {
-        SpotLightDebug spotLight1;
-        SpotLightDebug spotLight2;
         ZNFramework::ZNGameObject* gridPlane = nullptr;
         ZNFramework::ZNMaterial* gridMaterial = nullptr;
-        ZNFramework::ZNGameObject* cameraMarker = nullptr;
-        ZNFramework::ZNGameObject* cameraLens   = nullptr;
-        ZNFramework::ZNMaterial*   cameraMarkerMaterial = nullptr;
-        bool showGrid       = false;
-        bool showSpotLights = false;
-        bool showCameras    = false;
+        bool showGrid = false;
     } debug;
 
     // Interactive state

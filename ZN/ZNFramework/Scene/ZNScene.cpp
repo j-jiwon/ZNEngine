@@ -71,6 +71,12 @@ void ZNScene::RenderForward()
 	}
 }
 
+void ZNScene::RegisterDebugCamera(ZNCamera* cam, const std::string& name)
+{
+	if (cam)
+		debugCameras.push_back({ cam, name });
+}
+
 void ZNScene::AddGameObject(ZNGameObject* obj)
 {
 	if (obj)

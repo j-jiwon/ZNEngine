@@ -30,6 +30,11 @@ namespace ZNFramework
 		virtual void RenderForward();  // Forward pass for non-deferred objects (e.g., grid)
 		virtual void OnKeyboardEvent(const KeyboardEvent& event) {}
 
+		// Debug camera registration — call from scene's Initialize() to get free indicators
+		struct DebugCameraEntry { ZNCamera* cam; std::string name; };
+		void RegisterDebugCamera(ZNCamera* cam, const std::string& name);
+		const std::vector<DebugCameraEntry>& GetDebugCameras() const { return debugCameras; }
+
 		// GameObject management
 		void AddGameObject(ZNGameObject* obj);
 		void RemoveGameObject(ZNGameObject* obj);
@@ -69,6 +74,8 @@ namespace ZNFramework
 		ZNDirectionalLight* directionalLight = nullptr;
 
 	private:
+		std::vector<DebugCameraEntry> debugCameras;
+
 		struct OffscreenCamEntry {
 			ZNCamera*    cam;
 			RenderTexture* rt;

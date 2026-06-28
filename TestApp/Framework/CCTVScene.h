@@ -45,11 +45,4 @@ private:
         std::vector<ZNFramework::ZNMaterial*>   materials; // main (deferred) materials
     } room;
 
-    // Debug visualizers (camera indicator)
-    struct DebugInfo {
-        bool                       showCamera    = false;
-        ZNFramework::ZNGameObject* cameraMarker  = nullptr;
-        ZNFramework::ZNGameObject* cameraLens    = nullptr;
-        ZNFramework::ZNMaterial*   markerMat     = nullptr;
-    } debug;
 };
