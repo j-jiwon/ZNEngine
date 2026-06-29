@@ -48,6 +48,10 @@ public:
 
     bool IsForwardPass() const { return isForwardPass; }
 
+    // Dedicated per-frame upload buffer for forward-pass point lights.
+    // Called from Material::Bind() during forward pass rendering.
+    D3D12_CPU_DESCRIPTOR_HANDLE UpdateFwdPointLightBuffer(const void* data, uint32 size);
+
     // Re-import GBuffer resource pointers after a resize (resources are recreated)
     void RefreshGBufferResources();
 
@@ -55,6 +59,8 @@ public:
     void NotifyGBufferResized() { RefreshGBufferResources(); }
 
     RenderGraph& GetRenderGraph() { return renderGraph; }
+
+    static constexpr uint32 kFwdPLBufSize = 512; // 256-aligned; fits 8 × 48B lights + 16B header
 
     // Off-screen camera: renders to a RenderTexture before the main passes.
     // resourceName identifies the texture in the RenderGraph (e.g. "CCTV").
@@ -98,6 +104,12 @@ private:
     std::function<void()> shadowRenderCallback;
     std::function<void()> gbufferRenderCallback;
     std::vector<OffscreenCameraEntry> offscreenCameras;
+
+    // Dedicated forward-pass point light upload buffer (not shared with transform/material CB)
+    ComPtr<ID3D12Resource>       fwdPointLightBuffer;
+    void*                        fwdPointLightMapped    = nullptr;
+    ComPtr<ID3D12DescriptorHeap> fwdPointLightCBVHeap;
+    D3D12_CPU_DESCRIPTOR_HANDLE  fwdPointLightCBVHandle = {};
 
     bool isForwardPass    = false;
     bool renderGraphBuilt = false;

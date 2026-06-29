@@ -1,6 +1,7 @@
 #include "SceneDebugUI.h"
 #include "SceneManager.h"
 #include <ZNFramework.h>
+#include <ZNFramework/Graphics/ZNLight.h>
 #include <imgui.h>
 #include <Windows.h>
 #include <algorithm>
@@ -353,6 +354,17 @@ void SceneDebugUI::Render(ZNScene* scene)
                     selection.ptr  = spots[i];
                 }
             }
+            const auto& points = scene->GetPointLights();
+            for (int i = 0; i < (int)points.size(); ++i)
+            {
+                std::string label = "PointLight " + std::to_string(i);
+                bool isSelected = (selection.type == SelectionType::PointLight && selection.ptr == points[i]);
+                if (ImGui::Selectable(label.c_str(), isSelected))
+                {
+                    selection.type = SelectionType::PointLight;
+                    selection.ptr  = points[i];
+                }
+            }
             ZNDirectionalLight* dl = scene->GetDirectionalLight();
             if (dl)
             {
@@ -440,6 +452,27 @@ void SceneDebugUI::Render(ZNScene* scene)
         if (ImGui::SliderFloat("Inner Angle", &innerAngle, 0.f, 89.f)) cutoffChanged = true;
         if (ImGui::SliderFloat("Outer Angle", &outerAngle, 0.f, 89.f)) cutoffChanged = true;
         if (cutoffChanged) light->SetCutoffAngle(innerAngle, outerAngle);
+        break;
+    }
+    case SelectionType::PointLight:
+    {
+        ZNPointLight* light = static_cast<ZNPointLight*>(selection.ptr);
+        ImGui::Text("PointLight");
+        ImGui::Separator();
+        ZNVector3 col = light->GetColor();
+        float color[3] = { col.x, col.y, col.z };
+        if (ImGui::ColorEdit3("Color", color))
+            light->SetColor(ZNVector3(color[0], color[1], color[2]));
+        float intensity = light->GetIntensity();
+        if (ImGui::SliderFloat("Intensity", &intensity, 0.f, 30.f))
+            light->SetIntensity(intensity);
+        ZNVector3 pos = light->GetPosition();
+        float posArr[3] = { pos.x, pos.y, pos.z };
+        if (ImGui::DragFloat3("Position", posArr, 0.05f))
+            light->SetPosition(ZNVector3(posArr[0], posArr[1], posArr[2]));
+        float radius = light->GetRadius();
+        if (ImGui::SliderFloat("Radius", &radius, 0.1f, 30.f))
+            light->SetRadius(radius);
         break;
     }
     case SelectionType::DirectionalLight:

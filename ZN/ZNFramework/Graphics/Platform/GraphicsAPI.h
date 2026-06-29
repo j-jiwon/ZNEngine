@@ -20,6 +20,7 @@ namespace ZNFramework::Platform
 		ZNModelLoader* CreateModelLoader();
 		ZNDirectionalLight* CreateDirectionalLight();
 		ZNSpotLight* CreateSpotLight();
+		ZNPointLight* CreatePointLight();
 	}
 #endif
 
@@ -78,5 +79,9 @@ namespace ZNFramework::Platform
 	inline ZNSpotLight* CreateSpotLight()
 	{
 		return Direct3D::CreateSpotLight();
+	}
+	inline ZNPointLight* CreatePointLight()
+	{
+		return Direct3D::CreatePointLight();
 	}
 }

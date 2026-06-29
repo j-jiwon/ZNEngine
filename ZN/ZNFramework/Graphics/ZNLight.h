@@ -73,4 +73,22 @@ namespace ZNFramework
 		virtual float GetLinearAttenuation() const = 0;
 		virtual float GetQuadraticAttenuation() const = 0;
 	};
+
+	// Point Light — omnidirectional, with distance attenuation
+	class ZNPointLight : public ZNLight
+	{
+	public:
+		ZNPointLight() = default;
+		virtual ~ZNPointLight() = default;
+
+		virtual void SetPosition(const ZNVector3& position) = 0;
+		virtual void SetRadius(float radius) = 0;
+		virtual void SetAttenuation(float constant, float linear, float quadratic) = 0;
+
+		virtual ZNVector3 GetPosition() const = 0;
+		virtual float GetRadius() const = 0;
+		virtual float GetConstantAttenuation() const = 0;
+		virtual float GetLinearAttenuation() const = 0;
+		virtual float GetQuadraticAttenuation() const = 0;
+	};
 }

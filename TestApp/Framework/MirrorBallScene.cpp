@@ -53,6 +53,15 @@ void MirrorBallScene::Initialize()
         AddSpotLight(spotLights[i]);
     }
 
+    // Point light inside the glass ball — warm white "bulb" glow
+    innerLight = Platform::CreatePointLight();
+    innerLight->SetPosition(ZNVector3(1.f, 0.7f, 2.f));  // glass ball center
+    innerLight->SetColor(ZNVector3(1.f, 0.7f, 0.1f));  // warm white
+    innerLight->SetIntensity(20.f);
+    innerLight->SetRadius(6.f);
+    innerLight->SetAttenuation(1.f, 0.22f, 0.20f);
+    AddPointLight(innerLight);
+
     // Load FBX once; instantiate as two separate sets of GameObjects
     std::filesystem::path fbxPath =
         GetResourcePath() / L"Models" / L"MirrorBall" / L"mirrorball_a.fbx";
@@ -126,6 +135,12 @@ void MirrorBallScene::Initialize()
 void MirrorBallScene::Update(float deltaTime)
 {
     ZNScene::Update(deltaTime);
+
+    for (auto* obj : mirrorBall.objects)
+        obj->GetTransform().rotation.y += 30.f * deltaTime;
+
+    for (auto* obj : glassBall.objects)
+        obj->GetTransform().rotation.y -= 20.f * deltaTime;
 }
 
 void MirrorBallScene::Render()

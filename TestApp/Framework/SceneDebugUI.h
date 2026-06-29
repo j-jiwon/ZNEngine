@@ -8,6 +8,7 @@ namespace ZNFramework {
     class ZNScene;
     class ZNCamera;
     class ZNSpotLight;
+    class ZNPointLight;
     class ZNShader;
     class ZNGameObject;
     class ZNMaterial;
@@ -18,7 +19,7 @@ class SceneDebugUI
 public:
     static SceneDebugUI& Get() { static SceneDebugUI s; return s; }
 
-    enum class SelectionType { None, GameObject, SpotLight, DirectionalLight, Custom };
+    enum class SelectionType { None, GameObject, SpotLight, PointLight, DirectionalLight, Custom };
     struct Selection {
         SelectionType type = SelectionType::None;
         void*         ptr  = nullptr;

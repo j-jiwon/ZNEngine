@@ -23,5 +23,6 @@ private:
     BallModel mirrorBall;  // Metallic 1.0 / Roughness 0.0, deferred pass
     BallModel glassBall;   // Translucent glass, forward pass
 
-    ZNFramework::ZNSpotLight* spotLights[4] = {};
+    ZNFramework::ZNSpotLight*  spotLights[4] = {};
+    ZNFramework::ZNPointLight* innerLight    = nullptr;
 };
