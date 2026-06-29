@@ -12,6 +12,7 @@ namespace ZNFramework
     class ZNShader;
     class ZNCamera;
     class ZNSpotLight;
+    class ZNPointLight;
 
     class GraphicsContext
     {
@@ -88,6 +89,10 @@ namespace ZNFramework
         void SetSpotLights(const std::vector<ZNSpotLight*>& lights) { spotLights = lights; }
         const std::vector<ZNSpotLight*>& GetSpotLights() const { return spotLights; }
 
+        // Point Lights
+        void SetPointLights(const std::vector<ZNPointLight*>& lights) { pointLights = lights; }
+        const std::vector<ZNPointLight*>& GetPointLights() const { return pointLights; }
+
         // Directional Light
         void SetDirectionalLight(ZNDirectionalLight* inLight) { directionalLight = inLight; }
         ZNDirectionalLight* GetDirectionalLight() const { return directionalLight; }
@@ -106,6 +111,7 @@ namespace ZNFramework
         ZNShader* gbufferShader = nullptr;
         ZNCamera* camera = nullptr;
         std::vector<ZNSpotLight*> spotLights;
+        std::vector<ZNPointLight*> pointLights;
         ZNDirectionalLight* directionalLight = nullptr;
 
         GraphicsContext() = default;

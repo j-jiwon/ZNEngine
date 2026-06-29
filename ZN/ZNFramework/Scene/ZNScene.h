@@ -12,6 +12,7 @@ namespace ZNFramework
 	class ZNLight;
 	class ZNDirectionalLight;
 	class ZNSpotLight;
+	class ZNPointLight;
 	class ZNShader;
 	class ZNMatrix4;
 	class ZNMaterial;
@@ -29,6 +30,11 @@ namespace ZNFramework
 		virtual void RenderShadow(const ZNMatrix4& lightViewProj, ZNShader* shadowShader);  // Shadow pass
 		virtual void RenderForward();  // Forward pass for non-deferred objects (e.g., grid)
 		virtual void OnKeyboardEvent(const KeyboardEvent& event) {}
+
+		// Debug camera registration — call from scene's Initialize() to get free indicators
+		struct DebugCameraEntry { ZNCamera* cam; std::string name; };
+		void RegisterDebugCamera(ZNCamera* cam, const std::string& name);
+		const std::vector<DebugCameraEntry>& GetDebugCameras() const { return debugCameras; }
 
 		// GameObject management
 		void AddGameObject(ZNGameObject* obj);
@@ -52,6 +58,10 @@ namespace ZNFramework
 		void SetDirectionalLight(ZNDirectionalLight* light);
 		ZNDirectionalLight* GetDirectionalLight() const { return directionalLight; }
 
+		void AddPointLight(ZNPointLight* light);
+		void RemovePointLight(ZNPointLight* light);
+		const std::vector<ZNPointLight*>& GetPointLights() const { return pointLights; }
+
 		ZNGameObject* FindGameObjectWithTag(const std::string& tag);
 		ZNGameObject* FindGameObjectWithName(const std::string& name);
 
@@ -65,10 +75,13 @@ namespace ZNFramework
 		std::vector<ZNGameObject*> gameObjects;
 		std::vector<ZNGameObject*> forwardGameObjects;  // Objects rendered in forward pass
 		std::vector<ZNSpotLight*> spotLights;
+		std::vector<ZNPointLight*> pointLights;
 		ZNCamera* camera = nullptr;
 		ZNDirectionalLight* directionalLight = nullptr;
 
 	private:
+		std::vector<DebugCameraEntry> debugCameras;
+
 		struct OffscreenCamEntry {
 			ZNCamera*    cam;
 			RenderTexture* rt;

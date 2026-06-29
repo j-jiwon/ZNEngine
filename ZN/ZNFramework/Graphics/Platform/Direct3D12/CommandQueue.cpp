@@ -56,6 +56,29 @@ void CommandQueue::Init(ZNSwapChain* inSwapChain)
         IID_PPV_ARGS(&timestampReadbackBuffer));
 
     queue->GetTimestampFrequency(&timestampFrequency);
+
+    // Dedicated forward-pass point light buffer — 512B, permanently mapped
+    {
+        D3D12_HEAP_PROPERTIES heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+        D3D12_RESOURCE_DESC   bufDesc   = CD3DX12_RESOURCE_DESC::Buffer(kFwdPLBufSize);
+        device->Device()->CreateCommittedResource(
+            &heapProps, D3D12_HEAP_FLAG_NONE, &bufDesc,
+            D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
+            IID_PPV_ARGS(&fwdPointLightBuffer));
+        fwdPointLightBuffer->Map(0, nullptr, &fwdPointLightMapped);
+
+        D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
+        heapDesc.Type           = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+        heapDesc.NumDescriptors = 1;
+        heapDesc.Flags          = D3D12_DESCRIPTOR_HEAP_FLAG_NONE; // CPU-only, gets copied to table heap
+        device->Device()->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&fwdPointLightCBVHeap));
+
+        D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+        cbvDesc.BufferLocation = fwdPointLightBuffer->GetGPUVirtualAddress();
+        cbvDesc.SizeInBytes    = kFwdPLBufSize; // 512 is a multiple of 256 ✓
+        fwdPointLightCBVHandle = fwdPointLightCBVHeap->GetCPUDescriptorHandleForHeapStart();
+        device->Device()->CreateConstantBufferView(&cbvDesc, fwdPointLightCBVHandle);
+    }
 }
 
 void CommandQueue::BuildRenderGraph()
@@ -131,6 +154,13 @@ void CommandQueue::BuildRenderGraph()
     renderGraph.AddPass(std::make_unique<ImGuiRenderPass>(
         &imguiSrvHeap,
         [this]() { if (imguiRenderCallback) imguiRenderCallback(); }));
+}
+
+D3D12_CPU_DESCRIPTOR_HANDLE CommandQueue::UpdateFwdPointLightBuffer(const void* data, uint32 size)
+{
+    if (fwdPointLightMapped && size <= kFwdPLBufSize)
+        memcpy(fwdPointLightMapped, data, size);
+    return fwdPointLightCBVHandle;
 }
 
 void CommandQueue::RefreshGBufferResources()

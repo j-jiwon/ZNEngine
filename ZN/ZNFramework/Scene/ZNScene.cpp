@@ -35,6 +35,7 @@ void ZNScene::Render()
 	GraphicsContext& ctx = GraphicsContext::GetInstance();
 	ctx.SetCamera(camera);
 	ctx.SetSpotLights(spotLights);
+	ctx.SetPointLights(pointLights);
 	ctx.SetDirectionalLight(directionalLight);
 
 	// Render all game objects (deferred pass)
@@ -61,6 +62,7 @@ void ZNScene::RenderForward()
 	GraphicsContext& ctx = GraphicsContext::GetInstance();
 	ctx.SetCamera(camera);
 	ctx.SetSpotLights(spotLights);
+	ctx.SetPointLights(pointLights);
 	ctx.SetDirectionalLight(directionalLight);
 
 	// Render forward objects (after deferred lighting)
@@ -69,6 +71,12 @@ void ZNScene::RenderForward()
 		if (obj)
 			obj->Render();
 	}
+}
+
+void ZNScene::RegisterDebugCamera(ZNCamera* cam, const std::string& name)
+{
+	if (cam)
+		debugCameras.push_back({ cam, name });
 }
 
 void ZNScene::AddGameObject(ZNGameObject* obj)
@@ -118,6 +126,19 @@ void ZNScene::RemoveSpotLight(ZNSpotLight* light)
 void ZNScene::SetDirectionalLight(ZNDirectionalLight* light)
 {
 	directionalLight = light;
+}
+
+void ZNScene::AddPointLight(ZNPointLight* light)
+{
+	if (light)
+		pointLights.push_back(light);
+}
+
+void ZNScene::RemovePointLight(ZNPointLight* light)
+{
+	auto it = std::find(pointLights.begin(), pointLights.end(), light);
+	if (it != pointLights.end())
+		pointLights.erase(it);
 }
 
 ZNGameObject* ZNScene::FindGameObjectWithTag(const std::string& tag)

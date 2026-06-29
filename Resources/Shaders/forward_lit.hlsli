@@ -1,3 +1,18 @@
+
+#define MAX_POINT_LIGHTS 8
+
+struct PointLightData
+{
+    float3 position;
+    float  intensity;
+    float3 color;
+    float  radius;
+    float  attenuationConstant;
+    float  attenuationLinear;
+    float  attenuationQuadratic;
+    float  padding;
+};
+
 cbuffer cbTransform : register(b0)
 {
     row_major float4x4 gWorld;
@@ -8,10 +23,17 @@ cbuffer cbTransform : register(b0)
 cbuffer cbMaterial : register(b1)
 {
     float4 albedoColor;
-    float metallic;
-    float roughness;
-    float ao;
-    float padding;
+    float  metallic;
+    float  roughness;
+    float  ao;
+    float  padding;
+};
+
+cbuffer cbPointLights : register(b3)
+{
+    int  numPointLights;
+    int3 _plPad;
+    PointLightData pointLights[MAX_POINT_LIGHTS];
 };
 
 struct VS_IN
@@ -24,27 +46,58 @@ struct VS_IN
 
 struct VS_OUT
 {
-    float4 pos         : SV_Position;
-    float3 worldNormal : NORMAL;
+    float4 pos      : SV_Position;
+    float3 worldPos : TEXCOORD0;
+    float3 worldNml : NORMAL;
 };
 
 VS_OUT VS_Main(VS_IN input)
 {
     VS_OUT output = (VS_OUT)0;
-    float4 worldPos    = mul(float4(input.pos, 1.f), gWorld);
-    output.pos         = mul(mul(worldPos, gView), gProjection);
-    output.worldNormal = mul(float4(input.normal, 0.f), gWorld).xyz;
+    float4 wp        = mul(float4(input.pos, 1.f), gWorld);
+    output.pos       = mul(mul(wp, gView), gProjection);
+    output.worldPos  = wp.xyz;
+    output.worldNml  = mul(float4(input.normal, 0.f), gWorld).xyz;
     return output;
+}
+
+static const float PI = 3.14159265f;
+
+float3 FresnelSchlick(float cosTheta, float3 F0)
+{
+    return F0 + (1.f - F0) * pow(clamp(1.f - cosTheta, 0.f, 1.f), 5.f);
 }
 
 float4 PS_Main(VS_OUT input) : SV_Target
 {
-    float3 N = normalize(input.worldNormal);
-    float3 L = normalize(float3(-0.5f, 1.0f, -0.3f));
+    float3 N       = normalize(input.worldNml);
+    float3 albedo  = albedoColor.rgb;
 
-    float NdotL = max(dot(N, L), 0.0f);
+    // Simple directional ambient baseline
+    float3 Lo = albedo * 0.05f;
 
-    // ambient + diffuse stay in [0,1] (0.12 + 0.88 = 1.0) — no saturation/washout
-    float3 finalColor = albedoColor.rgb * (0.12f + NdotL * 0.88f);
-    return float4(finalColor, albedoColor.a);
+    // Point lights (PBR-style diffuse + simple specular)
+    for (int i = 0; i < numPointLights; ++i)
+    {
+        PointLightData pt = pointLights[i];
+
+        float3 ptVec  = pt.position - input.worldPos;
+        float  ptDist = length(ptVec);
+        float3 L      = normalize(ptVec);
+
+        float falloff = saturate(1.f - ptDist / max(pt.radius, 0.001f));
+        falloff       = falloff * falloff;
+
+        float  atten  = 1.f / (pt.attenuationConstant +
+                                pt.attenuationLinear    * ptDist +
+                                pt.attenuationQuadratic * ptDist * ptDist);
+
+        float NdotL   = max(dot(N, L), 0.f);
+        float3 radiance = pt.color * pt.intensity * atten * falloff;
+
+        // Diffuse contribution
+        Lo += albedo / PI * radiance * NdotL;
+    }
+
+    return float4(Lo, albedoColor.a);
 }

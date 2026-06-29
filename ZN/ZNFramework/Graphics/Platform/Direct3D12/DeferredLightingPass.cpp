@@ -5,6 +5,7 @@
 #include "GraphicsDevice.h"
 #include "CommandQueue.h"
 #include "DirectionalLight.h"
+#include "PointLight.h"
 #include "ZNFramework.h"
 #include "../../ZNLight.h"
 #include "../../../Math/ZNVector3.h"
@@ -20,7 +21,8 @@ struct LightingVertex
     float normal[3];
 };
 
-#define MAX_SPOT_LIGHTS 8
+#define MAX_SPOT_LIGHTS   8
+#define MAX_POINT_LIGHTS  8
 
 struct SpotLightData
 {
@@ -30,6 +32,18 @@ struct SpotLightData
     float innerCutoff;
     float color[3];
     float outerCutoff;
+    float attenuationConstant;
+    float attenuationLinear;
+    float attenuationQuadratic;
+    float padding;
+};
+
+struct PointLightData
+{
+    float position[3];
+    float intensity;
+    float color[3];
+    float radius;
     float attenuationConstant;
     float attenuationLinear;
     float attenuationQuadratic;
@@ -54,12 +68,16 @@ struct DeferredLightCB
     float shadowBias;
     float shadowPCFRadius;
 
-    // View mode (must match cbuffer slot after shadowPCFRadius)
+    // View mode
     int unlitMode;
-    int _cbPad[3];
+    int numPointLights;
+    int _cbPad[2];
 
     // Spot Lights array
     SpotLightData spotLights[MAX_SPOT_LIGHTS];
+
+    // Point Lights array
+    PointLightData pointLights[MAX_POINT_LIGHTS];
 };
 
 void DeferredLightingPass::Init()
@@ -145,9 +163,10 @@ void DeferredLightingPass::Render(GBufferManager* gbufferManager, ShadowMap* sha
     // Update lighting constant buffer
     DeferredLightCB lightData = {};
 
-    ZNDirectionalLight* dirLight = GraphicsContext::GetInstance().GetDirectionalLight();
-    const auto& spotLights = GraphicsContext::GetInstance().GetSpotLights();
-    ZNCamera* camera = GraphicsContext::GetInstance().GetCamera();
+    ZNDirectionalLight* dirLight  = GraphicsContext::GetInstance().GetDirectionalLight();
+    const auto& spotLights        = GraphicsContext::GetInstance().GetSpotLights();
+    const auto& pointLightsCtx   = GraphicsContext::GetInstance().GetPointLights();
+    ZNCamera* camera              = GraphicsContext::GetInstance().GetCamera();
 
     if (dirLight)
     {
@@ -209,6 +228,30 @@ void DeferredLightingPass::Render(GBufferManager* gbufferManager, ShadowMap* sha
         }
     }
     lightData.numSpotLights = numSpots;
+
+    // Fill point light array
+    int numPoints = 0;
+    for (size_t i = 0; i < pointLightsCtx.size() && i < MAX_POINT_LIGHTS; ++i)
+    {
+        ZNPointLight* pl = pointLightsCtx[i];
+        if (!pl) continue;
+        ZNVector3 pos   = pl->GetPosition();
+        ZNVector3 color = pl->GetColor();
+        PointLightData& pd = lightData.pointLights[numPoints];
+        pd.position[0] = pos.x;
+        pd.position[1] = pos.y;
+        pd.position[2] = pos.z;
+        pd.intensity   = pl->GetIntensity();
+        pd.color[0]    = color.x;
+        pd.color[1]    = color.y;
+        pd.color[2]    = color.z;
+        pd.radius      = pl->GetRadius();
+        pd.attenuationConstant  = pl->GetConstantAttenuation();
+        pd.attenuationLinear    = pl->GetLinearAttenuation();
+        pd.attenuationQuadratic = pl->GetQuadraticAttenuation();
+        ++numPoints;
+    }
+    lightData.numPointLights = numPoints;
 
     if (camera)
     {

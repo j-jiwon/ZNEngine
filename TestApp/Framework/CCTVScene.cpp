@@ -125,34 +125,8 @@ void CCTVScene::Initialize()
     tvScreen->SetCastShadow(false);
     AddForwardGameObject(tvScreen);
 
-    // --- Debug: CCTV camera position indicator ---
-    {
-        debug.markerMat = ZNMaterialFactory::CreatePBR(defaultShader,
-            ZNVector4(0.0f, 0.9f, 1.0f, 1.0f), 0.0f, 0.5f); // cyan
-
-        debug.cameraMarker = new ZNGameObject();
-        debug.cameraMarker->SetMesh(ZNMeshFactory::CreateCube(0.1f));
-        debug.cameraMarker->GetMesh()->SetMaterial(debug.markerMat);
-        debug.cameraMarker->SetMaterial(debug.markerMat);
-        debug.cameraMarker->SetName("CCTVCameraMarker");
-        debug.cameraMarker->SetTag("Debug");
-        debug.cameraMarker->GetTransform().position = cctvCamera->GetPosition();
-        debug.cameraMarker->SetVisible(false);
-        debug.cameraMarker->SetCastShadow(false);
-        AddGameObject(debug.cameraMarker);
-
-        debug.cameraLens = new ZNGameObject();
-        debug.cameraLens->SetMesh(ZNMeshFactory::CreateCube(0.05f));
-        debug.cameraLens->GetMesh()->SetMaterial(debug.markerMat);
-        debug.cameraLens->SetMaterial(debug.markerMat);
-        debug.cameraLens->SetName("CCTVCameraLens");
-        debug.cameraLens->SetTag("Debug");
-        debug.cameraLens->GetTransform().position =
-            cctvCamera->GetPosition() + cctvCamera->GetForward() * 0.35f;
-        debug.cameraLens->SetVisible(false);
-        debug.cameraLens->SetCastShadow(false);
-        AddGameObject(debug.cameraLens);
-    }
+    // Register CCTV camera for SceneDebugUI's common camera indicator
+    RegisterDebugCamera(cctvCamera, "CCTV Overhead");
 
     // --- Room model (FBX) ---
     {
@@ -224,15 +198,6 @@ void CCTVScene::Initialize()
 void CCTVScene::Update(float deltaTime)
 {
     ZNScene::Update(deltaTime);
-
-    if (debug.cameraMarker && debug.cameraMarker->IsVisible())
-    {
-        ZNVector3 camPos = cctvCamera->GetPosition();
-        ZNVector3 camFwd = cctvCamera->GetForward();
-        debug.cameraMarker->GetTransform().position = camPos;
-        if (debug.cameraLens)
-            debug.cameraLens->GetTransform().position = camPos + camFwd * 0.35f;
-    }
 }
 
 void CCTVScene::Render()
@@ -302,28 +267,15 @@ void CCTVScene::RenderForward()
 
     if (!SceneDebugUI::Get().IsVisible()) return;
 
-    // --- Debug panel (scene-specific) ---
-    ImGui::SetNextWindowSize(ImVec2(220.0f, 0.0f), ImGuiCond_FirstUseEver);
-    ImGui::Begin("Debug");
-
-    if (ImGui::Checkbox("Camera Indicator", &debug.showCamera))
-    {
-        if (debug.cameraMarker) debug.cameraMarker->SetVisible(debug.showCamera);
-        if (debug.cameraLens)   debug.cameraLens->SetVisible(debug.showCamera);
-    }
-
-    ImGui::Separator();
-
-    ZNCommandQueue* cq = GraphicsContext::GetInstance().GetCommandQueue();
-    bool wireframe = (cq->GetViewMode() == ViewMode::Wireframe);
-    if (ImGui::Checkbox("Wireframe", &wireframe))
-        cq->SetViewMode(wireframe ? ViewMode::Wireframe : ViewMode::Lit);
-
+    // Scene-specific Debug panel extras: room mesh count info
     if (!room.objects.empty())
     {
-        ImGui::Separator();
-        ImGui::Text("Room: %d meshes", (int)room.objects.size());
+        SceneDebugUI::Get().onDebugExtras = [this]() {
+            ImGui::Text("Room: %d meshes", (int)room.objects.size());
+        };
     }
-
-    ImGui::End();
+    else
+    {
+        SceneDebugUI::Get().onDebugExtras = nullptr;
+    }
 }

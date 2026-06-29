@@ -5,6 +5,9 @@
 #include "TableDescriptorHeap.h"
 #include "CommandQueue.h"
 #include "ZNFramework.h"
+#include "../../ZNLight.h"
+#include <algorithm>
+#include <cstring>
 
 using namespace ZNFramework;
 
@@ -75,6 +78,54 @@ void Material::Bind()
 
 	D3D12_CPU_DESCRIPTOR_HANDLE paramsHandle = constantBuffer->PushData(1, &paramsToUse, sizeof(paramsToUse));
 	tableDescHeap->SetCBV(paramsHandle, CBV_REGISTER::b1);
+
+	// Bind point lights at b3 during forward pass using a dedicated upload buffer.
+	// forward_lit.hlsli uses register(b3) for cbPointLights; forward_pbr.hlsli and
+	// screen_unlit.hlsli don't access b3, so setting it here is harmless to those shaders.
+	if (isForwardPass)
+	{
+		struct FwdPointLightEntry {
+			float position[3];
+			float intensity;
+			float color[3];
+			float radius;
+			float attenuationConstant;
+			float attenuationLinear;
+			float attenuationQuadratic;
+			float padding;
+		}; // 48 bytes
+
+		static_assert(sizeof(FwdPointLightEntry) == 48, "FwdPointLightEntry size mismatch");
+
+		struct FwdPointLightCB {
+			int numPointLights;
+			int pad[3];
+			FwdPointLightEntry lights[8]; // 8 × 48 + 16 = 400 bytes → fits in 512-byte dedicated buffer
+		};
+
+		FwdPointLightCB plCB = {};
+		const auto& pls = GraphicsContext::GetInstance().GetPointLights();
+		int n = (int)(std::min)((int)pls.size(), 8);
+		plCB.numPointLights = n;
+		for (int i = 0; i < n; ++i)
+		{
+			ZNPointLight* pl = pls[i];
+			ZNVector3 pos   = pl->GetPosition();
+			ZNVector3 col   = pl->GetColor();
+			auto& e = plCB.lights[i];
+			e.position[0] = pos.x; e.position[1] = pos.y; e.position[2] = pos.z;
+			e.intensity   = pl->GetIntensity();
+			e.color[0]    = col.x; e.color[1] = col.y; e.color[2] = col.z;
+			e.radius      = pl->GetRadius();
+			e.attenuationConstant  = pl->GetConstantAttenuation();
+			e.attenuationLinear    = pl->GetLinearAttenuation();
+			e.attenuationQuadratic = pl->GetQuadraticAttenuation();
+		}
+
+		D3D12_CPU_DESCRIPTOR_HANDLE plHandle =
+			queue->UpdateFwdPointLightBuffer(&plCB, sizeof(plCB));
+		tableDescHeap->SetCBV(plHandle, CBV_REGISTER::b3);
+	}
 
 	// Bind textures (t0 ~ t4)
 	for (size_t i = 0; i < textures.size(); ++i)

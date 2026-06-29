@@ -1,5 +1,6 @@
 
-#define MAX_SPOT_LIGHTS 8
+#define MAX_SPOT_LIGHTS   8
+#define MAX_POINT_LIGHTS  8
 
 struct SpotLightData
 {
@@ -9,6 +10,18 @@ struct SpotLightData
     float innerCutoff;
     float3 color;
     float outerCutoff;
+    float attenuationConstant;
+    float attenuationLinear;
+    float attenuationQuadratic;
+    float padding;
+};
+
+struct PointLightData
+{
+    float3 position;
+    float intensity;
+    float3 color;
+    float radius;
     float attenuationConstant;
     float attenuationLinear;
     float attenuationQuadratic;
@@ -35,10 +48,14 @@ cbuffer cbLight : register(b0)
 
     // View mode
     int unlitMode;  // 1 = skip lighting, output baseColor directly (wireframe/unlit)
-    int3 _cbPad;
+    int numPointLights;
+    int2 _cbPad;
 
     // Spot Lights array
     SpotLightData spotLights[MAX_SPOT_LIGHTS];
+
+    // Point Lights array
+    PointLightData pointLights[MAX_POINT_LIGHTS];
 };
 
 // G-Buffer textures
@@ -315,6 +332,28 @@ float4 PS_Main(VS_OUT input) : SV_Target
 
         float3 radiance_spot = spot.color * spot.intensity * attenuation * spotIntensity;
         Lo += CalculatePBR(N, V, L_spot, radiance_spot, albedo, metallic, roughness);
+    }
+
+    // POINT LIGHTS (PBR) - omnidirectional, distance-attenuated
+    for (int j = 0; j < numPointLights; ++j)
+    {
+        PointLightData pt = pointLights[j];
+
+        float3 ptVec     = pt.position - worldPos;
+        float  ptDist    = length(ptVec);
+        float3 L_pt      = normalize(ptVec);
+
+        // Hard cutoff at radius (smooth rolloff in last 10%)
+        float  falloff   = saturate(1.0f - ptDist / max(pt.radius, 0.001f));
+        falloff          = falloff * falloff;
+
+        // Inverse-square attenuation
+        float  atten     = 1.0f / (pt.attenuationConstant +
+                                    pt.attenuationLinear    * ptDist +
+                                    pt.attenuationQuadratic * ptDist * ptDist);
+
+        float3 radiance_pt = pt.color * pt.intensity * atten * falloff;
+        Lo += CalculatePBR(N, V, L_pt, radiance_pt, albedo, metallic, roughness);
     }
 
     // Combine ambient and direct lighting

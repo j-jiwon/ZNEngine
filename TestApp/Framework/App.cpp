@@ -3,6 +3,7 @@
 #include "ZNFramework/Graphics/Platform/GraphicsAPI.h"
 #include "TestGameScene.h"
 #include "CCTVScene.h"
+#include "MirrorBallScene.h"
 #include "SceneManager.h"
 #include "SceneDebugUI.h"
 
@@ -55,6 +56,11 @@ void TestApp::OnInitialize()
         auto* s = new CCTVScene();
         s->Initialize();
         slots.push_back({ "CCTV Scene", s });
+    }
+    {
+        auto* s = new MirrorBallScene();
+        s->Initialize();
+        slots.push_back({ "MirrorBall Scene", s });
     }
 
     // Wire up SceneManager so ImGui buttons can trigger switches

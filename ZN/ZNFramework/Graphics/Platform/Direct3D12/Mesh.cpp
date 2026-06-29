@@ -55,18 +55,8 @@ void Mesh::Render()
 	D3D12_CPU_DESCRIPTOR_HANDLE handle1 = constantBuffer->PushData(0, &transformMatrices, sizeof(TransformMatrices));
 	tableDescHeap->SetCBV(handle1, CBV_REGISTER::b0);
 
-	// Use Material if available, otherwise fallback to legacy texture path
-	if (material)
-	{
-		material->Bind();
-	}
-	else if (texture)
-	{
-		tableDescHeap->SetSRV(texture->GetCpuHandle(), SRV_REGISTER::t0);
-	}
-
-	// Set forward light data (b2): dir light + spotlights + shadow for PBR forward shaders.
-	// Reduced to max 2 spots to fit the lightViewProj matrix within 256-byte CB element.
+	// Set forward light data (b2) BEFORE material->Bind() so that Material can overwrite b2
+	// in the forward pass with its own per-pass data (e.g. point lights).
 	{
 		struct FwdSpot {
 			float pos[3];    float intensity;
@@ -137,6 +127,17 @@ void Mesh::Render()
 
 		D3D12_CPU_DESCRIPTOR_HANDLE lh = constantBuffer->PushData(0, &fwdLight, sizeof(FwdLightCB));
 		tableDescHeap->SetCBV(lh, CBV_REGISTER::b2);
+	}
+
+	// Use Material if available, otherwise fallback to legacy texture path
+	// Material::Bind() may overwrite b2 in the forward pass (see Material.cpp).
+	if (material)
+	{
+		material->Bind();
+	}
+	else if (texture)
+	{
+		tableDescHeap->SetSRV(texture->GetCpuHandle(), SRV_REGISTER::t0);
 	}
 
 	tableDescHeap->CommitTable();
