@@ -31,7 +31,7 @@ cbuffer cbMaterial : register(b1)
     float  metallic;
     float  roughness;
     float  ao;
-    float  matPad;
+    float  useAlbedoTexture; // 1.0 = sample t0; 0.0 = albedoColor only
 };
 
 cbuffer cbForwardLight : register(b2)
@@ -45,6 +45,7 @@ cbuffer cbForwardLight : register(b2)
     // Total: 256 bytes
 };
 
+Texture2D        albedoTex    : register(t0);
 Texture2D<float> fwdShadowMap : register(t3);
 SamplerState     sampler0     : register(s0);
 
@@ -61,6 +62,7 @@ struct VS_OUT
     float4 pos         : SV_Position;
     float3 worldPos    : TEXCOORD0;
     float3 worldNormal : TEXCOORD1;
+    float2 uv          : TEXCOORD2;
 };
 
 VS_OUT VS_Main(VS_IN input)
@@ -70,6 +72,7 @@ VS_OUT VS_Main(VS_IN input)
     output.pos         = mul(mul(wp, gView), gProjection);
     output.worldPos    = wp.xyz;
     output.worldNormal = mul(float4(input.normal, 0.f), gWorld).xyz;
+    output.uv          = input.uv;
     return output;
 }
 
@@ -142,7 +145,9 @@ float3 FwdPBR(float3 N, float3 V, float3 L, float3 radiance,
 
 float4 PS_Main(VS_OUT input) : SV_Target
 {
-    float3 albedo = albedoColor.rgb;
+    float3 albedo = (useAlbedoTexture > 0.5)
+                    ? albedoTex.Sample(sampler0, input.uv).rgb * albedoColor.rgb
+                    : albedoColor.rgb;
     float  met    = metallic;
     float  rough  = max(roughness, 0.05f);
     float  aoVal  = max(ao, 0.1f);

@@ -187,6 +187,8 @@ void ZNScene::AddOffscreenCamera(ZNCamera* cam, RenderTexture* rt,
 				MaterialParams p = mainMat->GetParams();
 				fwdMat = ZNMaterialFactory::CreatePBR(
 					entry.forwardShader, p.albedoColor, p.metallic, p.roughness, p.ao);
+				fwdMat->SetParams(p);        // sync useAlbedoTexture and other fields
+				fwdMat->CopyTexturesFrom(mainMat);
 				entry.matCache[mainMat] = fwdMat;
 			}
 			else

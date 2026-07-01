@@ -19,16 +19,24 @@ namespace ZNFramework::Platform::Direct3D
 	}
 }
 
+Material::~Material()
+{
+	for (size_t i = 0; i < textures.size(); ++i)
+	{
+		if (ownsTexture[i])
+		{
+			delete textures[i];
+			textures[i] = nullptr;
+		}
+	}
+	// albedoSRVOverride is externally owned — not deleted here
+}
+
 void Material::Init()
 {
-	// Initialize with default parameters
 	params = MaterialParams();
-
-	// Clear texture array
-	for (auto& tex : textures)
-	{
-		tex = nullptr;
-	}
+	textures.fill(nullptr);
+	ownsTexture.fill(false);
 }
 
 void Material::SetShader(ZNShader* inShader)
@@ -41,7 +49,24 @@ void Material::SetTexture(TextureType type, ZNTexture* texture)
 	size_t index = static_cast<size_t>(type);
 	if (index < textures.size())
 	{
-		textures[index] = dynamic_cast<Texture*>(texture);
+		if (ownsTexture[index]) { delete textures[index]; }
+		textures[index]    = dynamic_cast<Texture*>(texture);
+		ownsTexture[index] = true;
+		if (type == TextureType::Albedo)
+			params.useAlbedoTexture = (texture != nullptr) ? 1.0f : 0.0f;
+	}
+}
+
+void Material::CopyTexturesFrom(const ZNMaterial* other)
+{
+	const Material* src = dynamic_cast<const Material*>(other);
+	if (!src) return;
+	for (size_t i = 0; i < textures.size(); ++i)
+	{
+		if (!src->textures[i]) continue;
+		if (ownsTexture[i]) { delete textures[i]; }
+		textures[i]    = src->textures[i];
+		ownsTexture[i] = false; // borrowed — source material owns it
 	}
 }
 
@@ -72,8 +97,9 @@ void Material::Bind()
 		paramsToUse.albedoColor = queue->IsCurrentObjectSelected()
 			? ZNVector4(1.0f, 0.85f, 0.0f, 1.0f)   // yellow — selected object
 			: ZNVector4(0.55f, 0.55f, 0.55f, 1.0f); // gray — all others
-		paramsToUse.metallic  = 0.0f;
-		paramsToUse.roughness = 1.0f;
+		paramsToUse.metallic         = 0.0f;
+		paramsToUse.roughness        = 1.0f;
+		paramsToUse.useAlbedoTexture = 0.0f; // flat color only in wireframe
 	}
 
 	D3D12_CPU_DESCRIPTOR_HANDLE paramsHandle = constantBuffer->PushData(1, &paramsToUse, sizeof(paramsToUse));

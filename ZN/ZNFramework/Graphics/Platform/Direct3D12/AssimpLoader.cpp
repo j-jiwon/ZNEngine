@@ -1,9 +1,13 @@
 #include "AssimpLoader.h"
 #include "ZNFramework.h"
+#include <iostream>
+#include <algorithm>
+#include <cctype>
 
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
+#include <assimp/version.h>
 
 using namespace ZNFramework;
 
@@ -40,13 +44,27 @@ bool AssimpLoader::Load(const std::filesystem::path& filePath, ModelData& outMod
 	// Get model directory for resolving texture paths
 	std::filesystem::path modelDir = filePath.parent_path();
 
+	// Build filename→path index by scanning modelDir recursively.
+	// Allows resolving textures regardless of whether FBX stores relative or absolute paths.
+	TexIndex texIndex;
+	std::error_code ec;
+	for (const auto& entry : std::filesystem::recursive_directory_iterator(modelDir, ec))
+	{
+		if (!entry.is_regular_file()) continue;
+		std::string name = entry.path().filename().string();
+		std::string lower = name;
+		std::transform(lower.begin(), lower.end(), lower.begin(),
+			[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+		texIndex.emplace(lower, entry.path());
+	}
+
 	// Reserve space for materials
 	outModelData.materials.resize(scene->mNumMaterials);
 
 	// Process materials first
 	for (uint32 i = 0; i < scene->mNumMaterials; ++i)
 	{
-		ProcessMaterial(scene->mMaterials[i], scene, modelDir, outModelData.materials[i]);
+		ProcessMaterial(scene->mMaterials[i], scene, modelDir, texIndex, outModelData.materials[i]);
 	}
 
 	// Process all meshes
@@ -139,7 +157,8 @@ void AssimpLoader::ProcessMesh(aiMesh* mesh, const aiScene* scene, ModelData& ou
 	outModelData.meshes.push_back(meshData);
 }
 
-void AssimpLoader::ProcessMaterial(aiMaterial* material, const aiScene* scene, const std::filesystem::path& modelDir, MaterialData& outMaterial)
+void AssimpLoader::ProcessMaterial(aiMaterial* material, const aiScene* scene,
+	const std::filesystem::path& modelDir, const TexIndex& texIndex, MaterialData& outMaterial)
 {
 	// Get base color / diffuse color
 	aiColor4D diffuse;
@@ -162,22 +181,120 @@ void AssimpLoader::ProcessMaterial(aiMaterial* material, const aiScene* scene, c
 		outMaterial.params.roughness = roughness;
 	}
 
-	// Load texture paths
-	auto LoadTexturePath = [&](aiTextureType type, TextureType textureType)
+	// Diagnostic: dump every texture type that has at least one entry, showing raw FBX path
+	aiString matName;
+	material->Get(AI_MATKEY_NAME, matName);
+	static const struct { aiTextureType type; const char* name; } kAllTypes[] = {
+		{ aiTextureType_DIFFUSE,          "DIFFUSE"          },
+		{ aiTextureType_SPECULAR,         "SPECULAR"         },
+		{ aiTextureType_AMBIENT,          "AMBIENT"          },
+		{ aiTextureType_EMISSIVE,         "EMISSIVE"         },
+		{ aiTextureType_HEIGHT,           "HEIGHT"           },
+		{ aiTextureType_NORMALS,          "NORMALS"          },
+		{ aiTextureType_SHININESS,        "SHININESS"        },
+		{ aiTextureType_OPACITY,          "OPACITY"          },
+		{ aiTextureType_DISPLACEMENT,     "DISPLACEMENT"     },
+		{ aiTextureType_LIGHTMAP,         "LIGHTMAP"         },
+		{ aiTextureType_REFLECTION,       "REFLECTION"       },
+#if ASSIMP_VERSION_MAJOR >= 5
+		{ aiTextureType_BASE_COLOR,       "BASE_COLOR"       },
+		{ aiTextureType_NORMAL_CAMERA,    "NORMAL_CAMERA"    },
+		{ aiTextureType_EMISSION_COLOR,   "EMISSION_COLOR"   },
+		{ aiTextureType_METALNESS,        "METALNESS"        },
+		{ aiTextureType_DIFFUSE_ROUGHNESS,"DIFFUSE_ROUGHNESS"},
+		{ aiTextureType_AMBIENT_OCCLUSION,"AMBIENT_OCCLUSION"},
+#endif
+		{ aiTextureType_UNKNOWN,          "UNKNOWN"          },
+	};
+	bool anyTex = false;
+	for (const auto& entry : kAllTypes)
 	{
-		if (material->GetTextureCount(type) > 0)
+		unsigned int cnt = material->GetTextureCount(entry.type);
+		if (cnt == 0) continue;
+		anyTex = true;
+		for (unsigned int ti = 0; ti < cnt; ++ti)
 		{
-			aiString path;
-			material->GetTexture(type, 0, &path);
+			aiString rawPath;
+			material->GetTexture(entry.type, ti, &rawPath);
+			std::cout << "[AssimpLoader]   " << matName.C_Str()
+			          << " [" << entry.name << "] raw=\"" << rawPath.C_Str() << "\"\n";
+		}
+	}
+	if (!anyTex)
+		std::cout << "[AssimpLoader] " << matName.C_Str() << " — no textures in FBX\n";
 
-			// Convert to absolute path
-			std::filesystem::path texPath = modelDir / path.C_Str();
-			outMaterial.texturePaths[static_cast<size_t>(textureType)] = texPath.wstring();
+	// Resolve by: (1) modelDir / rawPath as-is, (2) filename lookup in pre-built index.
+	// The index covers the full modelDir subtree, so absolute paths on other machines
+	// (e.g. "G:\...\texture.jpg") are resolved by extracting just the filename.
+	auto ResolveTexPath = [&](const char* rawCStr) -> std::wstring
+	{
+		std::filesystem::path raw(rawCStr);
+		// 1. Try raw path relative to modelDir (handles "../subdir/file" cases)
+		std::filesystem::path candidate = modelDir / raw;
+		if (std::filesystem::exists(candidate)) return candidate.wstring();
+		// 2. Filename-only lookup in texIndex (handles absolute paths from other machines)
+		std::string name = raw.filename().string();
+		std::string lower = name;
+		std::transform(lower.begin(), lower.end(), lower.begin(),
+			[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+		auto it = texIndex.find(lower);
+		if (it != texIndex.end()) return it->second.wstring();
+		return {};
+	};
+
+	auto LoadTexturePath = [&](std::initializer_list<aiTextureType> types, TextureType slot)
+	{
+		for (aiTextureType type : types)
+		{
+			if (material->GetTextureCount(type) == 0) continue;
+			aiString rawPath;
+			material->GetTexture(type, 0, &rawPath);
+			std::wstring resolved = ResolveTexPath(rawPath.C_Str());
+			if (!resolved.empty())
+			{
+				outMaterial.texturePaths[static_cast<size_t>(slot)] = resolved;
+				return;
+			}
 		}
 	};
 
-	LoadTexturePath(aiTextureType_DIFFUSE, TextureType::Albedo);
-	LoadTexturePath(aiTextureType_NORMALS, TextureType::Normal);
-	// ARM texture (AO, Roughness, Metallic combined) - try common ARM texture types
-	LoadTexturePath(aiTextureType_UNKNOWN, TextureType::ARM);  // Often used for custom/combined textures
+	// Albedo
+#if ASSIMP_VERSION_MAJOR >= 5
+	LoadTexturePath({ aiTextureType_BASE_COLOR, aiTextureType_DIFFUSE }, TextureType::Albedo);
+#else
+	LoadTexturePath({ aiTextureType_DIFFUSE }, TextureType::Albedo);
+#endif
+
+	// Normal
+#if ASSIMP_VERSION_MAJOR >= 5
+	LoadTexturePath({ aiTextureType_NORMAL_CAMERA, aiTextureType_NORMALS, aiTextureType_HEIGHT }, TextureType::Normal);
+#else
+	LoadTexturePath({ aiTextureType_NORMALS, aiTextureType_HEIGHT }, TextureType::Normal);
+#endif
+
+	// ARM: roughness stored as SHININESS in classic FBX
+#if ASSIMP_VERSION_MAJOR >= 5
+	LoadTexturePath({ aiTextureType_UNKNOWN, aiTextureType_DIFFUSE_ROUGHNESS,
+	                  aiTextureType_SHININESS, aiTextureType_AMBIENT_OCCLUSION }, TextureType::ARM);
+#else
+	LoadTexturePath({ aiTextureType_UNKNOWN, aiTextureType_SHININESS }, TextureType::ARM);
+#endif
+
+	// Log resolved results
+	const char* slotNames[] = { " Albedo=", " Normal=", " ARM=" };
+	bool anyResolved = false;
+	for (size_t i = 0; i < static_cast<size_t>(TextureType::Count); ++i)
+		if (!outMaterial.texturePaths[i].empty()) { anyResolved = true; break; }
+	if (anyResolved)
+	{
+		std::cout << "[AssimpLoader] Resolved " << matName.C_Str();
+		for (size_t i = 0; i < static_cast<size_t>(TextureType::Count); ++i)
+		{
+			std::cout << slotNames[i];
+			std::cout << (outMaterial.texturePaths[i].empty()
+				? "(none)"
+				: std::filesystem::path(outMaterial.texturePaths[i]).filename().string());
+		}
+		std::cout << "\n";
+	}
 }

@@ -1,5 +1,7 @@
 #pragma once
 #include "Graphics/ZNModelLoader.h"
+#include <unordered_map>
+#include <string>
 
 struct aiScene;
 struct aiMesh;
@@ -8,6 +10,8 @@ struct aiMaterial;
 namespace ZNFramework
 {
 	struct MaterialData;
+
+	using TexIndex = std::unordered_map<std::string, std::filesystem::path>;
 
 	class AssimpLoader : public ZNModelLoader
 	{
@@ -19,6 +23,9 @@ namespace ZNFramework
 
 	private:
 		void ProcessMesh(aiMesh* mesh, const aiScene* scene, ModelData& outModelData);
-		void ProcessMaterial(aiMaterial* material, const aiScene* scene, const std::filesystem::path& modelDir, MaterialData& outMaterial);
+		void ProcessMaterial(aiMaterial* material, const aiScene* scene,
+		                     const std::filesystem::path& modelDir,
+		                     const TexIndex& texIndex,
+		                     MaterialData& outMaterial);
 	};
 }
