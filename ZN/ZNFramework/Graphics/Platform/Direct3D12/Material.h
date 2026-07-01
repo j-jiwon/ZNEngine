@@ -16,6 +16,7 @@ namespace ZNFramework
 		void Init() override;
 		void SetShader(ZNShader* shader) override;
 		void SetTexture(TextureType type, ZNTexture* texture) override;
+		void CopyTexturesFrom(const ZNMaterial* other) override;
 		void SetParams(const MaterialParams& params) override;
 		const MaterialParams& GetParams() const override { return params; }
 		void Bind() override;
@@ -31,6 +32,7 @@ namespace ZNFramework
 	private:
 		ZNShader* shader = nullptr;
 		std::array<Texture*, static_cast<size_t>(TextureType::Count)> textures = {};
+		std::array<bool,     static_cast<size_t>(TextureType::Count)> ownsTexture = {};
 		MaterialParams params;
 
 		D3D12_CPU_DESCRIPTOR_HANDLE albedoSRVOverride   = {};
