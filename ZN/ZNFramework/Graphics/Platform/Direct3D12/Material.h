@@ -12,6 +12,7 @@ namespace ZNFramework
 	class Material : public ZNMaterial
 	{
 	public:
+		~Material() override;
 		void Init() override;
 		void SetShader(ZNShader* shader) override;
 		void SetTexture(TextureType type, ZNTexture* texture) override;

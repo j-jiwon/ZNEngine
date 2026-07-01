@@ -140,20 +140,31 @@ void CCTVScene::Initialize()
             ModelData modelData;
             if (loader->Load(roomPath, modelData))
             {
-                // One material per material slot from FBX; clamp near-black albedo to visible
+                // One material per material slot from FBX; apply flat-color fallback only if no albedo texture
                 for (const auto& matData : modelData.materials)
                 {
-                    ZNVector4 albedo = matData.params.albedoColor;
-                    float lum = albedo.x * 0.299f + albedo.y * 0.587f + albedo.z * 0.114f;
-                    if (lum < 0.05f)
-                        albedo = ZNVector4(0.8f, 0.75f, 0.70f, 1.0f); // fallback warm-white
-                    float roughness = (matData.params.roughness > 0.25f) ? matData.params.roughness : 0.25f;
-                    room.materials.push_back(ZNMaterialFactory::CreatePBR(
-                        defaultShader, albedo, matData.params.metallic, roughness));
+                    MaterialData patchedData = matData;
+                    bool hasAlbedoTex = !patchedData.texturePaths[static_cast<size_t>(TextureType::Albedo)].empty();
+
+                    if (!hasAlbedoTex)
+                    {
+                        ZNVector4& albedo = patchedData.params.albedoColor;
+                        float lum = albedo.x * 0.299f + albedo.y * 0.587f + albedo.z * 0.114f;
+                        if (lum < 0.05f)
+                            albedo = ZNVector4(0.8f, 0.75f, 0.70f, 1.0f);
+                        if (patchedData.params.roughness < 0.25f)
+                            patchedData.params.roughness = 0.25f;
+                    }
+
+                    room.materials.push_back(ZNMaterialFactory::CreatePBRFromData(defaultShader, patchedData));
                 }
                 if (room.materials.empty())
-                    room.materials.push_back(ZNMaterialFactory::CreatePBR(
-                        defaultShader, ZNVector4(0.8f, 0.75f, 0.70f, 1.0f), 0.0f, 0.6f));
+                {
+                    MaterialData fallback;
+                    fallback.params.albedoColor = ZNVector4(0.8f, 0.75f, 0.70f, 1.0f);
+                    fallback.params.roughness   = 0.6f;
+                    room.materials.push_back(ZNMaterialFactory::CreatePBRFromData(defaultShader, fallback));
+                }
 
                 for (const auto& meshData : modelData.meshes)
                 {

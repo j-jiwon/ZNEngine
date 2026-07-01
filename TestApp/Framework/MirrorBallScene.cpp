@@ -86,8 +86,11 @@ void MirrorBallScene::Initialize()
 
     // --- Mirror ball: Metallic=1.0, Roughness=0.0, deferred ---
     {
-        ZNMaterial* mat = ZNMaterialFactory::CreatePBR(defaultShader,
-            ZNVector4(0.95f, 0.95f, 0.95f, 1.f), 0.95f, 0.35f);
+        MaterialData mirrorData;
+        mirrorData.params.albedoColor = ZNVector4(0.95f, 0.95f, 0.95f, 1.f);
+        mirrorData.params.metallic    = 0.95f;
+        mirrorData.params.roughness   = 0.35f;
+        ZNMaterial* mat = ZNMaterialFactory::CreatePBRFromData(defaultShader, mirrorData);
         mirrorBall.materials.push_back(mat);
 
         for (size_t i = 0; i < meshes.size(); ++i)
@@ -109,8 +112,11 @@ void MirrorBallScene::Initialize()
 
     // --- Glass ball: semi-transparent, forward pass with alpha blend ---
     {
-        ZNMaterial* mat = ZNMaterialFactory::CreatePBR(glassShader,
-            ZNVector4(0.8f, 0.9f, 1.f, 0.35f), 0.f, 0.15f);
+        MaterialData glassData;
+        glassData.params.albedoColor = ZNVector4(0.8f, 0.9f, 1.f, 0.35f);
+        glassData.params.metallic    = 0.f;
+        glassData.params.roughness   = 0.15f;
+        ZNMaterial* mat = ZNMaterialFactory::CreatePBRFromData(glassShader, glassData);
         glassBall.materials.push_back(mat);
 
         for (size_t i = 0; i < meshes.size(); ++i)
