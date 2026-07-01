@@ -131,7 +131,9 @@ void CCTVScene::Initialize()
     // --- Room model (FBX) ---
     {
         std::filesystem::path roomPath =
-            GetResourcePath() / L"Models" / L"33-the-room-2" / L"The room" / L"room.fbx";
+            // GetResourcePath() / L"Models" / L"33-the-room-2" / L"The room" / L"room.fbx";
+            GetResourcePath() / L"Models" / L"container" / L"model" / L"Container.fbx";
+
 
         if (std::filesystem::exists(roomPath))
         {
