@@ -162,22 +162,41 @@ void AssimpLoader::ProcessMaterial(aiMaterial* material, const aiScene* scene, c
 		outMaterial.params.roughness = roughness;
 	}
 
-	// Load texture paths
-	auto LoadTexturePath = [&](aiTextureType type, TextureType textureType)
+	// Load texture paths (tries each candidate aiTextureType in order; first match wins)
+	auto LoadTexturePath = [&](std::initializer_list<aiTextureType> candidates, TextureType textureType)
 	{
-		if (material->GetTextureCount(type) > 0)
+		for (aiTextureType type : candidates)
 		{
+			if (material->GetTextureCount(type) == 0)
+				continue;
+
 			aiString path;
 			material->GetTexture(type, 0, &path);
 
-			// Convert to absolute path
-			std::filesystem::path texPath = modelDir / path.C_Str();
-			outMaterial.texturePaths[static_cast<size_t>(textureType)] = texPath.wstring();
+			// Embedded texture (e.g. GLB): path looks like "*0" and indexes scene->mTextures
+			if (const aiTexture* embedded = scene->GetEmbeddedTexture(path.C_Str()))
+			{
+				if (embedded->mHeight == 0) // compressed image bytes (png/jpg) stored as-is
+				{
+					const uint8* bytes = reinterpret_cast<const uint8*>(embedded->pcData);
+					outMaterial.embeddedTextureData[static_cast<size_t>(textureType)]
+						.assign(bytes, bytes + embedded->mWidth);
+				}
+			}
+			else
+			{
+				// Convert to absolute path
+				std::filesystem::path texPath = modelDir / path.C_Str();
+				outMaterial.texturePaths[static_cast<size_t>(textureType)] = texPath.wstring();
+			}
+			return;
 		}
 	};
 
-	LoadTexturePath(aiTextureType_DIFFUSE, TextureType::Albedo);
-	LoadTexturePath(aiTextureType_NORMALS, TextureType::Normal);
-	// ARM texture (AO, Roughness, Metallic combined) - try common ARM texture types
-	LoadTexturePath(aiTextureType_UNKNOWN, TextureType::ARM);  // Often used for custom/combined textures
+	// aiTextureType_BASE_COLOR is glTF's PBR albedo slot; aiTextureType_DIFFUSE covers FBX/OBJ.
+	LoadTexturePath({ aiTextureType_BASE_COLOR, aiTextureType_DIFFUSE }, TextureType::Albedo);
+	LoadTexturePath({ aiTextureType_NORMALS }, TextureType::Normal);
+	// ARM texture (AO, Roughness, Metallic combined). glTF's metallicRoughness texture
+	// (G=roughness, B=metallic, R usually unused/AO) maps directly to this layout.
+	LoadTexturePath({ aiTextureType_GLTF_METALLIC_ROUGHNESS, aiTextureType_UNKNOWN }, TextureType::ARM);
 }

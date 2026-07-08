@@ -128,6 +128,9 @@ namespace ZNFramework
 	{
 		MaterialParams params;
 		std::wstring texturePaths[static_cast<size_t>(TextureType::Count)];
+		// Populated instead of texturePaths when the source texture is embedded in the
+		// model file itself (e.g. GLB) rather than referencing a file on disk.
+		std::vector<uint8> embeddedTextureData[static_cast<size_t>(TextureType::Count)];
 	};
 
 	struct ModelData

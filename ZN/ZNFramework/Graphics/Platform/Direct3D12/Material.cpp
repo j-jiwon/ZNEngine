@@ -19,6 +19,16 @@ namespace ZNFramework::Platform::Direct3D
 	}
 }
 
+Material::~Material()
+{
+	for (auto& tex : textures)
+	{
+		delete tex;
+		tex = nullptr;
+	}
+	// albedoSRVOverride is externally owned — not deleted here
+}
+
 void Material::Init()
 {
 	// Initialize with default parameters

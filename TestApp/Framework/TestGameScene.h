@@ -34,6 +34,12 @@ private:
         std::vector<ZNFramework::ZNTexture*> textures;
     } models;
 
+    struct MonsterModel {
+        std::vector<ZNFramework::ZNGameObject*> objects;
+        std::vector<ZNFramework::ZNMaterial*>   materials; // one per glTF material slot
+    };
+    MonsterModel monster;  // Monster_S_0.glb, deferred pass
+
     // Scene objects (always visible)
     struct SceneObjects {
         ZNFramework::ZNGameObject* floor = nullptr;

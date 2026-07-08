@@ -8,10 +8,12 @@ namespace ZNFramework
 	{
 	public:
 		void Init(const std::wstring& path) override;
+		void InitFromMemory(const void* data, size_t size) override;
 		D3D12_CPU_DESCRIPTOR_HANDLE GetCpuHandle() { return srvHandle; }
 
 	private:
 		void CreateTexture(const std::wstring& path);
+		void UploadToGPU();
 		void CreateView();
 
 	private:
