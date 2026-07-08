@@ -34,34 +34,33 @@ void MirrorBallScene::Initialize()
 
     SetDirectionalLight(dirLight);
 
-    // 4 corner spotlights near the ceiling, aimed at the mirror ball
-    static const struct { ZNVector3 pos; ZNVector3 color; } kLights[4] = {
-        { ZNVector3(-1.2f, 1.8f, -1.3f), ZNVector3(1.0f, 0.f, 0.f)  },
-        { ZNVector3( 1.2f, 1.8f, -1.3f), ZNVector3(0.f, 1.0f, 0.f)  },
-        { ZNVector3(-1.2f, 1.8f,  1.5f), ZNVector3(0.f, 0.f, 1.0f) },
-        { ZNVector3( 1.2f, 1.8f,  1.5f), ZNVector3(1.0f, 0.0f, 1.0f) },
+    // 4 corner spotlights near the ceiling, aimed at the mirror ball (position/direction/
+    // color/intensity hand-tuned live via the Inspector, then baked back in here)
+    static const struct { ZNVector3 pos; ZNVector3 dir; ZNVector3 color; float intensity; } kLights[4] = {
+        { ZNVector3(-1.2f, 1.90f, -1.3f), ZNVector3( 0.526f, -0.589f,  0.613f), ZNVector3(1.000f, 0.976f, 0.925f), 2.769f },
+        { ZNVector3( 1.2f, 1.95f, -1.3f), ZNVector3(-0.531f, -0.578f,  0.620f), ZNVector3(0.949f, 0.965f, 0.847f), 4.000f },
+        { ZNVector3(-1.2f, 2.65f,  1.5f), ZNVector3( 0.415f, -0.731f, -0.541f), ZNVector3(0.843f, 0.843f, 0.922f), 4.154f },
+        { ZNVector3( 1.2f, 1.95f,  1.5f), ZNVector3(-0.626f, -0.602f, -0.496f), ZNVector3(0.906f, 0.467f, 0.906f), 4.000f },
     };
-    static const ZNVector3 kBallCenter(0.f, 1.55f, 0.1f);
     for (int i = 0; i < 4; ++i)
     {
-        ZNVector3 dir = (kBallCenter - kLights[i].pos).Normalize();
         spotLights[i] = Platform::CreateSpotLight();
         spotLights[i]->SetPosition(kLights[i].pos);
-        spotLights[i]->SetDirection(dir);
+        spotLights[i]->SetDirection(kLights[i].dir);
         spotLights[i]->SetColor(kLights[i].color);
-        spotLights[i]->SetIntensity(4.f);
+        spotLights[i]->SetIntensity(kLights[i].intensity);
         spotLights[i]->SetAmbientIntensity(0.5f);
         spotLights[i]->SetCutoffAngle(5.f, 10.f);
         spotLights[i]->SetAttenuation(1.f, 0.045f, 0.0075f);
         AddSpotLight(spotLights[i]);
     }
 
-    // Point light inside the glass ball — warm white "bulb" glow
+    // Point light — warm bedside lamp glow (position/intensity/radius hand-tuned live)
     innerLight = Platform::CreatePointLight();
-    innerLight->SetPosition(ZNVector3(-0.7f, 0.25f, -0.9f));  // glass ball center
-    innerLight->SetColor(ZNVector3(1.f, 0.7f, 0.1f));  // warm white
-    innerLight->SetIntensity(20.f);
-    innerLight->SetRadius(6.f);
+    innerLight->SetPosition(ZNVector3(0.05f, 0.75f, 1.7f));
+    innerLight->SetColor(ZNVector3(1.f, 0.702f, 0.102f));
+    innerLight->SetIntensity(4.846f);
+    innerLight->SetRadius(4.7f);
     innerLight->SetAttenuation(1.f, 0.22f, 0.20f);
     AddPointLight(innerLight);
 
