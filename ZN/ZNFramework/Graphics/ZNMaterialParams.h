@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "../Math/ZNVector4.h"
 
 namespace ZNFramework
@@ -9,6 +9,6 @@ namespace ZNFramework
 		float metallic  = 0.0f;
 		float roughness = 0.5f;
 		float ao        = 1.0f;
-		float padding   = 0.0f; // 16-byte alignment
+		float useAlbedoTexture = 0.0f; // 1.0 = sample t0; 0.0 = use albedoColor only
 	};
 }

@@ -12,7 +12,7 @@ cbuffer cbMaterial : register(b1)
     float metallic;
     float roughness;
     float ao;
-    float padding;
+    float useAlbedoTexture; // 1.0 = sample t0; 0.0 = albedoColor only
 };
 
 Texture2D tex_0 : register(t0); // Albedo (BaseColor)
@@ -76,22 +76,16 @@ PS_MRT_OUTPUT PS_Main(VS_OUT input)
 {
     PS_MRT_OUTPUT output;
 
-    // Sample texture
-    float4 texColor = tex_0.Sample(sam_0, input.uv);
-
     // Determine base color
-    float texBrightness = dot(texColor.rgb, float3(0.299, 0.587, 0.114));
     float3 baseColor;
-
-    if (texBrightness < 0.01 && texColor.a < 0.01)
+    if (useAlbedoTexture > 0.5)
     {
-        // No texture or black texture - use albedo color only
-        baseColor = albedoColor.rgb;
+        float4 texColor = tex_0.Sample(sam_0, input.uv);
+        baseColor = texColor.rgb * albedoColor.rgb;
     }
     else
     {
-        // Valid texture - multiply with albedo
-        baseColor = texColor.rgb * albedoColor.rgb;
+        baseColor = albedoColor.rgb;
     }
 
     // Base Color (albedo)

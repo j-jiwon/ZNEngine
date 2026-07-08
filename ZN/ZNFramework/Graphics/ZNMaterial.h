@@ -17,6 +17,8 @@ namespace ZNFramework
 		virtual void Init() = 0;
 		virtual void SetShader(ZNShader* shader) = 0;
 		virtual void SetTexture(TextureType type, ZNTexture* texture) = 0;
+		// Copy texture bindings from another material (non-owning — caller keeps ownership)
+		virtual void CopyTexturesFrom(const ZNMaterial* other) = 0;
 		virtual void SetParams(const MaterialParams& params) = 0;
 		virtual const MaterialParams& GetParams() const = 0;
 		virtual void Bind() = 0;

@@ -31,6 +31,8 @@ namespace ZNFramework
 		material->SetShader(shader);
 		material->SetParams(matData.params);
 
+		// texturePaths are absolute paths (set by AssimpLoader via modelDir / path);
+		// embeddedTextureData holds in-memory bytes for GLB-embedded textures.
 		for (size_t i = 0; i < static_cast<size_t>(TextureType::Count); ++i)
 		{
 			ZNTexture* tex = nullptr;
