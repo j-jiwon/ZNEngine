@@ -1,6 +1,7 @@
 #include "ConstantBuffer.h"
 #include "CommandQueue.h"
 #include "GraphicsDevice.h"
+#include <iostream>
 
 using namespace ZNFramework;
 
@@ -40,7 +41,22 @@ void ConstantBuffer::Clear()
 
 D3D12_CPU_DESCRIPTOR_HANDLE ConstantBuffer::PushData(int32 inRootParamIndex, void* inBuffer, uint32 inSize)
 {
-	assert(currentIndex < elementCount);
+	// currentIndex is a rotating per-frame pool index (see Init()). A hard assert() here
+	// aborts the process with no console output (MSVC debug asserts show a modal dialog,
+	// invisible/unreachable when launched without an interactive desktop) - clamp and log
+	// once instead so a growing scene degrades visibly rather than silently dying.
+	if (currentIndex >= elementCount)
+	{
+		static bool warned = false;
+		if (!warned)
+		{
+			std::cout << "[ConstantBuffer] currentIndex (" << currentIndex
+			          << ") reached elementCount (" << elementCount << ") - clamping. "
+			          << "Increase the Init() capacity.\n";
+			warned = true;
+		}
+		currentIndex = elementCount - 1;
+	}
 
 	::memcpy(&mappedBuffer[currentIndex * elementSize], inBuffer, inSize);
 

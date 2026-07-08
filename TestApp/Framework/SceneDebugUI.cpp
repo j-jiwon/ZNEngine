@@ -308,6 +308,27 @@ void SceneDebugUI::Render(ZNScene* scene)
     ImGui::Text("Triangles  %d",    ZNGameObject::GetLastFrameTriangles());
     ImGui::Text("Vertices   %d",    ZNGameObject::GetLastFrameVertices());
 
+    if (scene && scene->GetCamera())
+    {
+        ZNCamera* cam = scene->GetCamera();
+        ZNVector3 camPos = cam->GetPosition();
+        const float RAD_TO_DEG = 180.0f / 3.14159265f;
+        float pitchDeg = cam->GetPitch() * RAD_TO_DEG;
+        float yawDeg   = cam->GetYaw()   * RAD_TO_DEG;
+
+        ImGui::Separator();
+        ImGui::Text("Cam Pos    %.2f, %.2f, %.2f", camPos.x, camPos.y, camPos.z);
+        ImGui::Text("Cam Rot    pitch %.1f, yaw %.1f", pitchDeg, yawDeg);
+        if (ImGui::Button("Copy as code", ImVec2(-1, 0)))
+        {
+            char buf[256];
+            snprintf(buf, sizeof(buf),
+                "cam->SetPosition(ZNVector3(%.3ff, %.3ff, %.3ff));\ncam->SetRotation(%.2ff, %.2ff);",
+                camPos.x, camPos.y, camPos.z, pitchDeg, yawDeg);
+            ImGui::SetClipboardText(buf);
+        }
+    }
+
     ImGui::End();
 
     // --- Outliner ---

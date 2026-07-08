@@ -96,8 +96,10 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
     commandQueue->Init(swapChain);
     swapChain->Init(commandQueue);
     rootSignature->Init();
-    constantBuffer->Init(sizeof(TransformMatrices), 2048);
-    tableDescriptorHeap->Init(2048);
+    // Sized for ~90+ objects/scene across GBuffer + shadow + multiple offscreen forward
+    // passes (each object can push several PushData()/CommitTable() calls per frame).
+    constantBuffer->Init(sizeof(TransformMatrices), 8192);
+    tableDescriptorHeap->Init(8192);
     depthStencilBuffer->Init();
     
     // resize

@@ -29,6 +29,12 @@ private:
     };
     MonsterModel monster;  // Monster_S_0.glb, deferred pass
 
+    struct RoomModel {
+        std::vector<ZNFramework::ZNGameObject*> objects;
+        std::vector<ZNFramework::ZNMaterial*>   materials; // one per glTF material slot
+    };
+    RoomModel room;  // room.glb background, deferred pass
+
     ZNFramework::ZNSpotLight*  spotLights[4] = {};
     ZNFramework::ZNPointLight* innerLight    = nullptr;
 };

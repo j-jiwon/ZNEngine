@@ -53,51 +53,6 @@ void CCTVScene::Initialize()
     floor->SetCastShadow(false);
     AddGameObject(floor);
 
-    // --- Monitored objects ---
-    boxAMat = ZNMaterialFactory::CreatePBR(defaultShader,
-        ZNVector4(0.9f, 0.2f, 0.2f, 1.0f), 0.0f, 0.5f); // red
-    boxA = new ZNGameObject();
-    boxA->SetMesh(ZNMeshFactory::CreateCube(0.6f));
-    boxA->GetMesh()->SetMaterial(boxAMat);
-    boxA->SetMaterial(boxAMat);
-    boxA->SetName("Box A");
-    boxA->GetTransform().position = ZNVector3(-2.0f, 0.3f, 1.5f);
-    boxA->GetTransform().scale    = ZNVector3(0.5f, 0.5f, 0.5f);
-    AddGameObject(boxA);
-
-    boxBMat = ZNMaterialFactory::CreatePBR(defaultShader,
-        ZNVector4(0.2f, 0.5f, 0.9f, 1.0f), 0.0f, 0.5f); // blue
-    boxB = new ZNGameObject();
-    boxB->SetMesh(ZNMeshFactory::CreateCube(0.6f));
-    boxB->GetMesh()->SetMaterial(boxBMat);
-    boxB->SetMaterial(boxBMat);
-    boxB->SetName("Box B");
-    boxB->GetTransform().position = ZNVector3(0.0f, 0.4f, 2.0f);
-    boxB->GetTransform().scale    = ZNVector3(0.7f, 0.7f, 0.7f);
-    boxB->GetTransform().rotation = ZNVector3(0.0f, 30.0f, 0.0f);
-    AddGameObject(boxB);
-
-    boxCMat = ZNMaterialFactory::CreatePBR(defaultShader,
-        ZNVector4(0.2f, 0.85f, 0.3f, 1.0f), 0.0f, 0.5f); // green
-    boxC = new ZNGameObject();
-    boxC->SetMesh(ZNMeshFactory::CreateCube(0.6f));
-    boxC->GetMesh()->SetMaterial(boxCMat);
-    boxC->SetMaterial(boxCMat);
-    boxC->SetName("Box C");
-    boxC->GetTransform().position = ZNVector3(2.0f, 0.3f, 1.0f);
-    boxC->GetTransform().scale    = ZNVector3(0.5f, 0.5f, 0.5f);
-    AddGameObject(boxC);
-
-    sphereMat = ZNMaterialFactory::CreatePBR(defaultShader,
-        ZNVector4(1.0f, 0.85f, 0.1f, 1.0f), 0.7f, 0.2f); // gold metallic
-    sphere = new ZNGameObject();
-    sphere->SetMesh(ZNMeshFactory::CreateSphere(0.4f, 16, 16));
-    sphere->GetMesh()->SetMaterial(sphereMat);
-    sphere->SetMaterial(sphereMat);
-    sphere->SetName("Sphere");
-    sphere->GetTransform().position = ZNVector3(0.5f, 0.4f, 0.5f);
-    AddGameObject(sphere);
-
     // --- CCTV infrastructure ---
     cctvRT = new RenderTexture();
     cctvRT->Init(512, 288);
@@ -129,10 +84,13 @@ void CCTVScene::Initialize()
     RegisterDebugCamera(cctvCamera, "CCTV Overhead");
 
     // --- Room model (FBX) ---
+    // Disabled: room.glb now lives in MirrorBallScene. Loading the same ~56MB / 57-material
+    // file a second time here (on top of MirrorBallScene's own copy, loaded every frame this
+    // scene's offscreen CCTV camera re-renders it) was creating hundreds of tiny per-texture
+    // D3D12 descriptor heaps and reliably crashing partway through load.
     {
         std::filesystem::path roomPath =
-            // GetResourcePath() / L"Models" / L"33-the-room-2" / L"The room" / L"room.fbx";
-            GetResourcePath() / L"Models" / L"container" / L"model" / L"Container.fbx";
+            GetResourcePath() / L"Models" / L"__disabled__room.glb";
 
 
         if (std::filesystem::exists(roomPath))
@@ -183,7 +141,7 @@ void CCTVScene::Initialize()
                     obj->SetMaterial(mat);
                     obj->SetName("Room_" + std::to_string(room.objects.size()));
                     obj->SetTag("Room");
-                    obj->GetTransform().scale = ZNVector3(0.01f, 0.01f, 0.01f);
+                    obj->GetTransform().scale = ZNVector3(1.0f, 1.0f, 1.0f);
                     obj->SetCastShadow(false);
                     AddGameObject(obj);
                     room.objects.push_back(obj);
@@ -193,13 +151,13 @@ void CCTVScene::Initialize()
             }
             else
             {
-                std::cout << "[CCTVScene] Failed to load room.fbx." << std::endl;
+                std::cout << "[CCTVScene] Failed to load room.glb." << std::endl;
             }
             delete loader;
         }
         else
         {
-            std::cout << "[CCTVScene] room.fbx not found at: " << roomPath << std::endl;
+            std::cout << "[CCTVScene] room.glb not found at: " << roomPath << std::endl;
         }
     }
 
