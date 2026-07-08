@@ -65,6 +65,7 @@ Texture2D depthTexture : register(t2);
 Texture2D worldPosTexture : register(t3);
 Texture2D armTexture : register(t4);  // ARM: R=AO, G=Roughness, B=Metallic
 Texture2D shadowMap : register(t5);   // Shadow map depth texture
+TextureCube envCube : register(t6);   // Captured environment reflection (static bake); black = none
 
 SamplerState sampler0 : register(s0);
 SamplerComparisonState shadowSampler : register(s1);  // Comparison sampler for PCF
@@ -356,7 +357,16 @@ float4 PS_Main(VS_OUT input) : SV_Target
         Lo += CalculatePBR(N, V, L_pt, radiance_pt, albedo, metallic, roughness);
     }
 
-    // Combine ambient and direct lighting
-    float3 finalColor = ambient + Lo;
+    // Environment reflection (static-baked cubemap, no prefiltering yet — mirror-sharp
+    // regardless of roughness beyond this crude (1-roughness) fade). Weighted by the same
+    // Fresnel/F0 used for direct specular, so it naturally concentrates on metallic surfaces
+    // and stays near-zero for dielectrics. A black (unbaked) cube contributes nothing.
+    float3 F0env = lerp(float3(0.04f, 0.04f, 0.04f), albedo, metallic);
+    float3 Fenv = FresnelSchlick(max(dot(N, V), 0.0f), F0env);
+    float3 envSample = envCube.Sample(sampler0, reflect(-V, N)).rgb;
+    float3 envReflection = envSample * Fenv * (1.0f - roughness);
+
+    // Combine ambient, direct lighting and environment reflection
+    float3 finalColor = ambient + Lo + envReflection;
     return float4(finalColor, baseColor.a);
 }

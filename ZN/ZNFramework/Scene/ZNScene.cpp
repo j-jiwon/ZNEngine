@@ -8,7 +8,9 @@
 #include "../Graphics/ZNMaterialFactory.h"
 #include "../Graphics/Platform/Direct3D12/CommandQueue.h"
 #include "../Graphics/Platform/Direct3D12/RenderTexture.h"
+#include "../Graphics/Platform/Direct3D12/CubeRenderTexture.h"
 #include "../Math/ZNMatrix4.h"
+#include "../Math/ZNVector3.h"
 #include <algorithm>
 
 using namespace ZNFramework;
@@ -205,4 +207,84 @@ void ZNScene::AddOffscreenCamera(ZNCamera* cam, RenderTexture* rt,
 			obj->GetMesh()->SetMaterial(origMat);
 		}
 	});
+}
+
+void ZNScene::AddCubemapCapture(const ZNVector3& position, float nearZ, float farZ,
+                                 uint32 resolution, const std::string& resourceName,
+                                 ZNShader* forwardShader,
+                                 const std::vector<ZNGameObject*>& excludeObjects)
+{
+	cubemapCaptureEntries.push_back({ forwardShader, excludeObjects, {} });
+	const size_t idx = cubemapCaptureEntries.size() - 1;
+
+	auto* cubeRT = new CubeRenderTexture();
+	cubeRT->Init(resolution);
+
+	// Standard cubemap face basis (Y-up, left-handed): direction to look + up vector per face.
+	static const struct { ZNVector3 dir; ZNVector3 up; } kFaces[6] = {
+		{ ZNVector3( 1.f,  0.f,  0.f), ZNVector3(0.f, 1.f,  0.f) }, // +X
+		{ ZNVector3(-1.f,  0.f,  0.f), ZNVector3(0.f, 1.f,  0.f) }, // -X
+		{ ZNVector3( 0.f,  1.f,  0.f), ZNVector3(0.f, 0.f, -1.f) }, // +Y
+		{ ZNVector3( 0.f, -1.f,  0.f), ZNVector3(0.f, 0.f,  1.f) }, // -Y
+		{ ZNVector3( 0.f,  0.f,  1.f), ZNVector3(0.f, 1.f,  0.f) }, // +Z
+		{ ZNVector3( 0.f,  0.f, -1.f), ZNVector3(0.f, 1.f,  0.f) }, // -Z
+	};
+
+	std::vector<ZNCamera*> cams;
+	for (int i = 0; i < 6; ++i)
+	{
+		ZNCamera* cam = new ZNCamera();
+		cam->SetPosition(position);
+		cam->SetView(position, position + kFaces[i].dir, kFaces[i].up);
+		cam->SetPerspective(3.14159265f / 2.0f, 1.0f, nearZ, farZ); // 90 deg FOV, square aspect
+		cams.push_back(cam);
+	}
+
+	CommandQueue* cmdQ = GraphicsContext::GetInstance().GetAs<CommandQueue>();
+	cmdQ->AddCubemapCapture(cams, cubeRT, resourceName, [this, idx]()
+	{
+		CubemapCaptureEntry& entry = cubemapCaptureEntries[idx];
+
+		// CubeCapturePass executes before GBufferPass in the render graph, which is the
+		// only place ZNScene::Render() (and thus SetSpotLights/SetDirectionalLight) normally
+		// runs. Since this capture is one-shot on the very first frame, GraphicsContext's
+		// light data would otherwise still be unset — so set it explicitly here.
+		GraphicsContext& ctx = GraphicsContext::GetInstance();
+		ctx.SetSpotLights(spotLights);
+		ctx.SetPointLights(pointLights);
+		ctx.SetDirectionalLight(directionalLight);
+
+		for (auto* obj : gameObjects)
+		{
+			if (!obj || !obj->IsVisible() || !obj->GetMesh()) continue;
+			if (std::find(entry.excludeObjects.begin(), entry.excludeObjects.end(), obj) != entry.excludeObjects.end())
+				continue;
+
+			ZNMaterial* mainMat = obj->GetMaterial();
+			if (!mainMat) continue;
+
+			ZNMaterial* fwdMat = nullptr;
+			auto it = entry.matCache.find(mainMat);
+			if (it == entry.matCache.end())
+			{
+				MaterialParams p = mainMat->GetParams();
+				fwdMat = ZNMaterialFactory::CreatePBR(
+					entry.forwardShader, p.albedoColor, p.metallic, p.roughness, p.ao);
+				fwdMat->SetParams(p);
+				fwdMat->CopyTexturesFrom(mainMat);
+				entry.matCache[mainMat] = fwdMat;
+			}
+			else
+			{
+				fwdMat = it->second;
+			}
+
+			ZNMaterial* origMat = obj->GetMaterial();
+			obj->GetMesh()->SetMaterial(fwdMat);
+			obj->Render();
+			obj->GetMesh()->SetMaterial(origMat);
+		}
+	});
+
+	cmdQ->SetEnvCubemapSRV(cubeRT->GetSRVCpuHandle());
 }

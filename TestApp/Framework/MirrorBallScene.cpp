@@ -228,14 +228,19 @@ void MirrorBallScene::Initialize()
                 // One material per glTF material slot; textures (embedded or file-based) are
                 // loaded and bound automatically. Flat-color fallback only kicks in when a
                 // slot has no albedo texture and its baked color is near-black.
+                // Materials with baseColor alpha < 1 (e.g. window glass) can't be represented
+                // by the deferred G-buffer pass at all (it's opaque, no blending) - route them
+                // through glassShader (forward + alpha blend) like the mirror ball's glass ball.
+                std::vector<bool> roomMatIsTransparent;
                 for (const auto& matData : modelData.materials)
                 {
                     MaterialData patched = matData;
                     bool hasAlbedoTex =
                         !patched.texturePaths[static_cast<size_t>(TextureType::Albedo)].empty() ||
                         !patched.embeddedTextureData[static_cast<size_t>(TextureType::Albedo)].empty();
+                    bool isTransparent = patched.params.albedoColor.w < 0.98f;
 
-                    if (!hasAlbedoTex)
+                    if (!hasAlbedoTex && !isTransparent)
                     {
                         ZNVector4& albedo = patched.params.albedoColor;
                         float lum = albedo.x * 0.299f + albedo.y * 0.587f + albedo.z * 0.114f;
@@ -245,7 +250,9 @@ void MirrorBallScene::Initialize()
                             patched.params.roughness = 0.25f;
                     }
 
-                    room.materials.push_back(ZNMaterialFactory::CreatePBRFromData(defaultShader, patched));
+                    room.materials.push_back(ZNMaterialFactory::CreatePBRFromData(
+                        isTransparent ? glassShader : defaultShader, patched));
+                    roomMatIsTransparent.push_back(isTransparent);
                 }
                 if (room.materials.empty())
                 {
@@ -253,6 +260,7 @@ void MirrorBallScene::Initialize()
                     fallback.params.albedoColor = ZNVector4(0.8f, 0.75f, 0.70f, 1.0f);
                     fallback.params.roughness   = 0.6f;
                     room.materials.push_back(ZNMaterialFactory::CreatePBRFromData(defaultShader, fallback));
+                    roomMatIsTransparent.push_back(false);
                 }
 
                 for (const auto& meshData : modelData.meshes)
@@ -271,7 +279,11 @@ void MirrorBallScene::Initialize()
                     obj->SetName("Room_" + std::to_string(room.objects.size()));
                     obj->SetTag("Room");
                     obj->SetCastShadow(false);
-                    AddGameObject(obj);
+
+                    if (roomMatIsTransparent[matIdx])
+                        AddForwardGameObject(obj);
+                    else
+                        AddGameObject(obj);
                     room.objects.push_back(obj);
                 }
                 std::cout << "[MirrorBallScene] Room loaded: " << room.objects.size()
@@ -284,6 +296,16 @@ void MirrorBallScene::Initialize()
         else
             std::cout << "[MirrorBallScene] room.glb not found at: " << roomPath << '\n';
     }
+
+    // --- Environment cubemap: captured once from the mirror ball's position, feeds the
+    // deferred lighting pass's reflection term (metallic/roughness-weighted, see
+    // deferred_lighting.hlsli). The mirror ball's own meshes are excluded so the capture
+    // isn't taken from inside its own geometry.
+    envCaptureShader = Platform::CreateShader();
+    envCaptureShader->Load(GetResourcePath() / L"Shaders" / L"forward_pbr.hlsli");
+
+    AddCubemapCapture(ZNVector3(0.f, 1.55f, 0.1f), 0.05f, 10.f, 256,
+        "MirrorBallEnvCube", envCaptureShader, mirrorBall.objects);
 }
 
 void MirrorBallScene::Update(float deltaTime)

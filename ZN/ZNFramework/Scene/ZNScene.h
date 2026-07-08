@@ -71,6 +71,16 @@ namespace ZNFramework
 		void AddOffscreenCamera(ZNCamera* cam, RenderTexture* rt,
 		                        const std::string& resourceName, ZNShader* forwardShader);
 
+		// Captures a static environment cubemap from `position` (6 faces, 90 deg FOV) on the
+		// first frame only, using each gameObject's own material params through forwardShader
+		// (same auto-render approach as AddOffscreenCamera). Objects in `excludeObjects` are
+		// skipped (e.g. the reflective object itself, to avoid capturing it from inside).
+		// Sets this cubemap as the active environment reflection for the deferred lighting pass.
+		void AddCubemapCapture(const ZNVector3& position, float nearZ, float farZ,
+		                       uint32 resolution, const std::string& resourceName,
+		                       ZNShader* forwardShader,
+		                       const std::vector<ZNGameObject*>& excludeObjects = {});
+
 	protected:
 		std::vector<ZNGameObject*> gameObjects;
 		std::vector<ZNGameObject*> forwardGameObjects;  // Objects rendered in forward pass
@@ -90,5 +100,12 @@ namespace ZNFramework
 			std::unordered_map<ZNMaterial*, ZNMaterial*> matCache;
 		};
 		std::vector<OffscreenCamEntry> offscreenCamEntries;
+
+		struct CubemapCaptureEntry {
+			ZNShader*    forwardShader;
+			std::vector<ZNGameObject*> excludeObjects;
+			std::unordered_map<ZNMaterial*, ZNMaterial*> matCache;
+		};
+		std::vector<CubemapCaptureEntry> cubemapCaptureEntries;
 	};
 }

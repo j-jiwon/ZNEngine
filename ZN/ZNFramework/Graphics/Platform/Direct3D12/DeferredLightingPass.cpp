@@ -111,9 +111,25 @@ void DeferredLightingPass::Init()
     // Create descriptor heap for lighting pass
     D3D12_DESCRIPTOR_HEAP_DESC lightingHeapDesc = {};
     lightingHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-    lightingHeapDesc.NumDescriptors = 12; // b0~b4 (5) + t0~t5 (7, including shadow map)
+    lightingHeapDesc.NumDescriptors = 12; // b0~b4 (5) + t0~t6 (8: gbuffer x5, shadow map, env cubemap)
     lightingHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
     ThrowIfFailed(device->Device()->CreateDescriptorHeap(&lightingHeapDesc, IID_PPV_ARGS(&lightingDescriptorHeap)));
+
+    // Fallback black cubemap (t6) for scenes that never register a captured environment map.
+    fallbackEnvCube = new CubeRenderTexture();
+    fallbackEnvCube->Init(1);
+    {
+        CommandQueue* queue = GraphicsContext::GetInstance().GetAs<CommandQueue>();
+        ID3D12GraphicsCommandList* cmd = queue->ResourceCommandList();
+        float black[4] = { 0.f, 0.f, 0.f, 1.f };
+        for (uint32 face = 0; face < 6; ++face)
+            cmd->ClearRenderTargetView(fallbackEnvCube->GetRTV(face), black, 0, nullptr);
+        CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+            fallbackEnvCube->GetResource(),
+            D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+        cmd->ResourceBarrier(1, &barrier);
+        queue->FlushResourceQueue();
+    }
 }
 
 void DeferredLightingPass::CreateFullscreenQuad()
@@ -310,6 +326,20 @@ void DeferredLightingPass::Render(GBufferManager* gbufferManager, ShadowMap* sha
     {
         cpuHandle.ptr += lightingDescSize;
         device->Device()->CopyDescriptorsSimple(1, cpuHandle, shadowMap->GetSRV(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    }
+    else
+    {
+        cpuHandle.ptr += lightingDescSize;
+    }
+
+    // Copy env cubemap SRV (t6) — the active scene's captured reflection cubemap, or the
+    // black fallback (contributes zero reflection) if none was registered.
+    {
+        cpuHandle.ptr += lightingDescSize;
+        D3D12_CPU_DESCRIPTOR_HANDLE envSRV = queue->HasEnvCubemap()
+            ? queue->GetEnvCubemapSRV()
+            : fallbackEnvCube->GetSRVCpuHandle();
+        device->Device()->CopyDescriptorsSimple(1, cpuHandle, envSRV, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
     }
 
     // Set descriptor heap

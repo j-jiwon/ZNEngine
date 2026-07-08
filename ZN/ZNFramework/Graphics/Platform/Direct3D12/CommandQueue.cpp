@@ -15,6 +15,7 @@
 #include "Passes/ForwardRenderPass.h"
 #include "Passes/ImGuiRenderPass.h"
 #include "Passes/OffscreenCameraPass.h"
+#include "Passes/CubeCapturePass.h"
 #include "ZNFramework.h"
 
 using namespace ZNFramework;
@@ -121,6 +122,20 @@ void CommandQueue::BuildRenderGraph()
         renderGraph.AddPass(std::make_unique<OffscreenCameraPass>(
             entry.resourceName,
             entry.camera,
+            entry.output,
+            rootSig->GetSignature().Get(),
+            tdh->GetDescriptorHeap().Get(),
+            isForwardPass,
+            entry.renderCb));
+    }
+
+    // --- Cubemap captures (static, one-shot on first frame) ---
+    for (auto& entry : cubemapCaptures) {
+        renderGraph.Import(entry.resourceName, entry.output->GetResource(),
+                           D3D12_RESOURCE_STATE_RENDER_TARGET);
+        renderGraph.AddPass(std::make_unique<CubeCapturePass>(
+            entry.resourceName,
+            entry.cams,
             entry.output,
             rootSig->GetSignature().Get(),
             tdh->GetDescriptorHeap().Get(),

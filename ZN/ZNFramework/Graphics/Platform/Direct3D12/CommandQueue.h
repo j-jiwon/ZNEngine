@@ -3,6 +3,7 @@
 #include "ZNUtils.h"
 #include "RenderGraph.h"
 #include "RenderTexture.h"
+#include "CubeRenderTexture.h"
 #include <functional>
 #include <vector>
 #include <string>
@@ -72,6 +73,23 @@ public:
         offscreenCameras.push_back({ cam, rt, resourceName, std::move(cb) });
     }
 
+    // One-shot cubemap capture: renders into all 6 faces on the first frame only, then
+    // the CubeRenderTexture is a stable static environment map. Must be called before the
+    // first frame (before BuildRenderGraph runs).
+    void AddCubemapCapture(std::vector<ZNCamera*> cams, CubeRenderTexture* rt,
+                           const std::string& resourceName,
+                           std::function<void()> cb)
+    {
+        cubemapCaptures.push_back({ std::move(cams), rt, resourceName, std::move(cb) });
+    }
+
+    // The most recently captured (or currently-being-captured) environment cubemap, used by
+    // the deferred lighting pass for metallic-surface reflections. Falls back to a black
+    // cube (no reflection contribution) when no scene has registered one.
+    void SetEnvCubemapSRV(D3D12_CPU_DESCRIPTOR_HANDLE handle) { envCubemapSRV = handle; hasEnvCubemap = true; }
+    D3D12_CPU_DESCRIPTOR_HANDLE GetEnvCubemapSRV() const { return envCubemapSRV; }
+    bool HasEnvCubemap() const { return hasEnvCubemap; }
+
 private:
     void BuildRenderGraph();
 
@@ -101,9 +119,20 @@ private:
         std::function<void()> renderCb;
     };
 
+    struct CubemapCaptureEntry {
+        std::vector<ZNCamera*> cams;
+        CubeRenderTexture*     output;
+        std::string            resourceName;
+        std::function<void()>  renderCb;
+    };
+
     std::function<void()> shadowRenderCallback;
     std::function<void()> gbufferRenderCallback;
     std::vector<OffscreenCameraEntry> offscreenCameras;
+    std::vector<CubemapCaptureEntry>  cubemapCaptures;
+
+    D3D12_CPU_DESCRIPTOR_HANDLE envCubemapSRV = {};
+    bool                        hasEnvCubemap = false;
 
     // Dedicated forward-pass point light upload buffer (not shared with transform/material CB)
     ComPtr<ID3D12Resource>       fwdPointLightBuffer;

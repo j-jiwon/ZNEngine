@@ -13,8 +13,9 @@ public:
     void RenderForward()         override;
 
 private:
-    ZNFramework::ZNShader* defaultShader = nullptr;
-    ZNFramework::ZNShader* glassShader   = nullptr;
+    ZNFramework::ZNShader* defaultShader     = nullptr;
+    ZNFramework::ZNShader* glassShader       = nullptr;
+    ZNFramework::ZNShader* envCaptureShader  = nullptr; // forward_pbr.hlsli, used only for the env cubemap capture
 
     struct BallModel {
         std::vector<ZNFramework::ZNGameObject*> objects;
