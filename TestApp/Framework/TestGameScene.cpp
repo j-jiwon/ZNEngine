@@ -51,8 +51,8 @@ void TestGameScene::Initialize()
 
     // Directional light with shadow
     ZNDirectionalLight* dirLight = Platform::CreateDirectionalLight();
-    dirLight->SetDirection(ZNVector3(0.5f, -1.0f, 0.3f));
-    dirLight->SetIntensity(6.0f);
+    dirLight->SetDirection(ZNVector3(-0.5f, -0.5f, 0.5f));
+    dirLight->SetIntensity(10.0f);
     dirLight->SetColor(ZNVector3(0.5f, 0.5f, 0.5f));
     dirLight->SetAmbientIntensity(1.0f);
     dirLight->SetShadowFocusPoint(ZNVector3(0.0f, 0.0f, 0.0f));
@@ -105,24 +105,38 @@ void TestGameScene::Initialize()
             ModelData modelData;
             if (loader->Load(monsterPath, modelData))
             {
-                // One material per glTF material slot; clamp near-black albedo to visible
+                // One material per glTF material slot; textures (embedded or file-based) are
+                // loaded and bound automatically. Flat-color fallback only kicks in when a
+                // slot has no albedo texture and its baked color is near-black.
                 for (const auto& matData : modelData.materials)
                 {
-                    ZNVector4 albedo = matData.params.albedoColor;
-                    float lum = albedo.x * 0.299f + albedo.y * 0.587f + albedo.z * 0.114f;
-                    if (lum < 0.05f)
-                        albedo = ZNVector4(0.8f, 0.75f, 0.70f, 1.0f); // fallback warm-white
-                    monster.materials.push_back(ZNMaterialFactory::CreatePBR(
-                        defaultShader, albedo, matData.params.metallic, matData.params.roughness));
+                    MaterialData patched = matData;
+                    bool hasAlbedoTex =
+                        !patched.texturePaths[static_cast<size_t>(TextureType::Albedo)].empty() ||
+                        !patched.embeddedTextureData[static_cast<size_t>(TextureType::Albedo)].empty();
+
+                    if (!hasAlbedoTex)
+                    {
+                        ZNVector4& albedo = patched.params.albedoColor;
+                        float lum = albedo.x * 0.299f + albedo.y * 0.587f + albedo.z * 0.114f;
+                        if (lum < 0.05f)
+                            albedo = ZNVector4(0.8f, 0.75f, 0.70f, 1.0f); // fallback warm-white
+                    }
+
+                    monster.materials.push_back(ZNMaterialFactory::CreatePBRFromData(defaultShader, patched));
                 }
                 if (monster.materials.empty())
-                    monster.materials.push_back(ZNMaterialFactory::CreatePBR(
-                        defaultShader, ZNVector4(0.8f, 0.75f, 0.70f, 1.0f), 0.0f, 0.6f));
+                {
+                    MaterialData fallback;
+                    fallback.params.albedoColor = ZNVector4(0.8f, 0.75f, 0.70f, 1.0f);
+                    fallback.params.roughness   = 0.6f;
+                    monster.materials.push_back(ZNMaterialFactory::CreatePBRFromData(defaultShader, fallback));
+                }
 
                 for (const auto& meshData : modelData.meshes)
                 {
                     size_t matIdx = (meshData.materialIndex < monster.materials.size())
-                        ? meshData.materialIndex : 0;
+                                  ? meshData.materialIndex : 0;
                     ZNMaterial* mat = monster.materials[matIdx];
 
                     ZNMesh* mesh = Platform::CreateMesh();
@@ -133,12 +147,13 @@ void TestGameScene::Initialize()
                     obj->SetMesh(mesh);
                     obj->SetMaterial(mat);
                     obj->SetName("Monster_" + std::to_string(monster.objects.size()));
-                    obj->GetTransform().position = ZNVector3(0.f, 1.f, 3.f);
+                    obj->GetTransform().position = ZNVector3(0.f, 1.f, -3.f);
+                    obj->GetTransform().rotation = ZNVector3(0.0f, 180.f, 0.0f);
                     AddGameObject(obj);
                     monster.objects.push_back(obj);
                 }
                 std::cout << "[MirrorBallScene] Monster loaded: " << monster.objects.size()
-                    << " meshes, " << monster.materials.size() << " materials.\n";
+                          << " meshes, " << monster.materials.size() << " materials.\n";
             }
             else
                 std::cout << "[MirrorBallScene] Failed to load Monster_S_0.glb.\n";

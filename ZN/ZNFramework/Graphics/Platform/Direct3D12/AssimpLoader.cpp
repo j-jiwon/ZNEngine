@@ -3,11 +3,11 @@
 #include <iostream>
 #include <algorithm>
 #include <cctype>
+#include <cstring>
 
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
-#include <assimp/version.h>
 
 using namespace ZNFramework;
 
@@ -196,7 +196,6 @@ void AssimpLoader::ProcessMaterial(aiMaterial* material, const aiScene* scene,
 		{ aiTextureType_DISPLACEMENT,     "DISPLACEMENT"     },
 		{ aiTextureType_LIGHTMAP,         "LIGHTMAP"         },
 		{ aiTextureType_REFLECTION,       "REFLECTION"       },
-#if ASSIMP_VERSION_MAJOR >= 5
 		{ aiTextureType_BASE_COLOR,       "BASE_COLOR"       },
 		{ aiTextureType_NORMAL_CAMERA,    "NORMAL_CAMERA"    },
 		{ aiTextureType_EMISSION_COLOR,   "EMISSION_COLOR"   },
@@ -204,7 +203,6 @@ void AssimpLoader::ProcessMaterial(aiMaterial* material, const aiScene* scene,
 		{ aiTextureType_DIFFUSE_ROUGHNESS,"DIFFUSE_ROUGHNESS"},
 		{ aiTextureType_AMBIENT_OCCLUSION,"AMBIENT_OCCLUSION"},
 		{ aiTextureType_GLTF_METALLIC_ROUGHNESS, "GLTF_METALLIC_ROUGHNESS" },
-#endif
 		{ aiTextureType_UNKNOWN,          "UNKNOWN"          },
 	};
 	bool anyTex = false;
@@ -223,6 +221,29 @@ void AssimpLoader::ProcessMaterial(aiMaterial* material, const aiScene* scene,
 	}
 	if (!anyTex)
 		std::cout << "[AssimpLoader] " << matName.C_Str() << " — no textures in FBX\n";
+
+	// Fallback for texture types GetTextureCount()/GetTexture() fail to find even though
+	// the material actually has the property (observed with this Assimp build for the
+	// newer PBR slots — BASE_COLOR/METALNESS/DIFFUSE_ROUGHNESS/GLTF_METALLIC_ROUGHNESS —
+	// while classic slots like DIFFUSE/NORMALS/EMISSIVE work fine via the normal API).
+	// Reads the "$tex.file" property's serialized aiString directly: a 4-byte length
+	// prefix followed by that many chars (assimp's standard string-property encoding).
+	auto GetRawTexturePath = [&](aiTextureType type, unsigned int index) -> std::string
+	{
+		for (unsigned int pi = 0; pi < material->mNumProperties; ++pi)
+		{
+			const aiMaterialProperty* prop = material->mProperties[pi];
+			if (prop->mSemantic != static_cast<unsigned int>(type) || prop->mIndex != index) continue;
+			if (std::strcmp(prop->mKey.C_Str(), "$tex.file") != 0) continue;
+			if (prop->mType != aiPTI_String) continue;
+			if (prop->mDataLength < sizeof(uint32)) continue;
+			uint32 len = 0;
+			std::memcpy(&len, prop->mData, sizeof(uint32));
+			if (sizeof(uint32) + len > prop->mDataLength) continue;
+			return std::string(prop->mData + sizeof(uint32), len);
+		}
+		return {};
+	};
 
 	// Resolve by: (1) modelDir / rawPath as-is, (2) filename lookup in pre-built index.
 	// The index covers the full modelDir subtree, so absolute paths on other machines
@@ -251,11 +272,20 @@ void AssimpLoader::ProcessMaterial(aiMaterial* material, const aiScene* scene,
 	{
 		for (aiTextureType type : types)
 		{
-			if (material->GetTextureCount(type) == 0) continue;
-			aiString rawPath;
-			material->GetTexture(type, 0, &rawPath);
+			std::string rawStr;
+			if (material->GetTextureCount(type) > 0)
+			{
+				aiString rawPath;
+				material->GetTexture(type, 0, &rawPath);
+				rawStr = rawPath.C_Str();
+			}
+			else
+			{
+				rawStr = GetRawTexturePath(type, 0);
+				if (rawStr.empty()) continue;
+			}
 
-			if (const aiTexture* embedded = scene->GetEmbeddedTexture(rawPath.C_Str()))
+			if (const aiTexture* embedded = scene->GetEmbeddedTexture(rawStr.c_str()))
 			{
 				if (embedded->mHeight != 0)
 					continue; // uncompressed embedded texel data — not supported, try next candidate
@@ -266,7 +296,7 @@ void AssimpLoader::ProcessMaterial(aiMaterial* material, const aiScene* scene,
 				return;
 			}
 
-			std::wstring resolved = ResolveTexPath(rawPath.C_Str());
+			std::wstring resolved = ResolveTexPath(rawStr.c_str());
 			if (!resolved.empty())
 			{
 				outMaterial.texturePaths[static_cast<size_t>(slot)] = resolved;
@@ -276,29 +306,17 @@ void AssimpLoader::ProcessMaterial(aiMaterial* material, const aiScene* scene,
 	};
 
 	// Albedo: aiTextureType_BASE_COLOR is glTF's PBR slot; DIFFUSE covers FBX/OBJ.
-#if ASSIMP_VERSION_MAJOR >= 5
 	LoadTexturePath({ aiTextureType_BASE_COLOR, aiTextureType_DIFFUSE }, TextureType::Albedo);
-#else
-	LoadTexturePath({ aiTextureType_DIFFUSE }, TextureType::Albedo);
-#endif
 
 	// Normal
-#if ASSIMP_VERSION_MAJOR >= 5
 	LoadTexturePath({ aiTextureType_NORMAL_CAMERA, aiTextureType_NORMALS, aiTextureType_HEIGHT }, TextureType::Normal);
-#else
-	LoadTexturePath({ aiTextureType_NORMALS, aiTextureType_HEIGHT }, TextureType::Normal);
-#endif
 
 	// ARM (AO/Roughness/Metallic). glTF's combined metallicRoughness texture
 	// (G=roughness, B=metallic, R usually unused/AO) maps directly to this layout;
 	// classic FBX sometimes stores roughness as SHININESS.
-#if ASSIMP_VERSION_MAJOR >= 5
 	LoadTexturePath({ aiTextureType_GLTF_METALLIC_ROUGHNESS, aiTextureType_UNKNOWN,
 	                  aiTextureType_DIFFUSE_ROUGHNESS, aiTextureType_SHININESS,
 	                  aiTextureType_AMBIENT_OCCLUSION }, TextureType::ARM);
-#else
-	LoadTexturePath({ aiTextureType_UNKNOWN, aiTextureType_SHININESS }, TextureType::ARM);
-#endif
 
 	// Log resolved results
 	const char* slotNames[] = { " Albedo=", " Normal=", " ARM=" };

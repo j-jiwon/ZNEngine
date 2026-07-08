@@ -28,6 +28,15 @@ void Texture::InitFromMemory(const void* data, size_t size)
 	CreateView();
 }
 
+void Texture::InitSolidColor(uint8 r, uint8 g, uint8 b, uint8 a)
+{
+	image.Initialize2D(DXGI_FORMAT_R8G8B8A8_UNORM, 1, 1, 1, 1);
+	uint8_t* pixels = image.GetPixels();
+	pixels[0] = r; pixels[1] = g; pixels[2] = b; pixels[3] = a;
+	UploadToGPU();
+	CreateView();
+}
+
 void Texture::CreateTexture(const std::wstring& path)
 {
 	std::wstring extension = std::filesystem::path(path).extension();
