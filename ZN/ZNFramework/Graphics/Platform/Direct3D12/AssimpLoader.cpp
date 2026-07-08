@@ -28,11 +28,16 @@ bool AssimpLoader::Load(const std::filesystem::path& filePath, ModelData& outMod
 		filePath.string(),
 		aiProcess_Triangulate |
 		aiProcess_GenNormals |
-		aiProcess_FlipUVs |
 		aiProcess_CalcTangentSpace |
 		aiProcess_JoinIdenticalVertices |
 		aiProcess_SortByPType |
-		aiProcess_PreTransformVertices    // Bake node-hierarchy transforms into vertex data
+		aiProcess_PreTransformVertices |  // Bake node-hierarchy transforms into vertex data
+		// Assimp's internal representation is always right-handed; our engine (D3D LookAtLH /
+		// perspective) is left-handed. This bundles MakeLeftHanded + FlipWindingOrder + FlipUVs -
+		// without it, mirrored/negative-determinant nodes (and technically everything) come in
+		// with the wrong handedness, which is invisible on generic geometry but shows up as
+		// backwards text/numbers on any readable texture.
+		aiProcess_ConvertToLeftHanded
 	);
 
 	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)

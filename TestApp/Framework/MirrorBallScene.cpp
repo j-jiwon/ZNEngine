@@ -19,20 +19,19 @@ void MirrorBallScene::Initialize()
     // room.glb real bounds: X:[-1.43,1.43] Y:[0.10(floor),1.87(ceiling)] Z:[-1.55,1.75]
     // room center: (0, -, 0.1). Everything below is placed relative to that box.
     ZNCamera* cam = new ZNCamera();
-    cam->SetPosition(ZNVector3(3.844f, 3.603f, 4.086f));
-    cam->SetRotation(-25.11f, -135.18f);
+    cam->SetPosition(ZNVector3(1.655f, 1.619f, -2.018f));
+    cam->SetRotation(-13.53f, -41.21f);
     cam->SetMoveSpeed(1.5f);
     SetCamera(cam);
 
-    
-
     ZNDirectionalLight* dirLight = Platform::CreateDirectionalLight();
-    dirLight->SetDirection(ZNVector3(0.3f, -1.f, 0.5f));
-    dirLight->SetIntensity(0.f);
+    dirLight->SetDirection(ZNVector3(0.118f, 0.1f, 0.9f));
+    dirLight->SetIntensity(3.f);
     dirLight->SetColor(ZNVector3(0.9f, 0.9f, 1.f));
     dirLight->SetAmbientIntensity(0.5f);
     dirLight->SetShadowFocusPoint(ZNVector3(0.f, 1.f, 0.f));
     dirLight->SetShadowBounds(10.f, 0.1f, 30.f);
+
     SetDirectionalLight(dirLight);
 
     // 4 corner spotlights near the ceiling, aimed at the mirror ball
@@ -170,7 +169,9 @@ void MirrorBallScene::Initialize()
                     obj->SetMesh(mesh);
                     obj->SetMaterial(mat);
                     obj->SetName("Monster_" + std::to_string(monster.objects.size()));
-                    obj->GetTransform().position = ZNVector3(0.7f, 1.1f, 1.0f); // standing on the real floor (Y~0.1)
+                    obj->GetTransform().position = ZNVector3(0.0f, 0.8f, 0.0f); // standing on the real floor (Y~0.1)
+                    obj->GetTransform().rotation = ZNVector3(0.0f, -40.f, 0.0f);
+                    obj->GetTransform().scale    = ZNVector3(0.5f, 0.5f, 0.5f); // ~15cm radius decorative sphere
                     AddGameObject(obj);
                     monster.objects.push_back(obj);
                 }
