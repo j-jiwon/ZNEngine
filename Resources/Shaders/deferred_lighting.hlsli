@@ -358,13 +358,16 @@ float4 PS_Main(VS_OUT input) : SV_Target
     }
 
     // Environment reflection (static-baked cubemap, no prefiltering yet — mirror-sharp
-    // regardless of roughness beyond this crude (1-roughness) fade). Weighted by the same
-    // Fresnel/F0 used for direct specular, so it naturally concentrates on metallic surfaces
-    // and stays near-zero for dielectrics. A black (unbaked) cube contributes nothing.
+    // regardless of roughness beyond this crude (1-roughness) fade). Gated by `metallic`
+    // directly (not just Fresnel/F0) so it's confined to metallic surfaces (mirror ball,
+    // monster tiles) — Fresnel alone approaches 1 at grazing angles even for dielectrics
+    // (F0=0.04 walls/floor), which was leaking a rim of the vividly-colored captured
+    // cubemap onto every surface and made the room look like it was shifting color as
+    // the camera moved. A black (unbaked) cube contributes nothing.
     float3 F0env = lerp(float3(0.04f, 0.04f, 0.04f), albedo, metallic);
     float3 Fenv = FresnelSchlick(max(dot(N, V), 0.0f), F0env);
     float3 envSample = envCube.Sample(sampler0, reflect(-V, N)).rgb;
-    float3 envReflection = envSample * Fenv * (1.0f - roughness);
+    float3 envReflection = envSample * Fenv * (1.0f - roughness) * metallic;
 
     // Combine ambient, direct lighting and environment reflection
     float3 finalColor = ambient + Lo + envReflection;

@@ -305,6 +305,11 @@ void MirrorBallScene::Initialize()
 
     AddCubemapCapture(ZNVector3(0.f, 1.55f, 0.1f), 0.05f, 10.f, 256,
         "MirrorBallEnvCube", envCaptureShader, mirrorBall.objects);
+
+    // Static night-sky panorama, set last so it overrides the room capture above as the
+    // active reflection source (swap back to the AddCubemapCapture room reflection by
+    // just removing/commenting this call).
+    SetEnvCubemapTexture(GetResourcePath() / L"Textures" / L"skybox_night.jpg");
 }
 
 void MirrorBallScene::Update(float deltaTime)

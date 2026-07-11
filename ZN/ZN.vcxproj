@@ -234,6 +234,7 @@
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\GBufferManager.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\RenderTexture.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\CubeRenderTexture.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\EquirectCubeTexture.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Passes\OffscreenCameraPass.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Passes\CubeCapturePass.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\ShadowMap.h" />
@@ -319,6 +320,7 @@
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\GBufferManager.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\RenderTexture.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\CubeRenderTexture.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\EquirectCubeTexture.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\ShadowMap.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\Material.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\Mesh.cpp" />

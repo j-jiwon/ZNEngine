@@ -81,6 +81,11 @@ namespace ZNFramework
 		                       ZNShader* forwardShader,
 		                       const std::vector<ZNGameObject*>& excludeObjects = {});
 
+		// Loads a static equirectangular panorama image, resamples it into a cubemap on the
+		// CPU, and sets it as the active environment reflection — overrides (or replaces)
+		// whatever AddCubemapCapture set, since only one env cubemap SRV is bound at a time.
+		void SetEnvCubemapTexture(const std::wstring& panoramaPath, uint32 faceSize = 512);
+
 	protected:
 		std::vector<ZNGameObject*> gameObjects;
 		std::vector<ZNGameObject*> forwardGameObjects;  // Objects rendered in forward pass

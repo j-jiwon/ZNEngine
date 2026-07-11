@@ -9,6 +9,7 @@
 #include "../Graphics/Platform/Direct3D12/CommandQueue.h"
 #include "../Graphics/Platform/Direct3D12/RenderTexture.h"
 #include "../Graphics/Platform/Direct3D12/CubeRenderTexture.h"
+#include "../Graphics/Platform/Direct3D12/EquirectCubeTexture.h"
 #include "../Math/ZNMatrix4.h"
 #include "../Math/ZNVector3.h"
 #include <algorithm>
@@ -287,4 +288,13 @@ void ZNScene::AddCubemapCapture(const ZNVector3& position, float nearZ, float fa
 	});
 
 	cmdQ->SetEnvCubemapSRV(cubeRT->GetSRVCpuHandle());
+}
+
+void ZNScene::SetEnvCubemapTexture(const std::wstring& panoramaPath, uint32 faceSize)
+{
+	auto* cubeTex = new EquirectCubeTexture();
+	cubeTex->Init(panoramaPath, faceSize);
+
+	CommandQueue* cmdQ = GraphicsContext::GetInstance().GetAs<CommandQueue>();
+	cmdQ->SetEnvCubemapSRV(cubeTex->GetSRVCpuHandle());
 }
