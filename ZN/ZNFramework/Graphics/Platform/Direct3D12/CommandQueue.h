@@ -39,13 +39,18 @@ public:
     GBufferManager*       GetGBufferManager()    { return gbufferManager; }
     DebugViewportRenderer* GetDebugViewportRenderer() { return debugViewportRenderer; }
     ShadowMap*            GetShadowMap()         { return shadowMap; }
+    RenderTexture*        GetSceneColorRT()      { return sceneColorRT; }
 
     void SetGBufferManager(GBufferManager* manager)            { gbufferManager = manager; }
     void SetDeferredLightingPass(DeferredLightingPass* pass)   { deferredLightingPass = pass; }
     void SetDebugViewportRenderer(DebugViewportRenderer* r)    { debugViewportRenderer = r; }
     void SetShadowMap(ShadowMap* shadow)                       { shadowMap = shadow; }
+    void SetSceneColorRT(RenderTexture* rt)                    { sceneColorRT = rt; }
     void SetShadowRenderCallback(std::function<void()> cb)     { shadowRenderCallback = std::move(cb); }
     void SetGBufferRenderCallback(std::function<void()> cb)    { gbufferRenderCallback = std::move(cb); }
+
+    // Re-import SceneColor's resource pointer after a resize (resource is recreated)
+    void RefreshSceneColorResource();
 
     bool IsForwardPass() const { return isForwardPass; }
 
@@ -111,6 +116,7 @@ private:
     DeferredLightingPass*  deferredLightingPass  = nullptr;
     DebugViewportRenderer* debugViewportRenderer = nullptr;
     ShadowMap*             shadowMap             = nullptr;
+    RenderTexture*         sceneColorRT          = nullptr;
 
     struct OffscreenCameraEntry {
         ZNCamera*       camera;

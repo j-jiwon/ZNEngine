@@ -92,6 +92,11 @@ void DeferredLightingPass::Init()
     lightingShader->Load(lightingShaderPath);
     lightingShader->DisableDepthTest();
 
+    // Deferred lighting now writes into the HDR SceneColor target; ToneMappingPass
+    // reads it back later and writes the LDR back buffer.
+    DXGI_FORMAT sceneColorFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
+    lightingShader->SetRenderTargetFormats(1, &sceneColorFormat);
+
     // Create constant buffer for lighting
     D3D12_HEAP_PROPERTIES heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
     uint32 lightingBufferSize = (sizeof(DeferredLightCB) + 255) & ~255;

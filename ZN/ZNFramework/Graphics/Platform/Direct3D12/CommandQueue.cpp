@@ -13,6 +13,7 @@
 #include "Passes/GBufferPass.h"
 #include "Passes/DeferredLightingRenderPass.h"
 #include "Passes/ForwardRenderPass.h"
+#include "Passes/ToneMappingPass.h"
 #include "Passes/ImGuiRenderPass.h"
 #include "Passes/OffscreenCameraPass.h"
 #include "Passes/CubeCapturePass.h"
@@ -101,6 +102,9 @@ void CommandQueue::BuildRenderGraph()
 
     renderGraph.Import("BackBuffer", swapChain->GetBackRTVBuffer().Get(), D3D12_RESOURCE_STATE_PRESENT);
 
+    if (sceneColorRT)
+        renderGraph.Import("SceneColor", sceneColorRT->GetResource(), D3D12_RESOURCE_STATE_RENDER_TARGET);
+
     // Get concrete types needed by the passes
     auto* rootSig  = GraphicsContext::GetInstance().GetAs<RootSignature>();
     auto* tdh      = GraphicsContext::GetInstance().GetAs<TableDescriptorHeap>();
@@ -150,10 +154,17 @@ void CommandQueue::BuildRenderGraph()
             [this]() { if (gbufferRenderCallback) gbufferRenderCallback(); }));
     }
 
-    // --- Deferred lighting pass ---
-    if (deferredLightingPass && gbufferManager) {
+    // --- Deferred lighting pass (writes HDR SceneColor) ---
+    if (deferredLightingPass && gbufferManager && sceneColorRT) {
         renderGraph.AddPass(std::make_unique<DeferredLightingRenderPass>(
-            deferredLightingPass, gbufferManager, shadowMap, swapChain));
+            deferredLightingPass, gbufferManager, shadowMap, swapChain, sceneColorRT));
+    }
+
+    // --- Tone mapping pass (HDR SceneColor -> LDR BackBuffer, ACES + gamma) ---
+    if (sceneColorRT) {
+        ZNShader* toneMapShader = GraphicsContext::GetInstance().GetToneMapShader();
+        renderGraph.AddPass(std::make_unique<ToneMappingPass>(
+            sceneColorRT, swapChain, toneMapShader));
     }
 
     // --- Forward pass ---
@@ -189,6 +200,14 @@ void CommandQueue::RefreshGBufferResources()
     renderGraph.Import("GBuf_DepthCopy", gbufferManager->GetDepthCopyResource(), D3D12_RESOURCE_STATE_RENDER_TARGET);
     renderGraph.Import("GBuf_WorldPos",  gbufferManager->GetWorldPosResource(),  D3D12_RESOURCE_STATE_RENDER_TARGET);
     renderGraph.Import("GBuf_ARM",       gbufferManager->GetARMResource(),       D3D12_RESOURCE_STATE_RENDER_TARGET);
+}
+
+void CommandQueue::RefreshSceneColorResource()
+{
+    if (!sceneColorRT || !renderGraphBuilt) return;
+
+    // After RenderTexture::Resize() the old D3D12 resource is released and a new one created.
+    renderGraph.Import("SceneColor", sceneColorRT->GetResource(), D3D12_RESOURCE_STATE_RENDER_TARGET);
 }
 
 void CommandQueue::RenderBegin()

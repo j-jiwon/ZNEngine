@@ -26,8 +26,8 @@ void MirrorBallScene::Initialize()
 
     ZNDirectionalLight* dirLight = Platform::CreateDirectionalLight();
     dirLight->SetDirection(ZNVector3(0.118f, 0.1f, 0.9f));
-    dirLight->SetIntensity(3.f);
-    dirLight->SetColor(ZNVector3(0.9f, 0.9f, 1.f));
+    dirLight->SetIntensity(0.45f);
+    dirLight->SetColor(ZNVector3(0.9f, 0.9f, 0.2f));
     dirLight->SetAmbientIntensity(0.5f);
     dirLight->SetShadowFocusPoint(ZNVector3(0.f, 1.f, 0.f));
     dirLight->SetShadowBounds(10.f, 0.1f, 30.f);
@@ -37,9 +37,9 @@ void MirrorBallScene::Initialize()
     // 4 corner spotlights near the ceiling, aimed at the mirror ball (position/direction/
     // color/intensity hand-tuned live via the Inspector, then baked back in here)
     static const struct { ZNVector3 pos; ZNVector3 dir; ZNVector3 color; float intensity; } kLights[4] = {
-        { ZNVector3(-1.2f, 1.90f, -1.3f), ZNVector3( 0.526f, -0.589f,  0.613f), ZNVector3(1.000f, 0.976f, 0.925f), 2.769f },
-        { ZNVector3( 1.2f, 1.95f, -1.3f), ZNVector3(-0.531f, -0.578f,  0.620f), ZNVector3(0.949f, 0.965f, 0.847f), 4.000f },
-        { ZNVector3(-1.2f, 2.65f,  1.5f), ZNVector3( 0.415f, -0.731f, -0.541f), ZNVector3(0.843f, 0.843f, 0.922f), 4.154f },
+        { ZNVector3(-1.2f, 1.90f, -1.3f), ZNVector3( 0.526f, -0.589f,  0.613f), ZNVector3(1.000f, 0.176f, 0.825f), 2.769f },
+        { ZNVector3( 1.2f, 1.95f, -1.3f), ZNVector3(-0.531f, -0.578f,  0.620f), ZNVector3(0.949f, 0.865f, 0.147f), 4.000f },
+        { ZNVector3(-1.2f, 2.65f,  1.5f), ZNVector3( 0.415f, -0.731f, -0.541f), ZNVector3(0.143f, 0.843f, 0.922f), 4.154f },
         { ZNVector3( 1.2f, 1.95f,  1.5f), ZNVector3(-0.626f, -0.602f, -0.496f), ZNVector3(0.906f, 0.467f, 0.906f), 4.000f },
     };
     for (int i = 0; i < 4; ++i)
@@ -57,10 +57,10 @@ void MirrorBallScene::Initialize()
 
     // Point light — warm bedside lamp glow (position/intensity/radius hand-tuned live)
     innerLight = Platform::CreatePointLight();
-    innerLight->SetPosition(ZNVector3(0.05f, 0.75f, 1.7f));
+    innerLight->SetPosition(ZNVector3(0.15f, 0.65f, 1.350f));
     innerLight->SetColor(ZNVector3(1.f, 0.702f, 0.102f));
     innerLight->SetIntensity(4.846f);
-    innerLight->SetRadius(4.7f);
+    innerLight->SetRadius(0.5f);
     innerLight->SetAttenuation(1.f, 0.22f, 0.20f);
     AddPointLight(innerLight);
 

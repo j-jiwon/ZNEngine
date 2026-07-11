@@ -10,6 +10,7 @@
 #include "ZNFramework/Graphics/Platform/Direct3D12/CommandQueue.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/GraphicsDevice.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/GBufferManager.h"
+#include "ZNFramework/Graphics/Platform/Direct3D12/RenderTexture.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/DeferredLightingPass.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/DebugViewportRenderer.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/ShadowMap.h"
@@ -160,6 +161,16 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
         GraphicsContext::GetInstance().SetGBufferShader(gbufferShader);
     }
 
+    // Load tone mapping shader (HDR SceneColor -> LDR BackBuffer: ACES + gamma)
+    {
+        ZNShader* toneMapShader = ZNFramework::Platform::CreateShader();
+        std::filesystem::path shaderPath = GetResourcePath() / L"Shaders" / L"tonemap.hlsli";
+        toneMapShader->Load(shaderPath);
+        toneMapShader->DisableDepthTest();
+
+        GraphicsContext::GetInstance().SetToneMapShader(toneMapShader);
+    }
+
     // Initialize G-Buffer and Debug Viewport Renderer after SwapChain is ready
     // This must be done after OnResize to ensure proper dimensions
     CommandQueue* cmdQueue = dynamic_cast<CommandQueue*>(commandQueue);
@@ -185,6 +196,11 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
         ShadowMap* shadowMap = new ShadowMap();
         shadowMap->Init(2048, 2048);
         cmdQueue->SetShadowMap(shadowMap);
+
+        // Initialize HDR SceneColor target (deferred lighting output, tone-mapped later)
+        RenderTexture* sceneColorRT = new RenderTexture();
+        sceneColorRT->Init(inWindow->Width(), inWindow->Height(), DXGI_FORMAT_R16G16B16A16_FLOAT);
+        cmdQueue->SetSceneColorRT(sceneColorRT);
     }
 
     commandQueue->WaitSync();
@@ -306,6 +322,13 @@ void ApplicationContext::OnResize(uint32 width, uint32 height)
         {
             gbufferMgr->Resize(width, height);
             cmdQueue->NotifyGBufferResized();
+        }
+
+        RenderTexture* sceneColorRT = cmdQueue->GetSceneColorRT();
+        if (sceneColorRT)
+        {
+            sceneColorRT->Resize(width, height);
+            cmdQueue->RefreshSceneColorResource();
         }
     }
 

@@ -101,6 +101,9 @@ namespace ZNFramework
         void SetGBufferShader(ZNShader* inShader) { gbufferShader = inShader; }
         ZNShader* GetGBufferShader() const { return gbufferShader; }
 
+        void SetToneMapShader(ZNShader* inShader) { toneMapShader = inShader; }
+        ZNShader* GetToneMapShader() const { return toneMapShader; }
+
     private:
         ZNGraphicsDevice* device = nullptr;
         ZNCommandQueue* queue = nullptr;
@@ -109,6 +112,7 @@ namespace ZNFramework
         ZNDepthStencilBuffer* depthStencilBuffer = nullptr;
         ZNTableDescriptorHeap* descHeap = nullptr;
         ZNShader* gbufferShader = nullptr;
+        ZNShader* toneMapShader = nullptr;
         ZNCamera* camera = nullptr;
         std::vector<ZNSpotLight*> spotLights;
         std::vector<ZNPointLight*> pointLights;
