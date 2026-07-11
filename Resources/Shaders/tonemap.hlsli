@@ -1,7 +1,15 @@
-// Final pass of the HDR pipeline: samples the lit HDR SceneColor target, applies
-// ACES filmic tone mapping, then gamma-encodes for display on the LDR back buffer.
+// Final pass of the HDR pipeline: adds the bloom mip chain result onto the lit HDR
+// SceneColor target, applies ACES filmic tone mapping, then gamma-encodes for
+// display on the LDR back buffer.
+
+cbuffer cbToneMapping : register(b0)
+{
+    float bloomIntensity;
+    float3 _pad;
+};
 
 Texture2D sceneColorTexture : register(t0);
+Texture2D bloomTexture : register(t1);
 SamplerState sampler0 : register(s0);
 
 struct VS_IN
@@ -45,6 +53,8 @@ float3 ACESFilm(float3 x)
 float4 PS_Main(VS_OUT input) : SV_Target
 {
     float3 hdr = sceneColorTexture.Sample(sampler0, input.uv).rgb;
+    float3 bloom = bloomTexture.Sample(sampler0, input.uv).rgb;
+    hdr += bloom * bloomIntensity;
 
     hdr = ACESFilm(hdr);
     hdr = pow(hdr, 1.0/2.2);

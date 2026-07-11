@@ -221,12 +221,14 @@
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\DepthStencilBuffer.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\DebugViewportRenderer.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\DeferredLightingPass.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\BloomChain.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\DirectionalLight.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Passes\DeferredLightingRenderPass.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Passes\ForwardRenderPass.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Passes\GBufferPass.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Passes\ImGuiRenderPass.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Passes\PostProcessPass.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Passes\BloomPass.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Passes\ToneMappingPass.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Passes\ShadowPass.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\RenderGraph.h" />
@@ -314,6 +316,7 @@
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\DepthStencilBuffer.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\DebugViewportRenderer.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\DeferredLightingPass.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\BloomChain.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\DirectionalLight.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\RenderGraph.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\Passes\ToneMappingPass.cpp" />

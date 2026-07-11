@@ -11,6 +11,7 @@
 #include "ZNFramework/Graphics/Platform/Direct3D12/GraphicsDevice.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/GBufferManager.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/RenderTexture.h"
+#include "ZNFramework/Graphics/Platform/Direct3D12/BloomChain.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/DeferredLightingPass.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/DebugViewportRenderer.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/ShadowMap.h"
@@ -201,6 +202,11 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
         RenderTexture* sceneColorRT = new RenderTexture();
         sceneColorRT->Init(inWindow->Width(), inWindow->Height(), DXGI_FORMAT_R16G16B16A16_FLOAT);
         cmdQueue->SetSceneColorRT(sceneColorRT);
+
+        // Initialize bloom (bright-pass + downsample/upsample chain off SceneColor)
+        BloomChain* bloomChain = new BloomChain();
+        bloomChain->Init(inWindow->Width(), inWindow->Height());
+        cmdQueue->SetBloomChain(bloomChain);
     }
 
     commandQueue->WaitSync();
@@ -329,6 +335,13 @@ void ApplicationContext::OnResize(uint32 width, uint32 height)
         {
             sceneColorRT->Resize(width, height);
             cmdQueue->RefreshSceneColorResource();
+        }
+
+        BloomChain* bloomChain = cmdQueue->GetBloomChain();
+        if (bloomChain)
+        {
+            bloomChain->Resize(width, height);
+            cmdQueue->RefreshBloomChainResource();
         }
     }
 

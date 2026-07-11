@@ -16,6 +16,7 @@ class GBufferManager;
 class DeferredLightingPass;
 class DebugViewportRenderer;
 class ShadowMap;
+class BloomChain;
 class ZNCamera;
 
 class CommandQueue : public ZNCommandQueue
@@ -40,17 +41,22 @@ public:
     DebugViewportRenderer* GetDebugViewportRenderer() { return debugViewportRenderer; }
     ShadowMap*            GetShadowMap()         { return shadowMap; }
     RenderTexture*        GetSceneColorRT()      { return sceneColorRT; }
+    BloomChain*           GetBloomChain()        { return bloomChain; }
 
     void SetGBufferManager(GBufferManager* manager)            { gbufferManager = manager; }
     void SetDeferredLightingPass(DeferredLightingPass* pass)   { deferredLightingPass = pass; }
     void SetDebugViewportRenderer(DebugViewportRenderer* r)    { debugViewportRenderer = r; }
     void SetShadowMap(ShadowMap* shadow)                       { shadowMap = shadow; }
     void SetSceneColorRT(RenderTexture* rt)                    { sceneColorRT = rt; }
+    void SetBloomChain(BloomChain* chain)                      { bloomChain = chain; }
     void SetShadowRenderCallback(std::function<void()> cb)     { shadowRenderCallback = std::move(cb); }
     void SetGBufferRenderCallback(std::function<void()> cb)    { gbufferRenderCallback = std::move(cb); }
 
     // Re-import SceneColor's resource pointer after a resize (resource is recreated)
     void RefreshSceneColorResource();
+
+    // Re-import Bloom's (mip0) resource pointer after a resize (resource is recreated)
+    void RefreshBloomChainResource();
 
     bool IsForwardPass() const { return isForwardPass; }
 
@@ -117,6 +123,7 @@ private:
     DebugViewportRenderer* debugViewportRenderer = nullptr;
     ShadowMap*             shadowMap             = nullptr;
     RenderTexture*         sceneColorRT          = nullptr;
+    BloomChain*            bloomChain            = nullptr;
 
     struct OffscreenCameraEntry {
         ZNCamera*       camera;

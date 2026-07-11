@@ -9,10 +9,12 @@
 #include "DeferredLightingPass.h"
 #include "DebugViewportRenderer.h"
 #include "ShadowMap.h"
+#include "BloomChain.h"
 #include "Passes/ShadowPass.h"
 #include "Passes/GBufferPass.h"
 #include "Passes/DeferredLightingRenderPass.h"
 #include "Passes/ForwardRenderPass.h"
+#include "Passes/BloomPass.h"
 #include "Passes/ToneMappingPass.h"
 #include "Passes/ImGuiRenderPass.h"
 #include "Passes/OffscreenCameraPass.h"
@@ -105,6 +107,9 @@ void CommandQueue::BuildRenderGraph()
     if (sceneColorRT)
         renderGraph.Import("SceneColor", sceneColorRT->GetResource(), D3D12_RESOURCE_STATE_RENDER_TARGET);
 
+    if (bloomChain)
+        renderGraph.Import("Bloom", bloomChain->GetOutputResource(), D3D12_RESOURCE_STATE_RENDER_TARGET);
+
     // Get concrete types needed by the passes
     auto* rootSig  = GraphicsContext::GetInstance().GetAs<RootSignature>();
     auto* tdh      = GraphicsContext::GetInstance().GetAs<TableDescriptorHeap>();
@@ -160,11 +165,16 @@ void CommandQueue::BuildRenderGraph()
             deferredLightingPass, gbufferManager, shadowMap, swapChain, sceneColorRT));
     }
 
-    // --- Tone mapping pass (HDR SceneColor -> LDR BackBuffer, ACES + gamma) ---
-    if (sceneColorRT) {
+    // --- Bloom pass (bright-pass extract + downsample/upsample chain from SceneColor) ---
+    if (sceneColorRT && bloomChain) {
+        renderGraph.AddPass(std::make_unique<BloomPass>(sceneColorRT, bloomChain));
+    }
+
+    // --- Tone mapping pass (HDR SceneColor + Bloom -> LDR BackBuffer, ACES + gamma) ---
+    if (sceneColorRT && bloomChain) {
         ZNShader* toneMapShader = GraphicsContext::GetInstance().GetToneMapShader();
         renderGraph.AddPass(std::make_unique<ToneMappingPass>(
-            sceneColorRT, swapChain, toneMapShader));
+            sceneColorRT, bloomChain->GetOutputRT(), swapChain, toneMapShader));
     }
 
     // --- Forward pass ---
@@ -208,6 +218,14 @@ void CommandQueue::RefreshSceneColorResource()
 
     // After RenderTexture::Resize() the old D3D12 resource is released and a new one created.
     renderGraph.Import("SceneColor", sceneColorRT->GetResource(), D3D12_RESOURCE_STATE_RENDER_TARGET);
+}
+
+void CommandQueue::RefreshBloomChainResource()
+{
+    if (!bloomChain || !renderGraphBuilt) return;
+
+    // After BloomChain::Resize() mip0's old D3D12 resource is released and a new one created.
+    renderGraph.Import("Bloom", bloomChain->GetOutputResource(), D3D12_RESOURCE_STATE_RENDER_TARGET);
 }
 
 void CommandQueue::RenderBegin()

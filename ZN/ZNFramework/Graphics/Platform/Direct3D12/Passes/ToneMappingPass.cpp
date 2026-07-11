@@ -12,13 +12,21 @@ namespace {
         float uv[2];
         float normal[3];
     };
+
+    struct ToneMapCB
+    {
+        float bloomIntensity;
+        float pad[3];
+    };
 }
 
-ToneMappingPass::ToneMappingPass(RenderTexture* sceneColor, SwapChain* swapChain, ZNShader* toneMapShader)
-    : PostProcessPass("ToneMapping", "SceneColor", "BackBuffer")
-    , sceneColor(sceneColor), swapChain(swapChain), toneMapShader(toneMapShader)
+ToneMappingPass::ToneMappingPass(RenderTexture* sceneColor, RenderTexture* bloom,
+                                 SwapChain* swapChain, ZNShader* toneMapShader)
+    : PostProcessPass("ToneMapping", { "SceneColor", "Bloom" }, "BackBuffer")
+    , sceneColor(sceneColor), bloom(bloom), swapChain(swapChain), toneMapShader(toneMapShader)
 {
     CreateFullscreenQuad();
+    CreateConstantBuffer();
     CreateDescriptorHeap();
 }
 
@@ -57,12 +65,28 @@ void ToneMappingPass::CreateFullscreenQuad()
     quadVertexBufferView.StrideInBytes = sizeof(ToneMapVertex);
 }
 
+void ToneMappingPass::CreateConstantBuffer()
+{
+    GraphicsDevice* device = GraphicsContext::GetInstance().GetAs<GraphicsDevice>();
+
+    D3D12_HEAP_PROPERTIES heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+    uint32 bufferSize = (sizeof(ToneMapCB) + 255) & ~255;
+    D3D12_RESOURCE_DESC bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize);
+
+    ThrowIfFailed(device->Device()->CreateCommittedResource(
+        &heapProps, D3D12_HEAP_FLAG_NONE, &bufferDesc,
+        D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
+        IID_PPV_ARGS(&constantBuffer)));
+
+    constantBuffer->Map(0, nullptr, &mappedConstantBuffer);
+}
+
 void ToneMappingPass::CreateDescriptorHeap()
 {
     GraphicsDevice* device = GraphicsContext::GetInstance().GetAs<GraphicsDevice>();
 
-    // Layout must match the root signature's single descriptor table (b0~b4, t0~t6);
-    // tone mapping only ever populates the t0 slot (SceneColor).
+    // Layout must match the root signature's single descriptor table (b0~b4, t0~t6):
+    // b0 = tone mapping CB, t0 = SceneColor, t1 = Bloom.
     D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
     heapDesc.Type           = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
     heapDesc.NumDescriptors = CBV_REGISTER_COUNT + SRV_REGISTER_COUNT + 2;
@@ -71,7 +95,7 @@ void ToneMappingPass::CreateDescriptorHeap()
 }
 
 void ToneMappingPass::Draw(ID3D12GraphicsCommandList* cmd, RenderGraph& rg,
-                          RGResource* input, RGResource* output)
+                          const std::vector<RGResource*>& inputs, RGResource* output)
 {
     uint32 w = swapChain->Width(), h = swapChain->Height();
     D3D12_VIEWPORT viewport   = { 0, 0, static_cast<FLOAT>(w), static_cast<FLOAT>(h), 0.f, 1.f };
@@ -85,12 +109,27 @@ void ToneMappingPass::Draw(ID3D12GraphicsCommandList* cmd, RenderGraph& rg,
     if (toneMapShader)
         toneMapShader->Bind();
 
-    // Copy SceneColor's SRV into the t0 slot of our dedicated table heap
+    ToneMapCB cbData = {};
+    cbData.bloomIntensity = bloomIntensity;
+    memcpy(mappedConstantBuffer, &cbData, sizeof(ToneMapCB));
+
     GraphicsDevice* device = GraphicsContext::GetInstance().GetAs<GraphicsDevice>();
     uint32 descSize = device->Device()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-    D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = descriptorHeap->GetCPUDescriptorHandleForHeapStart();
+    D3D12_CPU_DESCRIPTOR_HANDLE heapStart = descriptorHeap->GetCPUDescriptorHandleForHeapStart();
+
+    // b0: tone mapping CB (bloom intensity)
+    D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+    cbvDesc.BufferLocation = constantBuffer->GetGPUVirtualAddress();
+    cbvDesc.SizeInBytes = static_cast<UINT>(constantBuffer->GetDesc().Width);
+    device->Device()->CreateConstantBufferView(&cbvDesc, heapStart);
+
+    // t0: SceneColor, t1: Bloom
+    D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = heapStart;
     cpuHandle.ptr += static_cast<SIZE_T>(descSize) * CBV_REGISTER_COUNT;
     device->Device()->CopyDescriptorsSimple(1, cpuHandle, sceneColor->GetSRVCpuHandle(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+    cpuHandle.ptr += descSize;
+    device->Device()->CopyDescriptorsSimple(1, cpuHandle, bloom->GetSRVCpuHandle(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
     ID3D12DescriptorHeap* heaps[] = { descriptorHeap.Get() };
     cmd->SetDescriptorHeaps(1, heaps);
