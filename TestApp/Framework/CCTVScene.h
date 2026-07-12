@@ -20,14 +20,13 @@ private:
     ZNFramework::ZNShader* defaultShader  = nullptr;
     ZNFramework::ZNShader* cctvShader    = nullptr; // forward_lit for offscreen pass
     ZNFramework::ZNShader* tvUnlitShader = nullptr; // screen_unlit for TV display
+    ZNFramework::ZNShader* glassShader   = nullptr; // forward + alpha blend, room.glb transparent materials (e.g. window glass)
 
     // Objects visible in the main view and monitored by CCTV
-    ZNFramework::ZNGameObject* floor   = nullptr;
     ZNFramework::ZNGameObject* boxA    = nullptr;
     ZNFramework::ZNGameObject* boxB    = nullptr;
     ZNFramework::ZNGameObject* boxC    = nullptr;
     ZNFramework::ZNGameObject* sphere  = nullptr;
-    ZNFramework::ZNMaterial*   floorMat  = nullptr;
     ZNFramework::ZNMaterial*   boxAMat   = nullptr;
     ZNFramework::ZNMaterial*   boxBMat   = nullptr;
     ZNFramework::ZNMaterial*   boxCMat   = nullptr;
@@ -39,7 +38,7 @@ private:
     ZNFramework::ZNGameObject*  tvScreen   = nullptr;
     ZNFramework::ZNMaterial*    tvMat      = nullptr;
 
-    // Room model (loaded from FBX)
+    // Room model (loaded from room.glb, same as MirrorBallScene)
     struct RoomModel {
         std::vector<ZNFramework::ZNGameObject*> objects;
         std::vector<ZNFramework::ZNMaterial*>   materials; // main (deferred) materials

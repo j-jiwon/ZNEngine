@@ -25,33 +25,28 @@ void CCTVScene::Initialize()
     tvUnlitShader = Platform::CreateShader();
     tvUnlitShader->Load(GetResourcePath() / L"Shaders" / L"screen_unlit.hlsli");
 
-    // --- Player camera ---
+    glassShader = Platform::CreateShader();
+    glassShader->Load(GetResourcePath() / L"Shaders" / L"forward_lit.hlsli");
+    glassShader->EnableAlphaBlend();
+    glassShader->DisableDepthWrite();
+
+    // --- Player camera --- same room.glb bounds as MirrorBallScene (X:[-1.43,1.43]
+    // Y:[0.10,1.87] Z:[-1.55,1.75]), so reuse its camera placement.
     ZNCamera* cam = new ZNCamera();
-    cam->SetPosition(ZNVector3(0.0f, 3.0f, -6.0f));
-    cam->SetRotation(-10.0f, 0.0f);
-    cam->SetMoveSpeed(3.0f);
+    cam->SetPosition(ZNVector3(2.636f, 3.195f, -3.519f));
+    cam->SetRotation(-20.63f, -41.90f);
+    cam->SetMoveSpeed(1.5f);
     SetCamera(cam);
 
     // --- Directional light ---
     ZNDirectionalLight* dirLight = Platform::CreateDirectionalLight();
     dirLight->SetDirection(ZNVector3(0.3f, -1.0f, 0.5f));
-    dirLight->SetIntensity(5.0f);
-    dirLight->SetColor(ZNVector3(0.6f, 0.6f, 0.6f));
+    dirLight->SetIntensity(2.5f);
+    dirLight->SetColor(ZNVector3(0.8f, 0.8f, 0.8f));
     dirLight->SetAmbientIntensity(0.8f);
     dirLight->SetShadowFocusPoint(ZNVector3(0.0f, 0.0f, 2.0f));
     dirLight->SetShadowBounds(20.0f, 0.1f, 50.0f);
     SetDirectionalLight(dirLight);
-
-    // --- Floor ---
-    floorMat = ZNMaterialFactory::CreatePBR(defaultShader,
-        ZNVector4(0.45f, 0.45f, 0.45f, 1.0f), 0.0f, 0.9f);
-    floor = new ZNGameObject();
-    floor->SetMesh(ZNMeshFactory::CreatePlane(8.0f));
-    floor->GetMesh()->SetMaterial(floorMat);
-    floor->SetMaterial(floorMat);
-    floor->SetName("Floor");
-    floor->SetCastShadow(false);
-    AddGameObject(floor);
 
     // --- CCTV infrastructure ---
     cctvRT = new RenderTexture();
@@ -59,8 +54,8 @@ void CCTVScene::Initialize()
 
     // Overhead camera: positioned high, pitching sharply down
     cctvCamera = new ZNCamera();
-    cctvCamera->SetPosition(ZNVector3(-1.1f, 2.f, -1.4f));
-    cctvCamera->SetRotation(-45.0f, 45.0f); // nearly straight down
+    cctvCamera->SetPosition(ZNVector3(-1.15f, 1.8f, 1.25f));
+    cctvCamera->SetRotation(-36.5f, 144.0f); // nearly straight down
     cctvCamera->SetPerspective(3.141592f / 3.0f, 512.0f / 288.0f, 0.1f, 50.0f); // 60deg wide
 
     // TV screen: CreatePlane is XZ; after -90°X rotation X=width, Z(local)=height(world)
@@ -83,40 +78,46 @@ void CCTVScene::Initialize()
     // Register CCTV camera for SceneDebugUI's common camera indicator
     RegisterDebugCamera(cctvCamera, "CCTV Overhead");
 
-    // --- Room model (FBX) ---
-    // Disabled: room.glb now lives in MirrorBallScene. Loading the same ~56MB / 57-material
-    // file a second time here (on top of MirrorBallScene's own copy, loaded every frame this
-    // scene's offscreen CCTV camera re-renders it) was creating hundreds of tiny per-texture
-    // D3D12 descriptor heaps and reliably crashing partway through load.
+    // --- Room model (glTF binary, same room.glb + loading logic as MirrorBallScene) ---
     {
         std::filesystem::path roomPath =
-            GetResourcePath() / L"Models" / L"__disabled__room.glb";
-
+            GetResourcePath() / L"Models" / L"room.glb";
 
         if (std::filesystem::exists(roomPath))
         {
-            std::cout << "[CCTVScene] Loading room.fbx..." << std::endl;
+            std::cout << "[CCTVScene] Loading room.glb..." << std::endl;
             ZNModelLoader* loader = Platform::CreateModelLoader();
             ModelData modelData;
             if (loader->Load(roomPath, modelData))
             {
-                // One material per material slot from FBX; apply flat-color fallback only if no albedo texture
+                // One material per glTF material slot; textures (embedded or file-based) are
+                // loaded and bound automatically. Flat-color fallback only kicks in when a
+                // slot has no albedo texture and its baked color is near-black. Materials
+                // with baseColor alpha < 1 (e.g. window glass) can't be represented by the
+                // deferred G-buffer pass (opaque, no blending) - route them through
+                // glassShader (forward + alpha blend) instead.
+                std::vector<bool> roomMatIsTransparent;
                 for (const auto& matData : modelData.materials)
                 {
-                    MaterialData patchedData = matData;
-                    bool hasAlbedoTex = !patchedData.texturePaths[static_cast<size_t>(TextureType::Albedo)].empty();
+                    MaterialData patched = matData;
+                    bool hasAlbedoTex =
+                        !patched.texturePaths[static_cast<size_t>(TextureType::Albedo)].empty() ||
+                        !patched.embeddedTextureData[static_cast<size_t>(TextureType::Albedo)].empty();
+                    bool isTransparent = patched.params.albedoColor.w < 0.98f;
 
-                    if (!hasAlbedoTex)
+                    if (!hasAlbedoTex && !isTransparent)
                     {
-                        ZNVector4& albedo = patchedData.params.albedoColor;
+                        ZNVector4& albedo = patched.params.albedoColor;
                         float lum = albedo.x * 0.299f + albedo.y * 0.587f + albedo.z * 0.114f;
                         if (lum < 0.05f)
-                            albedo = ZNVector4(0.8f, 0.75f, 0.70f, 1.0f);
-                        if (patchedData.params.roughness < 0.25f)
-                            patchedData.params.roughness = 0.25f;
+                            albedo = ZNVector4(0.8f, 0.75f, 0.70f, 1.0f); // fallback warm-white
+                        if (patched.params.roughness < 0.25f)
+                            patched.params.roughness = 0.25f;
                     }
 
-                    room.materials.push_back(ZNMaterialFactory::CreatePBRFromData(defaultShader, patchedData));
+                    room.materials.push_back(ZNMaterialFactory::CreatePBRFromData(
+                        isTransparent ? glassShader : defaultShader, patched));
+                    roomMatIsTransparent.push_back(isTransparent);
                 }
                 if (room.materials.empty())
                 {
@@ -124,6 +125,7 @@ void CCTVScene::Initialize()
                     fallback.params.albedoColor = ZNVector4(0.8f, 0.75f, 0.70f, 1.0f);
                     fallback.params.roughness   = 0.6f;
                     room.materials.push_back(ZNMaterialFactory::CreatePBRFromData(defaultShader, fallback));
+                    roomMatIsTransparent.push_back(false);
                 }
 
                 for (const auto& meshData : modelData.meshes)
@@ -141,9 +143,12 @@ void CCTVScene::Initialize()
                     obj->SetMaterial(mat);
                     obj->SetName("Room_" + std::to_string(room.objects.size()));
                     obj->SetTag("Room");
-                    obj->GetTransform().scale = ZNVector3(1.0f, 1.0f, 1.0f);
                     obj->SetCastShadow(false);
-                    AddGameObject(obj);
+
+                    if (roomMatIsTransparent[matIdx])
+                        AddForwardGameObject(obj);
+                    else
+                        AddGameObject(obj);
                     room.objects.push_back(obj);
                 }
                 std::cout << "[CCTVScene] Room loaded: " << room.objects.size()

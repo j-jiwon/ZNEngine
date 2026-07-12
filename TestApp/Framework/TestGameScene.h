@@ -34,20 +34,14 @@ private:
         std::vector<ZNFramework::ZNTexture*> textures;
     } models;
 
-    struct MonsterModel {
-        std::vector<ZNFramework::ZNGameObject*> objects;
-        std::vector<ZNFramework::ZNMaterial*>   materials; // one per glTF material slot
-    };
-    MonsterModel monster;  // Monster_S_0.glb, deferred pass
-
-    // Scene objects (always visible)
+    // Scene objects (always visible): a PBR test grid of spheres — rows vary roughness
+    // (row 0 = roughest 1.0, top, down to smoothest 0.0, bottom), columns vary metallic
+    // (col 0 = non-metallic 0.0, left, up to fully metallic 1.0, right).
     struct SceneObjects {
-        ZNFramework::ZNGameObject* floor = nullptr;
-        ZNFramework::ZNGameObject* cube = nullptr;
-        ZNFramework::ZNGameObject* sphere = nullptr;
-        ZNFramework::ZNMaterial* floorMaterial = nullptr;
-        ZNFramework::ZNMaterial* cubeMaterial = nullptr;
-        ZNFramework::ZNMaterial* sphereMaterial = nullptr;
+        static constexpr int kGridRows = 5;
+        static constexpr int kGridCols = 8;
+        std::vector<ZNFramework::ZNGameObject*> spheres;
+        std::vector<ZNFramework::ZNMaterial*> sphereMaterials; // one per (row,col), index = row*kGridCols+col
     } scene;
 
     // Debug visuals (toggle with F1, or per-item via Debug window)
@@ -60,15 +54,5 @@ private:
     // Interactive state
     ZNFramework::ZNGameObject* turntableObj = nullptr;
     bool turntableEnabled = false;
-
-    // CCTV multi-camera demo
-    struct CCTVSetup {
-        ZNFramework::ZNCamera*      camera       = nullptr;
-        ZNFramework::RenderTexture* rt           = nullptr;
-        ZNFramework::ZNShader*      fwdShader    = nullptr; // forward_pbr for CCTV offscreen view
-        ZNFramework::ZNShader*      tvUnlitShader= nullptr; // screen_unlit for TV display
-        ZNFramework::ZNMaterial*    tvMat        = nullptr;
-        ZNFramework::ZNGameObject*  tvObj        = nullptr;
-    } cctv;
 
 };
