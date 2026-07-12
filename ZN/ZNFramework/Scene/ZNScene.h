@@ -95,6 +95,15 @@ namespace ZNFramework
 		// the active scene changes (ApplicationContext::SetScene() does this automatically).
 		void ApplyEnvCubemap();
 
+		// Loads a static equirectangular panorama image as the visible background — drawn
+		// wherever the depth buffer has no scene geometry (see deferred_lighting.hlsli).
+		// Separate from AddCubemapCapture/SetEnvCubemapTexture above, which only feed
+		// reflections/IBL and are never drawn directly.
+		void SetSkyboxTexture(const std::wstring& panoramaPath, uint32 faceSize = 512);
+
+		// Same re-apply-on-scene-switch pattern as ApplyEnvCubemap(), for the skybox slot.
+		void ApplySkybox();
+
 	protected:
 		std::vector<ZNGameObject*> gameObjects;
 		std::vector<ZNGameObject*> forwardGameObjects;  // Objects rendered in forward pass
@@ -126,5 +135,9 @@ namespace ZNFramework
 		// were), applied to CommandQueue only via ApplyEnvCubemap().
 		D3D12_CPU_DESCRIPTOR_HANDLE ownedEnvCubemapSRV = {};
 		bool hasOwnedEnvCubemap = false;
+
+		// Set by SetSkyboxTexture(), applied to CommandQueue only via ApplySkybox().
+		D3D12_CPU_DESCRIPTOR_HANDLE ownedSkyboxSRV = {};
+		bool hasOwnedSkybox = false;
 	};
 }

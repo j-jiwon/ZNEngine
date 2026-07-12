@@ -308,3 +308,21 @@ void ZNScene::ApplyEnvCubemap()
 	else
 		cmdQ->ClearEnvCubemapSRV();
 }
+
+void ZNScene::SetSkyboxTexture(const std::wstring& panoramaPath, uint32 faceSize)
+{
+	auto* cubeTex = new EquirectCubeTexture();
+	cubeTex->Init(panoramaPath, faceSize);
+
+	ownedSkyboxSRV = cubeTex->GetSRVCpuHandle();
+	hasOwnedSkybox = true;
+}
+
+void ZNScene::ApplySkybox()
+{
+	CommandQueue* cmdQ = GraphicsContext::GetInstance().GetAs<CommandQueue>();
+	if (hasOwnedSkybox)
+		cmdQ->SetSkyboxSRV(ownedSkyboxSRV);
+	else
+		cmdQ->ClearSkyboxSRV();
+}

@@ -107,6 +107,14 @@ public:
     D3D12_CPU_DESCRIPTOR_HANDLE GetEnvCubemapSRV() const { return envCubemapSRV; }
     bool HasEnvCubemap() const { return hasEnvCubemap; }
 
+    // Visible background skybox (separate from the reflection env cubemap above — this one
+    // is actually drawn where the depth buffer has no geometry, see deferred_lighting.hlsli).
+    // Same single-slot-per-active-scene pattern as the env cubemap.
+    void SetSkyboxSRV(D3D12_CPU_DESCRIPTOR_HANDLE handle) { skyboxSRV = handle; hasSkybox = true; }
+    void ClearSkyboxSRV() { hasSkybox = false; }
+    D3D12_CPU_DESCRIPTOR_HANDLE GetSkyboxSRV() const { return skyboxSRV; }
+    bool HasSkybox() const { return hasSkybox; }
+
 private:
     void BuildRenderGraph();
 
@@ -153,6 +161,9 @@ private:
 
     D3D12_CPU_DESCRIPTOR_HANDLE envCubemapSRV = {};
     bool                        hasEnvCubemap = false;
+
+    D3D12_CPU_DESCRIPTOR_HANDLE skyboxSRV = {};
+    bool                        hasSkybox = false;
 
     // Dedicated forward-pass point light upload buffer (not shared with transform/material CB)
     ComPtr<ID3D12Resource>       fwdPointLightBuffer;

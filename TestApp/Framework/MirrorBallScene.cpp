@@ -303,8 +303,16 @@ void MirrorBallScene::Initialize()
     envCaptureShader = Platform::CreateShader();
     envCaptureShader->Load(GetResourcePath() / L"Shaders" / L"forward_pbr.hlsli");
 
-    AddCubemapCapture(ZNVector3(0.f, 1.55f, 0.1f), 0.05f, 10.f, 256,
+    AddCubemapCapture(ZNVector3(0.f, 1.55f, 0.1f), 0.05f, 10.f, 512,
         "MirrorBallEnvCube", envCaptureShader, mirrorBall.objects);
+
+    // Visible background skybox — separate from the reflection cubemap above; drawn
+    // wherever the camera doesn't see room geometry (e.g. through the window).
+    // EquirectCubeTexture resamples with a single bilinear tap per destination texel (no
+    // supersampling — that was tried and was too slow to load), so quality comes from the
+    // source panorama's own resolution rather than faceSize/filtering tricks. Use a high-res
+    // source (this one's 6000x3000) and keep faceSize reasonably matched to it.
+    SetSkyboxTexture(GetResourcePath() / L"Textures" / L"night_free_Bg.jpg", 2048);
 }
 
 void MirrorBallScene::Update(float deltaTime)
