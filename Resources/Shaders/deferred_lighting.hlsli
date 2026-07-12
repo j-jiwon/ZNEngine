@@ -65,7 +65,10 @@ Texture2D depthTexture : register(t2);
 Texture2D worldPosTexture : register(t3);
 Texture2D armTexture : register(t4);  // ARM: R=AO, G=Roughness, B=Metallic
 Texture2D shadowMap : register(t5);   // Shadow map depth texture
-TextureCube envCube : register(t6);   // Captured environment reflection (static bake); black = none
+TextureCube envCube : register(t6);   // Captured environment cubemap (static bake); IBLBaker's source, not sampled directly here
+TextureCube irradianceCube : register(t7);   // IBL diffuse irradiance (cosine-convolved envCube); black = not baked yet
+TextureCube prefilteredCube : register(t8);  // IBL specular, roughness-mip chain (GGX prefiltered envCube); black = not baked yet
+Texture2D brdfLUT : register(t9);            // Split-sum BRDF LUT (scale,bias in .rg)
 
 SamplerState sampler0 : register(s0);
 SamplerComparisonState shadowSampler : register(s1);  // Comparison sampler for PCF
@@ -258,8 +261,6 @@ float4 PS_Main(VS_OUT input) : SV_Target
     float3 V = normalize(viewPosition - worldPos);
     float3 albedo = baseColor.rgb;
 
-    // Ambient lighting (with AO)
-    float3 ambient = float3(0.03f, 0.03f, 0.03f) * albedo * ao * dirAmbientIntensity;
     float3 Lo = float3(0.0f, 0.0f, 0.0f);
 
     // DIRECTIONAL LIGHT (PBR) with Shadow
@@ -357,19 +358,30 @@ float4 PS_Main(VS_OUT input) : SV_Target
         Lo += CalculatePBR(N, V, L_pt, radiance_pt, albedo, metallic, roughness);
     }
 
-    // Environment reflection (static-baked cubemap, no prefiltering yet — mirror-sharp
-    // regardless of roughness beyond this crude (1-roughness) fade). Gated by `metallic`
-    // directly (not just Fresnel/F0) so it's confined to metallic surfaces (mirror ball,
-    // monster tiles) — Fresnel alone approaches 1 at grazing angles even for dielectrics
-    // (F0=0.04 walls/floor), which was leaking a rim of the vividly-colored captured
-    // cubemap onto every surface and made the room look like it was shifting color as
-    // the camera moved. A black (unbaked) cube contributes nothing.
-    float3 F0env = lerp(float3(0.04f, 0.04f, 0.04f), albedo, metallic);
-    float3 Fenv = FresnelSchlick(max(dot(N, V), 0.0f), F0env);
-    float3 envSample = envCube.Sample(sampler0, reflect(-V, N)).rgb;
-    float3 envReflection = envSample * Fenv * (1.0f - roughness) * metallic;
+    // Image-Based Lighting (split-sum approximation, Karis 2013): diffuse irradiance +
+    // roughness-prefiltered specular + BRDF LUT. irradianceCube/prefilteredCube are
+    // baked by IBLBaker from envCube (see ibl_irradiance.hlsli/ibl_prefilter.hlsli);
+    // both read as black until baked, so IBL simply contributes nothing until then.
+    float NdotV = max(dot(N, V), 0.0f);
+    float3 F0 = lerp(float3(0.04f, 0.04f, 0.04f), albedo, metallic);
+    float3 F = FresnelSchlick(NdotV, F0);
 
-    // Combine ambient, direct lighting and environment reflection
-    float3 finalColor = ambient + Lo + envReflection;
+    // Energy conservation: only the non-reflected (non-metallic) portion contributes diffuse.
+    float3 kD = (1.0f - F) * (1.0f - metallic);
+    float3 diffuseIBL = irradianceCube.Sample(sampler0, N).rgb * albedo;
+
+    // Split-sum specular: sample the prefiltered mip matching this surface's roughness,
+    // scale by (F0 * brdf.x + brdf.y) — the precomputed Fresnel/geometry integral (t9).
+    // kPrefilterMipCount-1 must match IBLBaker::kPrefilterMips-1 (currently 5 mips -> 4.0).
+    static const float kMaxPrefilterMip = 4.0f;
+    float3 R = reflect(-V, N);
+    float3 prefilteredColor = prefilteredCube.SampleLevel(sampler0, R, roughness * kMaxPrefilterMip).rgb;
+    float2 brdf = brdfLUT.Sample(sampler0, float2(NdotV, roughness)).rg;
+    float3 specularIBL = prefilteredColor * (F0 * brdf.x + brdf.y);
+
+    float3 ambient = (kD * diffuseIBL + specularIBL) * ao * dirAmbientIntensity;
+
+    // Combine ambient IBL and direct lighting
+    float3 finalColor = ambient + Lo;
     return float4(finalColor, baseColor.a);
 }

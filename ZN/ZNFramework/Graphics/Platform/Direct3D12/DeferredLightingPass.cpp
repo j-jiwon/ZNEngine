@@ -4,6 +4,7 @@
 #include "Shader.h"
 #include "GraphicsDevice.h"
 #include "CommandQueue.h"
+#include "IBLBaker.h"
 #include "DirectionalLight.h"
 #include "PointLight.h"
 #include "ZNFramework.h"
@@ -116,7 +117,7 @@ void DeferredLightingPass::Init()
     // Create descriptor heap for lighting pass
     D3D12_DESCRIPTOR_HEAP_DESC lightingHeapDesc = {};
     lightingHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-    lightingHeapDesc.NumDescriptors = 12; // b0~b4 (5) + t0~t6 (8: gbuffer x5, shadow map, env cubemap)
+    lightingHeapDesc.NumDescriptors = TOTAL_DESCRIPTOR_TABLE_SIZE; // b0~b4 (5) + t0~t9 (10: gbuffer x5, shadow map, env cube, IBL irradiance/prefiltered/BRDF LUT)
     lightingHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
     ThrowIfFailed(device->Device()->CreateDescriptorHeap(&lightingHeapDesc, IID_PPV_ARGS(&lightingDescriptorHeap)));
 
@@ -345,6 +346,24 @@ void DeferredLightingPass::Render(GBufferManager* gbufferManager, ShadowMap* sha
             ? queue->GetEnvCubemapSRV()
             : fallbackEnvCube->GetSRVCpuHandle();
         device->Device()->CopyDescriptorsSimple(1, cpuHandle, envSRV, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    }
+
+    // Copy IBL SRVs (t7 irradiance, t8 prefiltered specular, t9 BRDF LUT) — IBLBaker
+    // itself falls back to black irradiance/prefiltered cubes until BakeEnvironment()
+    // has actually run, so no extra fallback handling is needed here.
+    {
+        IBLBaker* iblBaker = queue->GetIBLBaker();
+        cpuHandle.ptr += lightingDescSize;
+        if (iblBaker)
+            device->Device()->CopyDescriptorsSimple(1, cpuHandle, iblBaker->GetIrradianceSRV(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+        cpuHandle.ptr += lightingDescSize;
+        if (iblBaker)
+            device->Device()->CopyDescriptorsSimple(1, cpuHandle, iblBaker->GetPrefilteredSRV(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+        cpuHandle.ptr += lightingDescSize;
+        if (iblBaker)
+            device->Device()->CopyDescriptorsSimple(1, cpuHandle, iblBaker->GetBRDFLUTSRV(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
     }
 
     // Set descriptor heap

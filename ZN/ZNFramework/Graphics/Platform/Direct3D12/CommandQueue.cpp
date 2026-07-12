@@ -10,6 +10,7 @@
 #include "DebugViewportRenderer.h"
 #include "ShadowMap.h"
 #include "BloomChain.h"
+#include "IBLBaker.h"
 #include "Passes/ShadowPass.h"
 #include "Passes/GBufferPass.h"
 #include "Passes/DeferredLightingRenderPass.h"
@@ -19,6 +20,7 @@
 #include "Passes/ImGuiRenderPass.h"
 #include "Passes/OffscreenCameraPass.h"
 #include "Passes/CubeCapturePass.h"
+#include "Passes/IBLBakePass.h"
 #include "ZNFramework.h"
 
 using namespace ZNFramework;
@@ -150,6 +152,13 @@ void CommandQueue::BuildRenderGraph()
             tdh->GetDescriptorHeap().Get(),
             isForwardPass,
             entry.renderCb));
+    }
+
+    // --- IBL bake (BRDF LUT always; irradiance/prefiltered once an env cubemap is
+    // active) — runs before GBuffer/DeferredLighting so this frame's lighting already
+    // sees fresh data, same as CubeCapturePass above it. ---
+    if (iblBaker) {
+        renderGraph.AddPass(std::make_unique<IBLBakePass>(iblBaker, this));
     }
 
     // --- GBuffer pass (scene geometry) ---

@@ -17,6 +17,7 @@ class DeferredLightingPass;
 class DebugViewportRenderer;
 class ShadowMap;
 class BloomChain;
+class IBLBaker;
 class ZNCamera;
 
 class CommandQueue : public ZNCommandQueue
@@ -42,6 +43,7 @@ public:
     ShadowMap*            GetShadowMap()         { return shadowMap; }
     RenderTexture*        GetSceneColorRT()      { return sceneColorRT; }
     BloomChain*           GetBloomChain()        { return bloomChain; }
+    IBLBaker*             GetIBLBaker()          { return iblBaker; }
 
     void SetGBufferManager(GBufferManager* manager)            { gbufferManager = manager; }
     void SetDeferredLightingPass(DeferredLightingPass* pass)   { deferredLightingPass = pass; }
@@ -49,6 +51,7 @@ public:
     void SetShadowMap(ShadowMap* shadow)                       { shadowMap = shadow; }
     void SetSceneColorRT(RenderTexture* rt)                    { sceneColorRT = rt; }
     void SetBloomChain(BloomChain* chain)                      { bloomChain = chain; }
+    void SetIBLBaker(IBLBaker* baker)                          { iblBaker = baker; }
     void SetShadowRenderCallback(std::function<void()> cb)     { shadowRenderCallback = std::move(cb); }
     void SetGBufferRenderCallback(std::function<void()> cb)    { gbufferRenderCallback = std::move(cb); }
 
@@ -124,6 +127,7 @@ private:
     ShadowMap*             shadowMap             = nullptr;
     RenderTexture*         sceneColorRT          = nullptr;
     BloomChain*            bloomChain            = nullptr;
+    IBLBaker*              iblBaker              = nullptr;
 
     struct OffscreenCameraEntry {
         ZNCamera*       camera;

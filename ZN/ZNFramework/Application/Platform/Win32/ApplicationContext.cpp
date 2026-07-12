@@ -12,6 +12,7 @@
 #include "ZNFramework/Graphics/Platform/Direct3D12/GBufferManager.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/RenderTexture.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/BloomChain.h"
+#include "ZNFramework/Graphics/Platform/Direct3D12/IBLBaker.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/DeferredLightingPass.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/DebugViewportRenderer.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/ShadowMap.h"
@@ -207,6 +208,12 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
         BloomChain* bloomChain = new BloomChain();
         bloomChain->Init(inWindow->Width(), inWindow->Height());
         cmdQueue->SetBloomChain(bloomChain);
+
+        // Initialize IBL baker (diffuse irradiance + specular prefilter + BRDF LUT).
+        // Fixed small resolutions independent of window size — no resize hook needed.
+        IBLBaker* iblBaker = new IBLBaker();
+        iblBaker->Init();
+        cmdQueue->SetIBLBaker(iblBaker);
     }
 
     commandQueue->WaitSync();

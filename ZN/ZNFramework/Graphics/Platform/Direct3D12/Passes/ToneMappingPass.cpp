@@ -85,11 +85,11 @@ void ToneMappingPass::CreateDescriptorHeap()
 {
     GraphicsDevice* device = GraphicsContext::GetInstance().GetAs<GraphicsDevice>();
 
-    // Layout must match the root signature's single descriptor table (b0~b4, t0~t6):
+    // Layout must match the root signature's single descriptor table (b0~b4, t0~t9):
     // b0 = tone mapping CB, t0 = SceneColor, t1 = Bloom.
     D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
     heapDesc.Type           = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-    heapDesc.NumDescriptors = CBV_REGISTER_COUNT + SRV_REGISTER_COUNT + 2;
+    heapDesc.NumDescriptors = TOTAL_DESCRIPTOR_TABLE_SIZE;
     heapDesc.Flags          = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
     ThrowIfFailed(device->Device()->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&descriptorHeap)));
 }

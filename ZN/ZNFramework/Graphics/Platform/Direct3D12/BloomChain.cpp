@@ -131,7 +131,7 @@ void BloomChain::CreateDescriptorHeaps()
 
     D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
     heapDesc.Type           = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-    heapDesc.NumDescriptors = CBV_REGISTER_COUNT + SRV_REGISTER_COUNT + 2; // matches root sig table: b0~b4, t0~t6
+    heapDesc.NumDescriptors = TOTAL_DESCRIPTOR_TABLE_SIZE; // matches root sig table: b0~b4, t0~t9
     heapDesc.Flags          = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 
     ThrowIfFailed(device->Device()->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&thresholdHeap)));
