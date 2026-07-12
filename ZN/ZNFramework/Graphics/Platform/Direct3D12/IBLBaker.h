@@ -20,18 +20,21 @@ namespace ZNFramework
         // Pure math, no scene dependency — bakes once, unconditionally, on first call.
         void BakeBRDFLUT(ID3D12GraphicsCommandList* cmd);
 
-        // Convolves irradiance + prefiltered specular from srcEnvCubeSRV. Bakes once,
-        // the first time it's called (expected to be called with a real, non-fallback
-        // source — the caller is responsible for only calling this once one is active).
-        void BakeEnvironment(D3D12_CPU_DESCRIPTOR_HANDLE srcEnvCubeSRV, ID3D12GraphicsCommandList* cmd);
+        // Called every frame by IBLBakePass. hasEnvSource should mirror the active scene's
+        // CommandQueue::HasEnvCubemap() — when false, GetIrradianceSRV()/GetPrefilteredSRV()
+        // fall back to black without discarding whatever was last baked (so switching back to
+        // a previously-seen source doesn't need a re-bake). When true and srcEnvCubeSRV
+        // differs from the last-baked source (e.g. a different scene's cubemap), re-bakes —
+        // a one-shot cost per distinct source, not per frame.
+        void UpdateEnvironment(bool hasEnvSource, D3D12_CPU_DESCRIPTOR_HANDLE srcEnvCubeSRV, ID3D12GraphicsCommandList* cmd);
 
         D3D12_CPU_DESCRIPTOR_HANDLE GetIrradianceSRV() const
         {
-            return envBaked ? irradianceCube.GetSRVCpuHandle() : fallbackIrradianceCube.GetSRVCpuHandle();
+            return envActive ? irradianceCube.GetSRVCpuHandle() : fallbackIrradianceCube.GetSRVCpuHandle();
         }
         D3D12_CPU_DESCRIPTOR_HANDLE GetPrefilteredSRV() const
         {
-            return envBaked ? prefilteredCube.GetSRVCpuHandle() : fallbackPrefilteredCube.GetSRVCpuHandle();
+            return envActive ? prefilteredCube.GetSRVCpuHandle() : fallbackPrefilteredCube.GetSRVCpuHandle();
         }
         D3D12_CPU_DESCRIPTOR_HANDLE GetBRDFLUTSRV() const { return brdfLUT.GetSRVCpuHandle(); }
 
@@ -95,6 +98,12 @@ namespace ZNFramework
         ComPtr<ID3D12DescriptorHeap> brdfLUTHeap;
 
         bool brdfBaked = false;
-        bool envBaked  = false;
+
+        // True iff the most recent UpdateEnvironment() call had hasEnvSource=true — drives
+        // the fallback in GetIrradianceSRV()/GetPrefilteredSRV(). Independent of whether a
+        // re-bake actually ran that call (see lastBakedSRV/hasBakedAny).
+        bool envActive = false;
+        bool hasBakedAny = false;
+        D3D12_CPU_DESCRIPTOR_HANDLE lastBakedSRV = {};
     };
 }

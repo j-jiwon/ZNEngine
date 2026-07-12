@@ -101,6 +101,9 @@ public:
     // the deferred lighting pass for metallic-surface reflections. Falls back to a black
     // cube (no reflection contribution) when no scene has registered one.
     void SetEnvCubemapSRV(D3D12_CPU_DESCRIPTOR_HANDLE handle) { envCubemapSRV = handle; hasEnvCubemap = true; }
+    // Deactivates the env cubemap slot (e.g. the newly active scene never registered one) —
+    // does not touch envCubemapSRV, so re-activating a scene that did doesn't need a re-set.
+    void ClearEnvCubemapSRV() { hasEnvCubemap = false; }
     D3D12_CPU_DESCRIPTOR_HANDLE GetEnvCubemapSRV() const { return envCubemapSRV; }
     bool HasEnvCubemap() const { return hasEnvCubemap; }
 

@@ -1,6 +1,7 @@
 #pragma once
 #include "../ZNTransform.h"
 #include "../ZNInputDef.h"
+#include <d3d12.h>
 #include <vector>
 #include <string>
 #include <unordered_map>
@@ -86,6 +87,14 @@ namespace ZNFramework
 		// whatever AddCubemapCapture set, since only one env cubemap SRV is bound at a time.
 		void SetEnvCubemapTexture(const std::wstring& panoramaPath, uint32 faceSize = 512);
 
+		// Re-applies this scene's own env cubemap (or clears it, if this scene never called
+		// AddCubemapCapture/SetEnvCubemapTexture) to the single global CommandQueue slot.
+		// AddCubemapCapture/SetEnvCubemapTexture only record the source at Initialize() time —
+		// they don't push it live, since every scene is eagerly Initialize()'d up front
+		// (see App.cpp) and would otherwise clobber each other's slot. Call this whenever
+		// the active scene changes (ApplicationContext::SetScene() does this automatically).
+		void ApplyEnvCubemap();
+
 	protected:
 		std::vector<ZNGameObject*> gameObjects;
 		std::vector<ZNGameObject*> forwardGameObjects;  // Objects rendered in forward pass
@@ -112,5 +121,10 @@ namespace ZNFramework
 			std::unordered_map<ZNMaterial*, ZNMaterial*> matCache;
 		};
 		std::vector<CubemapCaptureEntry> cubemapCaptureEntries;
+
+		// Set by AddCubemapCapture/SetEnvCubemapTexture (whichever was called last, if both
+		// were), applied to CommandQueue only via ApplyEnvCubemap().
+		D3D12_CPU_DESCRIPTOR_HANDLE ownedEnvCubemapSRV = {};
+		bool hasOwnedEnvCubemap = false;
 	};
 }

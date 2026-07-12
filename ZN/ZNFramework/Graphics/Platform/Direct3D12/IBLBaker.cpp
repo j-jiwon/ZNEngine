@@ -245,9 +245,25 @@ void IBLBaker::BakeBRDFLUT(ID3D12GraphicsCommandList* cmd)
     brdfBaked = true;
 }
 
-void IBLBaker::BakeEnvironment(D3D12_CPU_DESCRIPTOR_HANDLE srcEnvCubeSRV, ID3D12GraphicsCommandList* cmd)
+void IBLBaker::UpdateEnvironment(bool hasEnvSource, D3D12_CPU_DESCRIPTOR_HANDLE srcEnvCubeSRV, ID3D12GraphicsCommandList* cmd)
 {
-    if (envBaked) return;
+    envActive = hasEnvSource;
+    if (!hasEnvSource) return;
+
+    if (hasBakedAny && lastBakedSRV.ptr == srcEnvCubeSRV.ptr) return; // already baked this exact source
+
+    if (hasBakedAny)
+    {
+        // Re-baking a different source: both cubes are currently PIXEL_SHADER_RESOURCE
+        // (left there by the previous bake) — flip back to RENDER_TARGET before writing.
+        CD3DX12_RESOURCE_BARRIER barriers[2] = {
+            CD3DX12_RESOURCE_BARRIER::Transition(irradianceCube.GetResource(),
+                D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET),
+            CD3DX12_RESOURCE_BARRIER::Transition(prefilteredCube.GetResource(),
+                D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET),
+        };
+        cmd->ResourceBarrier(2, barriers);
+    }
 
     // Irradiance: one draw per face, full hemisphere convolution.
     for (uint32 face = 0; face < 6; ++face)
@@ -299,5 +315,6 @@ void IBLBaker::BakeEnvironment(D3D12_CPU_DESCRIPTOR_HANDLE srcEnvCubeSRV, ID3D12
         cmd->ResourceBarrier(1, &barrier);
     }
 
-    envBaked = true;
+    lastBakedSRV = srcEnvCubeSRV;
+    hasBakedAny = true;
 }

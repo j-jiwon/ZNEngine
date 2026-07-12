@@ -287,7 +287,8 @@ void ZNScene::AddCubemapCapture(const ZNVector3& position, float nearZ, float fa
 		}
 	});
 
-	cmdQ->SetEnvCubemapSRV(cubeRT->GetSRVCpuHandle());
+	ownedEnvCubemapSRV = cubeRT->GetSRVCpuHandle();
+	hasOwnedEnvCubemap = true;
 }
 
 void ZNScene::SetEnvCubemapTexture(const std::wstring& panoramaPath, uint32 faceSize)
@@ -295,6 +296,15 @@ void ZNScene::SetEnvCubemapTexture(const std::wstring& panoramaPath, uint32 face
 	auto* cubeTex = new EquirectCubeTexture();
 	cubeTex->Init(panoramaPath, faceSize);
 
+	ownedEnvCubemapSRV = cubeTex->GetSRVCpuHandle();
+	hasOwnedEnvCubemap = true;
+}
+
+void ZNScene::ApplyEnvCubemap()
+{
 	CommandQueue* cmdQ = GraphicsContext::GetInstance().GetAs<CommandQueue>();
-	cmdQ->SetEnvCubemapSRV(cubeTex->GetSRVCpuHandle());
+	if (hasOwnedEnvCubemap)
+		cmdQ->SetEnvCubemapSRV(ownedEnvCubemapSRV);
+	else
+		cmdQ->ClearEnvCubemapSRV();
 }

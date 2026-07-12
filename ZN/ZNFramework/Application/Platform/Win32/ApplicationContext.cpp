@@ -275,6 +275,13 @@ void ApplicationContext::SetScene(ZNScene* scene)
 {
     currentScene = scene;
 
+    // Re-apply (or clear) this scene's own env cubemap — every scene is eagerly
+    // Initialize()'d up front (see App.cpp), so without this the single global
+    // CommandQueue env-cubemap slot would just be whatever the last-initialized
+    // scene happened to register, for every scene.
+    if (currentScene)
+        currentScene->ApplyEnvCubemap();
+
     if (commandQueue && currentScene)
     {
         // Forward pass: scene UI + transparent objects
