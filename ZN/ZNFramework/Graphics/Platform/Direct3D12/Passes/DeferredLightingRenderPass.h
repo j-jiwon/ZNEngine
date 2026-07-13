@@ -4,6 +4,7 @@
 #include "../GBufferManager.h"
 #include "../ShadowMap.h"
 #include "../SwapChain.h"
+#include "../RenderTexture.h"
 
 namespace ZNFramework {
 
@@ -12,18 +13,20 @@ public:
     DeferredLightingRenderPass(DeferredLightingPass* lightingPass,
                                GBufferManager* gbufMgr,
                                ShadowMap* shadowMap,
-                               SwapChain* swapChain)
+                               SwapChain* swapChain,
+                               RenderTexture* sceneColor)
         : RenderPass("DeferredLighting")
         , lightingPass(lightingPass), gbufMgr(gbufMgr)
-        , shadowMap(shadowMap), swapChain(swapChain)
+        , shadowMap(shadowMap), swapChain(swapChain), sceneColor(sceneColor)
     {}
 
     void Execute(ID3D12GraphicsCommandList* cmd, RenderGraph& rg) override {
-        // Transition back buffer → RENDER_TARGET
-        RGResource* backBuf = rg.GetResource("BackBuffer");
-        rg.Transition(cmd, backBuf, D3D12_RESOURCE_STATE_RENDER_TARGET);
+        // Transition SceneColor (HDR) → RENDER_TARGET. Tone mapping (later in the
+        // graph) reads this and writes the LDR back buffer.
+        RGResource* sceneColorRes = rg.GetResource("SceneColor");
+        rg.Transition(cmd, sceneColorRes, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-        D3D12_CPU_DESCRIPTOR_HANDLE rtv = swapChain->GetBackRTV();
+        D3D12_CPU_DESCRIPTOR_HANDLE rtv = sceneColor->GetRTV();
         float black[4] = { 0.f, 0.f, 0.f, 1.f };
         cmd->ClearRenderTargetView(rtv, black, 0, nullptr);
         cmd->OMSetRenderTargets(1, &rtv, FALSE, nullptr);
@@ -43,6 +46,7 @@ private:
     GBufferManager*       gbufMgr;
     ShadowMap*            shadowMap;
     SwapChain*            swapChain;
+    RenderTexture*        sceneColor;
 };
 
 } // namespace ZNFramework

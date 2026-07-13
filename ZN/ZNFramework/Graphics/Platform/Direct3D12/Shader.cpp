@@ -184,3 +184,21 @@ void Shader::EnableAlphaBlend()
 	ThrowIfFailed(device->Device()->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&pipelineState)));
 	CreateWireframePSO();
 }
+
+void Shader::EnableAdditiveBlend()
+{
+	D3D12_RENDER_TARGET_BLEND_DESC& rtBlend = pipelineDesc.BlendState.RenderTarget[0];
+	rtBlend.BlendEnable = TRUE;
+	rtBlend.SrcBlend = D3D12_BLEND_ONE;
+	rtBlend.DestBlend = D3D12_BLEND_ONE;
+	rtBlend.BlendOp = D3D12_BLEND_OP_ADD;
+	rtBlend.SrcBlendAlpha = D3D12_BLEND_ONE;
+	rtBlend.DestBlendAlpha = D3D12_BLEND_ONE;
+	rtBlend.BlendOpAlpha = D3D12_BLEND_OP_ADD;
+	rtBlend.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+
+	GraphicsDevice* device = GraphicsContext::GetInstance().GetAs<GraphicsDevice>();
+	pipelineState.Reset();
+	ThrowIfFailed(device->Device()->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&pipelineState)));
+	CreateWireframePSO();
+}

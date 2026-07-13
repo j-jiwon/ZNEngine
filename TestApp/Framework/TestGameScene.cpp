@@ -20,11 +20,12 @@ void TestGameScene::Initialize()
     gridShader->Load(GetResourcePath() / L"Shaders" / L"grid.hlsli");
     gridShader->EnableAlphaBlend();
 
-    // Camera
+    // Camera — pulled back/up enough to frame the whole 8x5 sphere grid (see below)
     ZNCamera* cam = new ZNCamera();
-    cam->SetPosition(ZNVector3(0.0f, 3.0f, -8.0f));
-    cam->SetRotation(-20, 0, 0);
+    cam->SetPosition(ZNVector3(-0.030f, 1.367f, -14.822f));
+    cam->SetRotation(-2.56f, -1.15f);
     cam->SetMoveSpeed(3.0f);
+    
     SetCamera(cam);
 
     // Spot light 1 (Green)
@@ -51,15 +52,56 @@ void TestGameScene::Initialize()
 
     // Directional light with shadow
     ZNDirectionalLight* dirLight = Platform::CreateDirectionalLight();
-    dirLight->SetDirection(ZNVector3(0.5f, -1.0f, 0.3f));
-    dirLight->SetIntensity(6.0f);
-    dirLight->SetColor(ZNVector3(0.5f, 0.5f, 0.5f));
+    dirLight->SetDirection(ZNVector3(-0.5f, -0.5f, 0.5f));
+    dirLight->SetIntensity(1.5f);
+    dirLight->SetColor(ZNVector3(1.0f, 1.0f, 1.0f));
     dirLight->SetAmbientIntensity(1.0f);
     dirLight->SetShadowFocusPoint(ZNVector3(0.0f, 0.0f, 0.0f));
     dirLight->SetShadowBounds(50.0f, 0.1f, 100.0f);
     SetDirectionalLight(dirLight);
 
-    // Load bunny model
+    // Scene: PBR test grid — rows vary roughness (top=1.0 rough -> bottom=0.0 smooth),
+    // columns vary metallic (left=0.0 non-metallic -> right=1.0 metallic). Same neutral
+    // albedo across the whole grid so only roughness/metallic drive the look, same as
+    // the reference chart. Needs the env cubemap (set below) for the IBL specular to
+    // actually show anything on the smooth/metallic corner.
+    const float kGridSpacing = 1.2f;
+    const float kGridBaseY = 1.5f;
+    {
+        ZNVector4 gridAlbedo(0.9f, 0.9f, 0.95f, 1.0f);
+
+        for (int row = 0; row < SceneObjects::kGridRows; ++row)
+        {
+            float roughness = 1.0f - static_cast<float>(row) / static_cast<float>(SceneObjects::kGridRows - 1);
+            for (int col = 0; col < SceneObjects::kGridCols; ++col)
+            {
+                float metallic = static_cast<float>(col) / static_cast<float>(SceneObjects::kGridCols - 1);
+
+                ZNMaterial* mat = ZNMaterialFactory::CreatePBR(defaultShader, gridAlbedo, metallic, roughness);
+                scene.sphereMaterials.push_back(mat);
+
+                ZNGameObject* obj = new ZNGameObject();
+                obj->SetMesh(ZNMeshFactory::CreateSphere(1.0f, 16, 16));
+                obj->GetMesh()->SetMaterial(mat);
+                obj->SetMaterial(mat);
+                obj->SetName("Sphere_r" + std::to_string(row) + "_c" + std::to_string(col));
+                obj->GetTransform().position = ZNVector3(
+                    (col - (SceneObjects::kGridCols - 1) / 2.0f) * kGridSpacing,
+                    kGridBaseY - (row - (SceneObjects::kGridRows - 1) / 2.0f) * kGridSpacing,
+                    0.0f);
+                obj->GetTransform().scale = ZNVector3(0.5f, 0.5f, 0.5f);
+                AddGameObject(obj);
+                scene.spheres.push_back(obj);
+            }
+        }
+    }
+
+    // Env cubemap (static skybox) — feeds the sphere grid's IBL diffuse/specular so the
+    // roughness/metallic variation is actually visible (see deferred_lighting.hlsli).
+    SetEnvCubemapTexture(GetResourcePath() / L"Textures" / L"skybox_day.jpg");
+
+    // Load bunny model — duplicated into a single row below the sphere grid, all
+    // identical for now; reserved for a different (non-PBR-grid) test later.
     std::filesystem::path modelPath = GetResourcePath() / L"Models" / L"stanford-bunny.fbx";
     if (std::filesystem::exists(modelPath))
     {
@@ -71,21 +113,32 @@ void TestGameScene::Initialize()
                 ZNVector4(0.8f, 0.1f, 0.1f, 1.0f), 0.0f, 0.3f);
             models.materials.push_back(bunnyMat);
 
-            for (const auto& meshData : modelData.meshes)
+            const int bunnyCount = (int)(SceneObjects::kGridCols * 0.5f);
+            const float bunnySpacing = kGridSpacing * 2.0f;
+            // One row below the sphere grid's bottom row, plus an extra gap.
+            const float bottomRowY = kGridBaseY - (SceneObjects::kGridRows - 1) / 2.0f * kGridSpacing;
+            const float bunnyY = bottomRowY - kGridSpacing * 1.5f;
+
+            for (int i = 0; i < bunnyCount; ++i)
             {
-                ZNGameObject* obj = new ZNGameObject();
-                ZNMesh* mesh = Platform::CreateMesh();
-                mesh->Init(meshData.vertices, meshData.indices);
-                mesh->SetMaterial(bunnyMat);
+                for (const auto& meshData : modelData.meshes)
+                {
+                    ZNGameObject* obj = new ZNGameObject();
+                    ZNMesh* mesh = Platform::CreateMesh();
+                    mesh->Init(meshData.vertices, meshData.indices);
+                    mesh->SetMaterial(bunnyMat);
 
-                obj->SetMesh(mesh);
-                obj->SetMaterial(bunnyMat);
-                obj->SetName("Bunny");
-                obj->GetTransform().rotation = ZNVector3(0.f, 90.f, 0.f);
-                obj->GetTransform().scale = ZNVector3(0.0001f, 0.0001f, 0.0001f);
+                    obj->SetMesh(mesh);
+                    obj->SetMaterial(bunnyMat);
+                    obj->SetName("Bunny_" + std::to_string(i));
+                    obj->GetTransform().position = ZNVector3(
+                        (i - (bunnyCount - 1) / 2.0f) * bunnySpacing, bunnyY, 0.0f);
+                    obj->GetTransform().rotation = ZNVector3(0.f, 0.f, 0.f);
+                    obj->GetTransform().scale = ZNVector3(0.00005f, 0.00005f, 0.00005f);
 
-                AddGameObject(obj);
-                models.objects.push_back(obj);
+                    AddGameObject(obj);
+                    models.objects.push_back(obj);
+                }
             }
 
             if (!models.objects.empty())
@@ -93,43 +146,6 @@ void TestGameScene::Initialize()
         }
         delete loader;
     }
-
-    // Scene: Floor
-    scene.floorMaterial = ZNMaterialFactory::CreatePBR(defaultShader,
-        ZNVector4(0.6f, 0.6f, 0.6f, 1.0f), 0.0f, 0.8f);
-    scene.floor = new ZNGameObject();
-    scene.floor->SetMesh(ZNMeshFactory::CreatePlane(10.0f));
-    scene.floor->GetMesh()->SetMaterial(scene.floorMaterial);
-    scene.floor->SetMaterial(scene.floorMaterial);
-    scene.floor->SetName("Floor");
-    scene.floor->GetTransform().position = ZNVector3(0.0f, -0.3f, 0.0f);
-    scene.floor->SetCastShadow(false);
-    AddGameObject(scene.floor);
-
-    // Scene: Cube
-    scene.cubeMaterial = ZNMaterialFactory::CreatePBR(defaultShader,
-        ZNVector4(0.2f, 0.4f, 0.9f, 1.0f), 0.0f, 0.4f);
-    scene.cube = new ZNGameObject();
-    scene.cube->SetMesh(ZNMeshFactory::CreateCube(1.0f));
-    scene.cube->GetMesh()->SetMaterial(scene.cubeMaterial);
-    scene.cube->SetMaterial(scene.cubeMaterial);
-    scene.cube->SetName("Cube");
-    scene.cube->GetTransform().position = ZNVector3(2.5f, 0.5f, 1.5f);
-    scene.cube->GetTransform().scale = ZNVector3(0.5f, 0.5f, 0.5f);
-    scene.cube->GetTransform().rotation = ZNVector3(0.0f, 30.0f, 0.0f);
-    AddGameObject(scene.cube);
-
-    // Scene: Sphere
-    scene.sphereMaterial = ZNMaterialFactory::CreatePBR(defaultShader,
-        ZNVector4(0.9f, 0.7f, 0.1f, 1.0f), 0.8f, 0.2f);
-    scene.sphere = new ZNGameObject();
-    scene.sphere->SetMesh(ZNMeshFactory::CreateSphere(1.0f, 16, 16));
-    scene.sphere->GetMesh()->SetMaterial(scene.sphereMaterial);
-    scene.sphere->SetMaterial(scene.sphereMaterial);
-    scene.sphere->SetName("Sphere");
-    scene.sphere->GetTransform().position = ZNVector3(-2.0f, 0.5f, 0.0f);
-    scene.sphere->GetTransform().scale = ZNVector3(0.5f, 0.5f, 0.5f);
-    AddGameObject(scene.sphere);
 
     // Debug: Grid plane
     debug.gridMaterial = ZNMaterialFactory::CreatePBR(gridShader,
@@ -141,42 +157,6 @@ void TestGameScene::Initialize()
     debug.gridPlane->SetTag("Debug");
     debug.gridPlane->SetVisible(false);
     AddForwardGameObject(debug.gridPlane);
-
-    // --- CCTV multi-camera demo ---
-    cctv.rt = new RenderTexture();
-    cctv.rt->Init(512, 288);
-
-    cctv.camera = new ZNCamera();
-    cctv.camera->SetPosition(ZNVector3(6.0f, 4.0f, 0.0f));
-    cctv.camera->SetRotation(-25.0f, -100.0f);
-    cctv.camera->SetPerspective(3.141592f / 4.0f, 512.0f / 288.0f, 0.1f, 100.0f);
-
-    cctv.fwdShader = Platform::CreateShader();
-    cctv.fwdShader->Load(GetResourcePath() / L"Shaders" / L"forward_pbr.hlsli");
-
-    cctv.tvUnlitShader = Platform::CreateShader();
-    cctv.tvUnlitShader->Load(GetResourcePath() / L"Shaders" / L"screen_unlit.hlsli");
-
-    cctv.tvMat = ZNMaterialFactory::CreatePBR(cctv.tvUnlitShader, ZNVector4(1.0f, 1.0f, 1.0f, 1.0f), 0.0f, 1.0f);
-    static_cast<Material*>(cctv.tvMat)->SetAlbedoSRVHandle(cctv.rt->GetSRVCpuHandle());
-
-    cctv.tvObj = new ZNGameObject();
-    cctv.tvObj->SetMesh(ZNMeshFactory::CreatePlane(0.5f));
-    cctv.tvObj->GetMesh()->SetMaterial(cctv.tvMat);
-    cctv.tvObj->SetMaterial(cctv.tvMat);
-    cctv.tvObj->SetName("TV");
-    cctv.tvObj->SetTag("TV");
-    cctv.tvObj->GetTransform().position = ZNVector3(-1.0f, 2.0f, 4.0f);
-    cctv.tvObj->GetTransform().scale    = ZNVector3(3.2f, 0.1f, 1.8f);
-    cctv.tvObj->GetTransform().rotation = ZNVector3(-90.0f, 0.0f, 0.0f);
-    cctv.tvObj->SetCastShadow(false);
-    AddForwardGameObject(cctv.tvObj);
-
-    AddOffscreenCamera(cctv.camera, cctv.rt, "CCTV", cctv.fwdShader);
-
-    // Register CCTV camera for SceneDebugUI's common camera indicator
-    RegisterDebugCamera(cctv.camera, "CCTV Camera");
-
     std::cout << "Scene initialized. Press F1 to toggle debug visuals." << std::endl;
 }
 
@@ -234,38 +214,6 @@ void TestGameScene::Render()
 void TestGameScene::RenderForward()
 {
     ZNScene::RenderForward();
-
-    SceneDebugUI::Get().onOutlinerExtras = [this]() {
-        auto& sel = SceneDebugUI::Get().GetSelection();
-        if (ImGui::TreeNodeEx("Cameras", ImGuiTreeNodeFlags_DefaultOpen))
-        {
-            bool isSelected = (sel.type == SceneDebugUI::SelectionType::Custom
-                               && sel.ptr == cctv.camera);
-            if (ImGui::Selectable("CCTV Camera", isSelected))
-            {
-                sel.type = SceneDebugUI::SelectionType::Custom;
-                sel.ptr  = cctv.camera;
-            }
-            ImGui::TreePop();
-        }
-    };
-
-    SceneDebugUI::Get().onInspectorExtras = [this](void* ptr) {
-        ZNCamera* cam = static_cast<ZNCamera*>(ptr);
-        ImGui::Text("Camera: CCTV");
-        ImGui::Separator();
-        ImGui::Text("Transform");
-        ZNVector3 camPos = cam->GetPosition();
-        float posArr[3] = { camPos.x, camPos.y, camPos.z };
-        if (ImGui::DragFloat3("Position", posArr, 0.05f))
-            cam->SetPosition(ZNVector3(posArr[0], posArr[1], posArr[2]));
-        const float RAD_TO_DEG = 180.0f / 3.14159265f;
-        float pitchDeg = cam->GetPitch() * RAD_TO_DEG;
-        float yawDeg   = cam->GetYaw()   * RAD_TO_DEG;
-        float rot[2]   = { pitchDeg, yawDeg };
-        if (ImGui::DragFloat2("Pitch / Yaw", rot, 0.5f, -180.0f, 180.0f))
-            cam->SetRotation(rot[0], rot[1]);
-    };
 
     // Scene-specific Debug panel: Grid toggle only (spot/cam indicators handled by SceneDebugUI)
     SceneDebugUI::Get().onDebugExtras = [this]() {

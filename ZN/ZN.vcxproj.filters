@@ -40,6 +40,9 @@
     <ClCompile Include="ZNFramework\Scene\ZNGameObject.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\GBufferManager.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\DeferredLightingPass.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\BloomChain.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\IBLBaker.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\SkyboxRenderer.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\DebugViewportRenderer.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\ShadowMap.cpp" />
     <ClCompile Include="ZNFramework\Graphics\ZNMeshFactory.cpp" />
@@ -52,6 +55,14 @@
     <ClCompile Include="ZNFramework\ThirdParty\imgui\imgui_widgets.cpp" />
     <ClCompile Include="ZNFramework\UI\Platform\Win32_DX12\ImGuiLayer.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\RenderGraph.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\Passes\ToneMappingPass.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Passes\BloomPass.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\IBLBaker.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Passes\IBLBakePass.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\SkyboxRenderer.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Passes\SkyboxPass.h" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ZNFramework\UI\ZNImGuiLayer.h" />
@@ -132,6 +143,9 @@
     <ClInclude Include="ZNFramework\ThirdParty\imgui\imconfig.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Passes\ShadowPass.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Passes\DeferredLightingRenderPass.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Passes\PostProcessPass.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Passes\ToneMappingPass.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\BloomChain.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Passes\ForwardRenderPass.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Passes\GBufferPass.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Passes\ImGuiRenderPass.h" />

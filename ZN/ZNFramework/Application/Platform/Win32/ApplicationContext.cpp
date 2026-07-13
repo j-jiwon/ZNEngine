@@ -10,6 +10,10 @@
 #include "ZNFramework/Graphics/Platform/Direct3D12/CommandQueue.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/GraphicsDevice.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/GBufferManager.h"
+#include "ZNFramework/Graphics/Platform/Direct3D12/RenderTexture.h"
+#include "ZNFramework/Graphics/Platform/Direct3D12/BloomChain.h"
+#include "ZNFramework/Graphics/Platform/Direct3D12/IBLBaker.h"
+#include "ZNFramework/Graphics/Platform/Direct3D12/SkyboxRenderer.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/DeferredLightingPass.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/DebugViewportRenderer.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/ShadowMap.h"
@@ -96,8 +100,10 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
     commandQueue->Init(swapChain);
     swapChain->Init(commandQueue);
     rootSignature->Init();
-    constantBuffer->Init(sizeof(TransformMatrices), 2048);
-    tableDescriptorHeap->Init(2048);
+    // Sized for ~90+ objects/scene across GBuffer + shadow + multiple offscreen forward
+    // passes (each object can push several PushData()/CommitTable() calls per frame).
+    constantBuffer->Init(sizeof(TransformMatrices), 8192);
+    tableDescriptorHeap->Init(8192);
     depthStencilBuffer->Init();
     
     // resize
@@ -158,6 +164,16 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
         GraphicsContext::GetInstance().SetGBufferShader(gbufferShader);
     }
 
+    // Load tone mapping shader (HDR SceneColor -> LDR BackBuffer: ACES + gamma)
+    {
+        ZNShader* toneMapShader = ZNFramework::Platform::CreateShader();
+        std::filesystem::path shaderPath = GetResourcePath() / L"Shaders" / L"tonemap.hlsli";
+        toneMapShader->Load(shaderPath);
+        toneMapShader->DisableDepthTest();
+
+        GraphicsContext::GetInstance().SetToneMapShader(toneMapShader);
+    }
+
     // Initialize G-Buffer and Debug Viewport Renderer after SwapChain is ready
     // This must be done after OnResize to ensure proper dimensions
     CommandQueue* cmdQueue = dynamic_cast<CommandQueue*>(commandQueue);
@@ -183,6 +199,29 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
         ShadowMap* shadowMap = new ShadowMap();
         shadowMap->Init(2048, 2048);
         cmdQueue->SetShadowMap(shadowMap);
+
+        // Initialize HDR SceneColor target (deferred lighting output, tone-mapped later)
+        RenderTexture* sceneColorRT = new RenderTexture();
+        sceneColorRT->Init(inWindow->Width(), inWindow->Height(), DXGI_FORMAT_R16G16B16A16_FLOAT);
+        cmdQueue->SetSceneColorRT(sceneColorRT);
+
+        // Initialize bloom (bright-pass + downsample/upsample chain off SceneColor)
+        BloomChain* bloomChain = new BloomChain();
+        bloomChain->Init(inWindow->Width(), inWindow->Height());
+        cmdQueue->SetBloomChain(bloomChain);
+
+        // Initialize IBL baker (diffuse irradiance + specular prefilter + BRDF LUT).
+        // Fixed small resolutions independent of window size — no resize hook needed.
+        IBLBaker* iblBaker = new IBLBaker();
+        iblBaker->Init();
+        cmdQueue->SetIBLBaker(iblBaker);
+
+        // Initialize skybox renderer (main-camera background resolve + cube-capture
+        // background fill). No resize hook needed — DrawResolve() takes width/height
+        // as call parameters rather than owning a sized resource.
+        SkyboxRenderer* skyboxRenderer = new SkyboxRenderer();
+        skyboxRenderer->Init();
+        cmdQueue->SetSkyboxRenderer(skyboxRenderer);
     }
 
     commandQueue->WaitSync();
@@ -244,6 +283,16 @@ void ApplicationContext::SetScene(ZNScene* scene)
 {
     currentScene = scene;
 
+    // Re-apply (or clear) this scene's own env cubemap / skybox — every scene is eagerly
+    // Initialize()'d up front (see App.cpp), so without this the single global
+    // CommandQueue slots would just be whatever the last-initialized scene happened to
+    // register, for every scene.
+    if (currentScene)
+    {
+        currentScene->ApplyEnvCubemap();
+        currentScene->ApplySkybox();
+    }
+
     if (commandQueue && currentScene)
     {
         // Forward pass: scene UI + transparent objects
@@ -304,6 +353,20 @@ void ApplicationContext::OnResize(uint32 width, uint32 height)
         {
             gbufferMgr->Resize(width, height);
             cmdQueue->NotifyGBufferResized();
+        }
+
+        RenderTexture* sceneColorRT = cmdQueue->GetSceneColorRT();
+        if (sceneColorRT)
+        {
+            sceneColorRT->Resize(width, height);
+            cmdQueue->RefreshSceneColorResource();
+        }
+
+        BloomChain* bloomChain = cmdQueue->GetBloomChain();
+        if (bloomChain)
+        {
+            bloomChain->Resize(width, height);
+            cmdQueue->RefreshBloomChainResource();
         }
     }
 

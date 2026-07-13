@@ -9,12 +9,20 @@
 #include "DeferredLightingPass.h"
 #include "DebugViewportRenderer.h"
 #include "ShadowMap.h"
+#include "BloomChain.h"
+#include "IBLBaker.h"
+#include "SkyboxRenderer.h"
 #include "Passes/ShadowPass.h"
 #include "Passes/GBufferPass.h"
 #include "Passes/DeferredLightingRenderPass.h"
 #include "Passes/ForwardRenderPass.h"
+#include "Passes/BloomPass.h"
+#include "Passes/ToneMappingPass.h"
 #include "Passes/ImGuiRenderPass.h"
 #include "Passes/OffscreenCameraPass.h"
+#include "Passes/CubeCapturePass.h"
+#include "Passes/IBLBakePass.h"
+#include "Passes/SkyboxPass.h"
 #include "ZNFramework.h"
 
 using namespace ZNFramework;
@@ -100,6 +108,12 @@ void CommandQueue::BuildRenderGraph()
 
     renderGraph.Import("BackBuffer", swapChain->GetBackRTVBuffer().Get(), D3D12_RESOURCE_STATE_PRESENT);
 
+    if (sceneColorRT)
+        renderGraph.Import("SceneColor", sceneColorRT->GetResource(), D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+    if (bloomChain)
+        renderGraph.Import("Bloom", bloomChain->GetOutputResource(), D3D12_RESOURCE_STATE_RENDER_TARGET);
+
     // Get concrete types needed by the passes
     auto* rootSig  = GraphicsContext::GetInstance().GetAs<RootSignature>();
     auto* tdh      = GraphicsContext::GetInstance().GetAs<TableDescriptorHeap>();
@@ -128,6 +142,27 @@ void CommandQueue::BuildRenderGraph()
             entry.renderCb));
     }
 
+    // --- Cubemap captures (static, one-shot on first frame) ---
+    for (auto& entry : cubemapCaptures) {
+        renderGraph.Import(entry.resourceName, entry.output->GetResource(),
+                           D3D12_RESOURCE_STATE_RENDER_TARGET);
+        renderGraph.AddPass(std::make_unique<CubeCapturePass>(
+            entry.resourceName,
+            entry.cams,
+            entry.output,
+            rootSig->GetSignature().Get(),
+            tdh->GetDescriptorHeap().Get(),
+            isForwardPass,
+            entry.renderCb));
+    }
+
+    // --- IBL bake (BRDF LUT always; irradiance/prefiltered once an env cubemap is
+    // active) — runs before GBuffer/DeferredLighting so this frame's lighting already
+    // sees fresh data, same as CubeCapturePass above it. ---
+    if (iblBaker) {
+        renderGraph.AddPass(std::make_unique<IBLBakePass>(iblBaker, this));
+    }
+
     // --- GBuffer pass (scene geometry) ---
     if (gbufferManager) {
         renderGraph.AddPass(std::make_unique<GBufferPass>(
@@ -135,10 +170,28 @@ void CommandQueue::BuildRenderGraph()
             [this]() { if (gbufferRenderCallback) gbufferRenderCallback(); }));
     }
 
-    // --- Deferred lighting pass ---
-    if (deferredLightingPass && gbufferManager) {
+    // --- Deferred lighting pass (writes HDR SceneColor) ---
+    if (deferredLightingPass && gbufferManager && sceneColorRT) {
         renderGraph.AddPass(std::make_unique<DeferredLightingRenderPass>(
-            deferredLightingPass, gbufferManager, shadowMap, swapChain));
+            deferredLightingPass, gbufferManager, shadowMap, swapChain, sceneColorRT));
+    }
+
+    // --- Skybox pass (fills SceneColor's background pixels, depth == far) ---
+    if (sceneColorRT && gbufferManager && skyboxRenderer) {
+        renderGraph.AddPass(std::make_unique<SkyboxPass>(
+            skyboxRenderer, gbufferManager, sceneColorRT, this));
+    }
+
+    // --- Bloom pass (bright-pass extract + downsample/upsample chain from SceneColor) ---
+    if (sceneColorRT && bloomChain) {
+        renderGraph.AddPass(std::make_unique<BloomPass>(sceneColorRT, bloomChain));
+    }
+
+    // --- Tone mapping pass (HDR SceneColor + Bloom -> LDR BackBuffer, ACES + gamma) ---
+    if (sceneColorRT && bloomChain) {
+        ZNShader* toneMapShader = GraphicsContext::GetInstance().GetToneMapShader();
+        renderGraph.AddPass(std::make_unique<ToneMappingPass>(
+            sceneColorRT, bloomChain->GetOutputRT(), swapChain, toneMapShader));
     }
 
     // --- Forward pass ---
@@ -174,6 +227,22 @@ void CommandQueue::RefreshGBufferResources()
     renderGraph.Import("GBuf_DepthCopy", gbufferManager->GetDepthCopyResource(), D3D12_RESOURCE_STATE_RENDER_TARGET);
     renderGraph.Import("GBuf_WorldPos",  gbufferManager->GetWorldPosResource(),  D3D12_RESOURCE_STATE_RENDER_TARGET);
     renderGraph.Import("GBuf_ARM",       gbufferManager->GetARMResource(),       D3D12_RESOURCE_STATE_RENDER_TARGET);
+}
+
+void CommandQueue::RefreshSceneColorResource()
+{
+    if (!sceneColorRT || !renderGraphBuilt) return;
+
+    // After RenderTexture::Resize() the old D3D12 resource is released and a new one created.
+    renderGraph.Import("SceneColor", sceneColorRT->GetResource(), D3D12_RESOURCE_STATE_RENDER_TARGET);
+}
+
+void CommandQueue::RefreshBloomChainResource()
+{
+    if (!bloomChain || !renderGraphBuilt) return;
+
+    // After BloomChain::Resize() mip0's old D3D12 resource is released and a new one created.
+    renderGraph.Import("Bloom", bloomChain->GetOutputResource(), D3D12_RESOURCE_STATE_RENDER_TARGET);
 }
 
 void CommandQueue::RenderBegin()

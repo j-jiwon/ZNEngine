@@ -21,6 +21,22 @@ void Texture::Init(const std::wstring& path)
     CreateView();
 }
 
+void Texture::InitFromMemory(const void* data, size_t size)
+{
+	::LoadFromWICMemory(reinterpret_cast<const uint8_t*>(data), size, WIC_FLAGS_NONE, nullptr, image);
+	UploadToGPU();
+	CreateView();
+}
+
+void Texture::InitSolidColor(uint8 r, uint8 g, uint8 b, uint8 a)
+{
+	image.Initialize2D(DXGI_FORMAT_R8G8B8A8_UNORM, 1, 1, 1, 1);
+	uint8_t* pixels = image.GetPixels();
+	pixels[0] = r; pixels[1] = g; pixels[2] = b; pixels[3] = a;
+	UploadToGPU();
+	CreateView();
+}
+
 void Texture::CreateTexture(const std::wstring& path)
 {
 	std::wstring extension = std::filesystem::path(path).extension();
@@ -38,6 +54,11 @@ void Texture::CreateTexture(const std::wstring& path)
 		::LoadFromWICFile(path.c_str(), WIC_FLAGS_NONE, nullptr, image);
 	}
 
+	UploadToGPU();
+}
+
+void Texture::UploadToGPU()
+{
 	GraphicsDevice* device = GraphicsContext::GetInstance().GetAs<GraphicsDevice>();
 
     HRESULT hr = ::CreateTexture(device->Device().Get(), image.GetMetadata(), &tex2d);

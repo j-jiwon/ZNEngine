@@ -13,8 +13,9 @@ public:
     void RenderForward()         override;
 
 private:
-    ZNFramework::ZNShader* defaultShader = nullptr;
-    ZNFramework::ZNShader* glassShader   = nullptr;
+    ZNFramework::ZNShader* defaultShader     = nullptr;
+    ZNFramework::ZNShader* glassShader       = nullptr;
+    ZNFramework::ZNShader* envCaptureShader  = nullptr; // forward_pbr.hlsli, used only for the env cubemap capture
 
     struct BallModel {
         std::vector<ZNFramework::ZNGameObject*> objects;
@@ -23,6 +24,25 @@ private:
     BallModel mirrorBall;  // Metallic 1.0 / Roughness 0.0, deferred pass
     BallModel glassBall;   // Translucent glass, forward pass
 
+    struct MonsterModel {
+        std::vector<ZNFramework::ZNGameObject*> objects;
+        std::vector<ZNFramework::ZNMaterial*>   materials; // one per glTF material slot
+    };
+    MonsterModel monster;  // Monster_S_0.glb, deferred pass
+
+    struct RoomModel {
+        std::vector<ZNFramework::ZNGameObject*> objects;
+        std::vector<ZNFramework::ZNMaterial*>   materials; // one per glTF material slot
+    };
+    RoomModel room;  // room.glb background, deferred pass
+
     ZNFramework::ZNSpotLight*  spotLights[4] = {};
     ZNFramework::ZNPointLight* innerLight    = nullptr;
+
+    // Disco caustics are now computed per-pixel in deferred_lighting.hlsli's
+    // ComputeDiscoCaustics — the scene just registers the reflecting bodies (mirror ball,
+    // monster's mirror tiles) as DiscoSources each frame in Update() (updating each body's
+    // live center/rotation), and the deferred pass scatters every spotlight off them onto
+    // floor/walls/geometry, tracking live light color/intensity automatically. No sprite
+    // objects or per-glint materials to own here anymore.
 };

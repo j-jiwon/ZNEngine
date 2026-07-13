@@ -2,6 +2,7 @@
 #include "Graphics/ZNGraphicsContext.h"
 #include "GraphicsDevice.h"
 #include "CommandQueue.h"
+#include <iostream>
 
 using namespace ZNFramework;
 
@@ -74,6 +75,22 @@ D3D12_CPU_DESCRIPTOR_HANDLE TableDescriptorHeap::GetCPUHandle(SRV_REGISTER reg)
 
 D3D12_CPU_DESCRIPTOR_HANDLE TableDescriptorHeap::GetCPUHandle(uint8 reg)
 {
+	// currentGroupIndex is a rotating per-draw-call index into a fixed-size pool (see Init()).
+	// Without this guard, exceeding groupCount silently writes past the descriptor heap
+	// (heap corruption / intermittent crash) instead of failing loudly.
+	if (currentGroupIndex >= groupCount)
+	{
+		static bool warned = false;
+		if (!warned)
+		{
+			std::cout << "[TableDescriptorHeap] currentGroupIndex (" << currentGroupIndex
+			          << ") reached groupCount (" << groupCount << ") - clamping. "
+			          << "Increase the Init() capacity.\n";
+			warned = true;
+		}
+		currentGroupIndex = groupCount - 1;
+	}
+
 	D3D12_CPU_DESCRIPTOR_HANDLE handle = descHeap->GetCPUDescriptorHandleForHeapStart();
 	handle.ptr += currentGroupIndex * groupSize;
 	handle.ptr += reg * handleSize;

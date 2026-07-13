@@ -48,6 +48,11 @@ void TestApp::OnInitialize()
     // Eagerly initialise ALL scenes before the first frame so every scene's
     // AddOffscreenCamera() is registered before BuildRenderGraph() runs.
     {
+        auto* s = new MirrorBallScene();
+        s->Initialize();
+        slots.push_back({ "MirrorBall Scene", s });
+    }
+    {
         auto* s = new TestGameScene();
         s->Initialize();
         slots.push_back({ "Test Scene", s });
@@ -56,14 +61,9 @@ void TestApp::OnInitialize()
         auto* s = new CCTVScene();
         s->Initialize();
         slots.push_back({ "CCTV Scene", s });
-    }
-    {
-        auto* s = new MirrorBallScene();
-        s->Initialize();
-        slots.push_back({ "MirrorBall Scene", s });
-    }
+    }    
 
-    // Wire up SceneManager so ImGui buttons can trigger switches
+        // Wire up SceneManager so ImGui buttons can trigger switches
     std::vector<std::string> names;
     for (auto& slot : slots) names.push_back(slot.name);
     SceneManager::Get().RegisterScenes(std::move(names),

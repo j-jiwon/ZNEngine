@@ -19,7 +19,8 @@ namespace ZNFramework
 		static ZNMaterial* CreatePBR(ZNShader* shader, const ZNVector4& albedoColor,
 			float metallic = 0.0f, float roughness = 0.5f, float ao = 1.0f);
 
-		// Creates a PBR material from a MaterialData struct (params + texture paths)
+		// Creates a PBR material from a MaterialData struct (params + texture paths/embedded data),
+		// e.g. as produced by ZNModelLoader — loads and binds any Albedo/Normal/ARM textures found.
 		static ZNMaterial* CreatePBRFromData(ZNShader* shader, const MaterialData& matData);
 
 	private:

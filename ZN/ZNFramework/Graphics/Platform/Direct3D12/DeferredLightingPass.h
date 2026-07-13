@@ -1,5 +1,6 @@
 #pragma once
 #include "ZNUtils.h"
+#include "CubeRenderTexture.h"
 
 namespace ZNFramework
 {
@@ -28,5 +29,9 @@ namespace ZNFramework
 
         // Descriptor heap for lighting pass
         ComPtr<ID3D12DescriptorHeap> lightingDescriptorHeap;
+
+        // Bound at t6 (envCube) when no scene has registered a captured environment cubemap —
+        // an all-black cube contributes zero to the reflection term, i.e. no visible effect.
+        CubeRenderTexture* fallbackEnvCube = nullptr;
     };
 }

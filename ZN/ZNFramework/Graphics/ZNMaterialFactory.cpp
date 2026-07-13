@@ -1,6 +1,8 @@
 #include "ZNMaterialFactory.h"
 #include "ZNMaterial.h"
 #include "Platform/GraphicsAPI.h"
+#include "ZNFramework.h"
+#include <filesystem>
 #include <iostream>
 
 namespace ZNFramework
@@ -29,20 +31,31 @@ namespace ZNFramework
 		material->SetShader(shader);
 		material->SetParams(matData.params);
 
-		// texturePaths are absolute paths (set by AssimpLoader via modelDir / path)
+		// texturePaths are absolute paths (set by AssimpLoader via modelDir / path);
+		// embeddedTextureData holds in-memory bytes for GLB-embedded textures.
 		for (size_t i = 0; i < static_cast<size_t>(TextureType::Count); ++i)
 		{
-			const std::wstring& path = matData.texturePaths[i];
-			if (path.empty()) continue;
-			if (!std::filesystem::exists(path))
+			ZNTexture* tex = nullptr;
+
+			if (!matData.embeddedTextureData[i].empty())
 			{
-				std::cout << "[ZNMaterialFactory] Texture not found: "
-				          << std::filesystem::path(path).string() << "\n";
-				continue;
+				tex = Platform::CreateTexture();
+				tex->InitFromMemory(matData.embeddedTextureData[i].data(), matData.embeddedTextureData[i].size());
 			}
-			ZNTexture* tex = Platform::CreateTexture();
-			tex->Init(path);
-			material->SetTexture(static_cast<TextureType>(i), tex);
+			else if (!matData.texturePaths[i].empty())
+			{
+				if (!std::filesystem::exists(matData.texturePaths[i]))
+				{
+					std::cout << "[ZNMaterialFactory] Texture not found: "
+					          << std::filesystem::path(matData.texturePaths[i]).string() << "\n";
+					continue;
+				}
+				tex = Platform::CreateTexture();
+				tex->Init(matData.texturePaths[i]);
+			}
+
+			if (tex)
+				material->SetTexture(static_cast<TextureType>(i), tex);
 		}
 
 		return material;

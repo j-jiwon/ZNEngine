@@ -17,6 +17,22 @@ namespace ZNFramework::Platform::Direct3D
 	{
 		return new Material();
 	}
+
+	// Shared 1x1 black placeholder, bound to any texture slot (t0~t2) that has no real
+	// texture set. Without this, an unset slot in the per-object descriptor table keeps
+	// whatever a *different* object previously wrote there (the table is a rotating pool,
+	// not cleared between draws), so gbuffer.hlsli's Normal/ARM "no texture" heuristic
+	// (dot(sample,sample) < 0.01) can see stale, unrelated texture data instead of black.
+	static Texture* GetDefaultBlackTexture()
+	{
+		static Texture* tex = nullptr;
+		if (!tex)
+		{
+			tex = new Texture();
+			tex->InitSolidColor(0, 0, 0, 0);
+		}
+		return tex;
+	}
 }
 
 Material::~Material()
@@ -37,6 +53,10 @@ void Material::Init()
 	params = MaterialParams();
 	textures.fill(nullptr);
 	ownsTexture.fill(false);
+
+	// Force creation now (during scene setup, before the render loop starts) rather than
+	// lazily on first Bind() — GPU upload isn't meant to run mid-frame.
+	Platform::Direct3D::GetDefaultBlackTexture();
 }
 
 void Material::SetShader(ZNShader* inShader)
@@ -153,7 +173,9 @@ void Material::Bind()
 		tableDescHeap->SetCBV(plHandle, CBV_REGISTER::b3);
 	}
 
-	// Bind textures (t0 ~ t4)
+	// Bind textures (t0 ~ t4). Slots with no real texture get the shared black placeholder
+	// instead of being skipped — the descriptor table is a rotating per-object pool, so a
+	// skipped slot would otherwise keep whatever unrelated texture a prior draw left there.
 	for (size_t i = 0; i < textures.size(); ++i)
 	{
 		SRV_REGISTER srvRegister = static_cast<SRV_REGISTER>(static_cast<int>(SRV_REGISTER::t0) + i);
@@ -161,5 +183,7 @@ void Material::Bind()
 			tableDescHeap->SetSRV(albedoSRVOverride, SRV_REGISTER::t0);
 		else if (textures[i])
 			tableDescHeap->SetSRV(textures[i]->GetCpuHandle(), srvRegister);
+		else
+			tableDescHeap->SetSRV(Platform::Direct3D::GetDefaultBlackTexture()->GetCpuHandle(), srvRegister);
 	}
 }

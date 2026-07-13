@@ -1,6 +1,19 @@
 
 #define MAX_SPOT_LIGHTS   8
 #define MAX_POINT_LIGHTS  8
+#define MAX_DISCO_SOURCES 4
+
+// A facet-covered mirror body (disco ball, monster's mirror tiles) that scatters each
+// spotlight onto the room. See ComputeDiscoCaustics below. Must match DiscoSourceData in
+// DeferredLightingPass.cpp (2x float4 = 32 bytes).
+struct DiscoSourceData
+{
+    float3 center;        // world-space center of the reflecting body
+    float  rotationYDeg;  // current Y-rotation (deg); drives the glint sweep
+    float  facetGridN;    // facet grid resolution (cells per lat/long axis)
+    float  brightness;    // overall intensity multiplier
+    float2 _pad;
+};
 
 struct SpotLightData
 {
@@ -56,6 +69,11 @@ cbuffer cbLight : register(b0)
 
     // Point Lights array
     PointLightData pointLights[MAX_POINT_LIGHTS];
+
+    // Disco sources array
+    int numDiscoSources;
+    int3 _discoPad;
+    DiscoSourceData discoSources[MAX_DISCO_SOURCES];
 };
 
 // G-Buffer textures
@@ -65,6 +83,10 @@ Texture2D depthTexture : register(t2);
 Texture2D worldPosTexture : register(t3);
 Texture2D armTexture : register(t4);  // ARM: R=AO, G=Roughness, B=Metallic
 Texture2D shadowMap : register(t5);   // Shadow map depth texture
+TextureCube envCube : register(t6);   // Captured environment cubemap (static bake); IBLBaker's source, not sampled directly here
+TextureCube irradianceCube : register(t7);   // IBL diffuse irradiance (cosine-convolved envCube); black = not baked yet
+TextureCube prefilteredCube : register(t8);  // IBL specular, roughness-mip chain (GGX prefiltered envCube); black = not baked yet
+Texture2D brdfLUT : register(t9);            // Split-sum BRDF LUT (scale,bias in .rg)
 
 SamplerState sampler0 : register(s0);
 SamplerComparisonState shadowSampler : register(s1);  // Comparison sampler for PCF
@@ -217,6 +239,102 @@ float3 CalculatePBR(float3 N, float3 V, float3 L, float3 radiance,
 }
 
 // ============================================================================
+// Disco caustics (single-bounce mirror-facet scatter)
+// ============================================================================
+//
+// Physically-motivated stand-in for light reflecting off a disco ball's (or the monster's
+// mirror-tile) small mirror facets and landing on the room. NOT a full raytrace and NOT
+// re-reflected — each spotlight bounces exactly once off the nearest matching facet.
+//
+// For a surface pixel P and a reflecting body centered at C (treated as a point since it's
+// small relative to the room), the beam that could reach P travels along d = normalize(P-C).
+// A facet reflects spotlight L into direction d only if the facet normal equals the half
+// vector h = normalize(dirToLight + d). A perfect mirror sphere has every h, so no dots — the
+// DOTS come from facets being discrete: we rotate h back into the body's local frame (undoing
+// its spin) and snap it to a lat/long facet grid; a glint appears only where h lands near a
+// facet center. As the body spins, the set of matching facets sweeps -> the dots sweep, in
+// the same direction and speed as the real rotation. Color/intensity come straight from the
+// live spotlight, so any (e.g. music-driven) change shows up immediately.
+
+float DiscoHash(float2 c)
+{
+    return frac(sin(dot(c, float2(127.1f, 311.7f))) * 43758.5453f);
+}
+
+float3 ComputeDiscoCaustics(float3 worldPos, float3 N)
+{
+    float3 result = float3(0.0f, 0.0f, 0.0f);
+
+    for (int s = 0; s < numDiscoSources; ++s)
+    {
+        DiscoSourceData disco = discoSources[s];
+        float3 C = disco.center;
+
+        float3 toPixel = worldPos - C;
+        float pixelDist = length(toPixel);
+        if (pixelDist < 1e-4f)
+            continue;
+        float3 d = toPixel / pixelDist; // body -> pixel direction (the outgoing beam)
+
+        // Receiver term: how squarely the beam (traveling along d) strikes this surface.
+        float NdotBeam = max(dot(N, -d), 0.0f);
+        if (NdotBeam <= 0.0f)
+            continue;
+
+        // Beam distance falloff (keeps far glints from over-brightening).
+        float atten = 1.0f / (1.0f + 2.0f * pixelDist * pixelDist);
+
+        // Undo the body's Y spin so facets are evaluated in its local frame.
+        float ang = -radians(disco.rotationYDeg);
+        float ca = cos(ang);
+        float sa = sin(ang);
+
+        for (int i = 0; i < numSpotLights; ++i)
+        {
+            SpotLightData spot = spotLights[i];
+
+            float3 dirToLight = normalize(spot.position - C); // body -> light
+            float3 h = normalize(dirToLight + d);             // required facet normal (world)
+
+            // Only facets that actually face both the light and the pixel can reflect.
+            if (dot(h, dirToLight) <= 0.0f || dot(h, d) <= 0.0f)
+                continue;
+
+            // Rotate the required normal into the body's local frame (Y-axis spin).
+            float3 hLocal = float3(h.x * ca + h.z * sa, h.y, -h.x * sa + h.z * ca);
+
+            // Snap to a lat/long facet grid; distance to the nearest facet center = glint.
+            float phi   = atan2(hLocal.z, hLocal.x);              // [-PI, PI]
+            float theta = acos(clamp(hLocal.y, -1.0f, 1.0f));     // [0, PI]
+            float2 uv = float2(phi / (2.0f * PI) + 0.5f, theta / PI);
+            float2 cell = uv * disco.facetGridN;
+            float2 cellId = floor(cell);
+            float2 frc = frac(cell) - 0.5f;
+
+            float distToCenter = length(frc) * 2.0f; // 0 at facet center -> ~1 at edge
+            float glint = saturate(1.0f - distToCenter / 0.6f);
+            glint = glint * glint * glint;           // sharpen into a tight dot
+            if (glint <= 0.0f)
+                continue;
+
+            // Irregular sparkle: some facets brighter than others (a real ball isn't uniform).
+            float facetVar = 0.6f + 0.4f * DiscoHash(cellId + float2(s * 17.0f, i * 7.0f));
+
+            // Gate by whether the spotlight is actually aimed at the body.
+            float3 spotToBody = normalize(C - spot.position);
+            float coneCos = dot(spotToBody, normalize(spot.direction));
+            float coneFactor = saturate((coneCos - spot.outerCutoff) /
+                                        max(spot.innerCutoff - spot.outerCutoff, 1e-4f));
+
+            result += spot.color * spot.intensity * disco.brightness
+                    * glint * facetVar * coneFactor * atten * NdotBeam;
+        }
+    }
+
+    return result;
+}
+
+// ============================================================================
 
 VS_OUT VS_Main(VS_IN input)
 {
@@ -257,8 +375,6 @@ float4 PS_Main(VS_OUT input) : SV_Target
     float3 V = normalize(viewPosition - worldPos);
     float3 albedo = baseColor.rgb;
 
-    // Ambient lighting (with AO)
-    float3 ambient = float3(0.03f, 0.03f, 0.03f) * albedo * ao * dirAmbientIntensity;
     float3 Lo = float3(0.0f, 0.0f, 0.0f);
 
     // DIRECTIONAL LIGHT (PBR) with Shadow
@@ -356,7 +472,34 @@ float4 PS_Main(VS_OUT input) : SV_Target
         Lo += CalculatePBR(N, V, L_pt, radiance_pt, albedo, metallic, roughness);
     }
 
-    // Combine ambient and direct lighting
-    float3 finalColor = ambient + Lo;
+    // Image-Based Lighting (split-sum approximation, Karis 2013): diffuse irradiance +
+    // roughness-prefiltered specular + BRDF LUT. irradianceCube/prefilteredCube are
+    // baked by IBLBaker from envCube (see ibl_irradiance.hlsli/ibl_prefilter.hlsli);
+    // both read as black until baked, so IBL simply contributes nothing until then.
+    float NdotV = max(dot(N, V), 0.0f);
+    float3 F0 = lerp(float3(0.04f, 0.04f, 0.04f), albedo, metallic);
+    float3 F = FresnelSchlick(NdotV, F0);
+
+    // Energy conservation: only the non-reflected (non-metallic) portion contributes diffuse.
+    float3 kD = (1.0f - F) * (1.0f - metallic);
+    float3 diffuseIBL = irradianceCube.Sample(sampler0, N).rgb * albedo;
+
+    // Split-sum specular: sample the prefiltered mip matching this surface's roughness,
+    // scale by (F0 * brdf.x + brdf.y) — the precomputed Fresnel/geometry integral (t9).
+    // kPrefilterMipCount-1 must match IBLBaker::kPrefilterMips-1 (currently 5 mips -> 4.0).
+    static const float kMaxPrefilterMip = 4.0f;
+    float3 R = reflect(-V, N);
+    float3 prefilteredColor = prefilteredCube.SampleLevel(sampler0, R, roughness * kMaxPrefilterMip).rgb;
+    float2 brdf = brdfLUT.Sample(sampler0, float2(NdotV, roughness)).rg;
+    float3 specularIBL = prefilteredColor * (F0 * brdf.x + brdf.y);
+
+    float3 ambient = (kD * diffuseIBL + specularIBL) * ao * dirAmbientIntensity;
+
+    // Disco caustics: light scattered off mirror-facet bodies (ball, monster tiles) landing
+    // on this pixel. Purely additive, tracks live spotlight color/intensity and body rotation.
+    float3 disco = ComputeDiscoCaustics(worldPos, N);
+
+    // Combine ambient IBL, direct lighting, and disco scatter
+    float3 finalColor = ambient + Lo + disco;
     return float4(finalColor, baseColor.a);
 }

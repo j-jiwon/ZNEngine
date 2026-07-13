@@ -4,6 +4,7 @@
 #include "Shader.h"
 #include "GraphicsDevice.h"
 #include "CommandQueue.h"
+#include "IBLBaker.h"
 #include "DirectionalLight.h"
 #include "PointLight.h"
 #include "ZNFramework.h"
@@ -23,6 +24,17 @@ struct LightingVertex
 
 #define MAX_SPOT_LIGHTS   8
 #define MAX_POINT_LIGHTS  8
+#define MAX_DISCO_SOURCES 4
+
+// Must match DiscoSourceData in deferred_lighting.hlsli (2x float4 = 32 bytes).
+struct DiscoSourceData
+{
+    float center[3];
+    float rotationYDeg;
+    float facetGridN;
+    float brightness;
+    float _pad[2];
+};
 
 struct SpotLightData
 {
@@ -78,6 +90,11 @@ struct DeferredLightCB
 
     // Point Lights array
     PointLightData pointLights[MAX_POINT_LIGHTS];
+
+    // Disco sources array
+    int numDiscoSources;
+    int _discoPad[3];
+    DiscoSourceData discoSources[MAX_DISCO_SOURCES];
 };
 
 void DeferredLightingPass::Init()
@@ -91,6 +108,11 @@ void DeferredLightingPass::Init()
     std::filesystem::path lightingShaderPath = GetResourcePath() / L"Shaders" / L"deferred_lighting.hlsli";
     lightingShader->Load(lightingShaderPath);
     lightingShader->DisableDepthTest();
+
+    // Deferred lighting now writes into the HDR SceneColor target; ToneMappingPass
+    // reads it back later and writes the LDR back buffer.
+    DXGI_FORMAT sceneColorFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
+    lightingShader->SetRenderTargetFormats(1, &sceneColorFormat);
 
     // Create constant buffer for lighting
     D3D12_HEAP_PROPERTIES heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
@@ -111,9 +133,25 @@ void DeferredLightingPass::Init()
     // Create descriptor heap for lighting pass
     D3D12_DESCRIPTOR_HEAP_DESC lightingHeapDesc = {};
     lightingHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-    lightingHeapDesc.NumDescriptors = 12; // b0~b4 (5) + t0~t5 (7, including shadow map)
+    lightingHeapDesc.NumDescriptors = TOTAL_DESCRIPTOR_TABLE_SIZE; // b0~b4 (5) + t0~t9 (10: gbuffer x5, shadow map, env cube, IBL irradiance/prefiltered/BRDF LUT)
     lightingHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
     ThrowIfFailed(device->Device()->CreateDescriptorHeap(&lightingHeapDesc, IID_PPV_ARGS(&lightingDescriptorHeap)));
+
+    // Fallback black cubemap (t6) for scenes that never register a captured environment map.
+    fallbackEnvCube = new CubeRenderTexture();
+    fallbackEnvCube->Init(1);
+    {
+        CommandQueue* queue = GraphicsContext::GetInstance().GetAs<CommandQueue>();
+        ID3D12GraphicsCommandList* cmd = queue->ResourceCommandList();
+        float black[4] = { 0.f, 0.f, 0.f, 1.f };
+        for (uint32 face = 0; face < 6; ++face)
+            cmd->ClearRenderTargetView(fallbackEnvCube->GetRTV(face), black, 0, nullptr);
+        CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+            fallbackEnvCube->GetResource(),
+            D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+        cmd->ResourceBarrier(1, &barrier);
+        queue->FlushResourceQueue();
+    }
 }
 
 void DeferredLightingPass::CreateFullscreenQuad()
@@ -253,6 +291,23 @@ void DeferredLightingPass::Render(GBufferManager* gbufferManager, ShadowMap* sha
     }
     lightData.numPointLights = numPoints;
 
+    // Fill disco sources array (facet-mirror bodies scattering the spotlights)
+    const auto& discoCtx = GraphicsContext::GetInstance().GetDiscoSources();
+    int numDisco = 0;
+    for (size_t i = 0; i < discoCtx.size() && i < MAX_DISCO_SOURCES; ++i)
+    {
+        const DiscoSource& src = discoCtx[i];
+        DiscoSourceData& dd = lightData.discoSources[numDisco];
+        dd.center[0]    = src.center.x;
+        dd.center[1]    = src.center.y;
+        dd.center[2]    = src.center.z;
+        dd.rotationYDeg = src.rotationYDeg;
+        dd.facetGridN   = src.facetGridN;
+        dd.brightness   = src.brightness;
+        ++numDisco;
+    }
+    lightData.numDiscoSources = numDisco;
+
     if (camera)
     {
         ZNVector3 camPos = camera->GetPosition();
@@ -310,6 +365,38 @@ void DeferredLightingPass::Render(GBufferManager* gbufferManager, ShadowMap* sha
     {
         cpuHandle.ptr += lightingDescSize;
         device->Device()->CopyDescriptorsSimple(1, cpuHandle, shadowMap->GetSRV(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    }
+    else
+    {
+        cpuHandle.ptr += lightingDescSize;
+    }
+
+    // Copy env cubemap SRV (t6) — the active scene's captured reflection cubemap, or the
+    // black fallback (contributes zero reflection) if none was registered.
+    {
+        cpuHandle.ptr += lightingDescSize;
+        D3D12_CPU_DESCRIPTOR_HANDLE envSRV = queue->HasEnvCubemap()
+            ? queue->GetEnvCubemapSRV()
+            : fallbackEnvCube->GetSRVCpuHandle();
+        device->Device()->CopyDescriptorsSimple(1, cpuHandle, envSRV, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    }
+
+    // Copy IBL SRVs (t7 irradiance, t8 prefiltered specular, t9 BRDF LUT) — IBLBaker
+    // itself falls back to black irradiance/prefiltered cubes until BakeEnvironment()
+    // has actually run, so no extra fallback handling is needed here.
+    {
+        IBLBaker* iblBaker = queue->GetIBLBaker();
+        cpuHandle.ptr += lightingDescSize;
+        if (iblBaker)
+            device->Device()->CopyDescriptorsSimple(1, cpuHandle, iblBaker->GetIrradianceSRV(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+        cpuHandle.ptr += lightingDescSize;
+        if (iblBaker)
+            device->Device()->CopyDescriptorsSimple(1, cpuHandle, iblBaker->GetPrefilteredSRV(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+        cpuHandle.ptr += lightingDescSize;
+        if (iblBaker)
+            device->Device()->CopyDescriptorsSimple(1, cpuHandle, iblBaker->GetBRDFLUTSRV(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
     }
 
     // Set descriptor heap

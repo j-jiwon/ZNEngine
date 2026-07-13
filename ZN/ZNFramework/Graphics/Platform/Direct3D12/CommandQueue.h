@@ -3,6 +3,7 @@
 #include "ZNUtils.h"
 #include "RenderGraph.h"
 #include "RenderTexture.h"
+#include "CubeRenderTexture.h"
 #include <functional>
 #include <vector>
 #include <string>
@@ -15,6 +16,9 @@ class GBufferManager;
 class DeferredLightingPass;
 class DebugViewportRenderer;
 class ShadowMap;
+class BloomChain;
+class IBLBaker;
+class SkyboxRenderer;
 class ZNCamera;
 
 class CommandQueue : public ZNCommandQueue
@@ -38,13 +42,27 @@ public:
     GBufferManager*       GetGBufferManager()    { return gbufferManager; }
     DebugViewportRenderer* GetDebugViewportRenderer() { return debugViewportRenderer; }
     ShadowMap*            GetShadowMap()         { return shadowMap; }
+    RenderTexture*        GetSceneColorRT()      { return sceneColorRT; }
+    BloomChain*           GetBloomChain()        { return bloomChain; }
+    IBLBaker*             GetIBLBaker()          { return iblBaker; }
+    SkyboxRenderer*       GetSkyboxRenderer()    { return skyboxRenderer; }
 
     void SetGBufferManager(GBufferManager* manager)            { gbufferManager = manager; }
     void SetDeferredLightingPass(DeferredLightingPass* pass)   { deferredLightingPass = pass; }
     void SetDebugViewportRenderer(DebugViewportRenderer* r)    { debugViewportRenderer = r; }
     void SetShadowMap(ShadowMap* shadow)                       { shadowMap = shadow; }
+    void SetSceneColorRT(RenderTexture* rt)                    { sceneColorRT = rt; }
+    void SetBloomChain(BloomChain* chain)                      { bloomChain = chain; }
+    void SetIBLBaker(IBLBaker* baker)                          { iblBaker = baker; }
+    void SetSkyboxRenderer(SkyboxRenderer* renderer)           { skyboxRenderer = renderer; }
     void SetShadowRenderCallback(std::function<void()> cb)     { shadowRenderCallback = std::move(cb); }
     void SetGBufferRenderCallback(std::function<void()> cb)    { gbufferRenderCallback = std::move(cb); }
+
+    // Re-import SceneColor's resource pointer after a resize (resource is recreated)
+    void RefreshSceneColorResource();
+
+    // Re-import Bloom's (mip0) resource pointer after a resize (resource is recreated)
+    void RefreshBloomChainResource();
 
     bool IsForwardPass() const { return isForwardPass; }
 
@@ -72,6 +90,35 @@ public:
         offscreenCameras.push_back({ cam, rt, resourceName, std::move(cb) });
     }
 
+    // One-shot cubemap capture: renders into all 6 faces on the first frame only, then
+    // the CubeRenderTexture is a stable static environment map. Must be called before the
+    // first frame (before BuildRenderGraph runs). cb receives the face index (0-5) being
+    // rendered, so callers can draw a per-face skybox background before scene geometry.
+    void AddCubemapCapture(std::vector<ZNCamera*> cams, CubeRenderTexture* rt,
+                           const std::string& resourceName,
+                           std::function<void(uint32)> cb)
+    {
+        cubemapCaptures.push_back({ std::move(cams), rt, resourceName, std::move(cb) });
+    }
+
+    // The most recently captured (or currently-being-captured) environment cubemap, used by
+    // the deferred lighting pass for metallic-surface reflections. Falls back to a black
+    // cube (no reflection contribution) when no scene has registered one.
+    void SetEnvCubemapSRV(D3D12_CPU_DESCRIPTOR_HANDLE handle) { envCubemapSRV = handle; hasEnvCubemap = true; }
+    // Deactivates the env cubemap slot (e.g. the newly active scene never registered one) —
+    // does not touch envCubemapSRV, so re-activating a scene that did doesn't need a re-set.
+    void ClearEnvCubemapSRV() { hasEnvCubemap = false; }
+    D3D12_CPU_DESCRIPTOR_HANDLE GetEnvCubemapSRV() const { return envCubemapSRV; }
+    bool HasEnvCubemap() const { return hasEnvCubemap; }
+
+    // Visible background skybox (separate from the reflection env cubemap above — this one
+    // is actually drawn where the depth buffer has no geometry, see deferred_lighting.hlsli).
+    // Same single-slot-per-active-scene pattern as the env cubemap.
+    void SetSkyboxSRV(D3D12_CPU_DESCRIPTOR_HANDLE handle) { skyboxSRV = handle; hasSkybox = true; }
+    void ClearSkyboxSRV() { hasSkybox = false; }
+    D3D12_CPU_DESCRIPTOR_HANDLE GetSkyboxSRV() const { return skyboxSRV; }
+    bool HasSkybox() const { return hasSkybox; }
+
 private:
     void BuildRenderGraph();
 
@@ -93,6 +140,10 @@ private:
     DeferredLightingPass*  deferredLightingPass  = nullptr;
     DebugViewportRenderer* debugViewportRenderer = nullptr;
     ShadowMap*             shadowMap             = nullptr;
+    RenderTexture*         sceneColorRT          = nullptr;
+    BloomChain*            bloomChain            = nullptr;
+    IBLBaker*              iblBaker              = nullptr;
+    SkyboxRenderer*        skyboxRenderer        = nullptr;
 
     struct OffscreenCameraEntry {
         ZNCamera*       camera;
@@ -101,9 +152,23 @@ private:
         std::function<void()> renderCb;
     };
 
+    struct CubemapCaptureEntry {
+        std::vector<ZNCamera*>      cams;
+        CubeRenderTexture*          output;
+        std::string                 resourceName;
+        std::function<void(uint32)> renderCb;
+    };
+
     std::function<void()> shadowRenderCallback;
     std::function<void()> gbufferRenderCallback;
     std::vector<OffscreenCameraEntry> offscreenCameras;
+    std::vector<CubemapCaptureEntry>  cubemapCaptures;
+
+    D3D12_CPU_DESCRIPTOR_HANDLE envCubemapSRV = {};
+    bool                        hasEnvCubemap = false;
+
+    D3D12_CPU_DESCRIPTOR_HANDLE skyboxSRV = {};
+    bool                        hasSkybox = false;
 
     // Dedicated forward-pass point light upload buffer (not shared with transform/material CB)
     ComPtr<ID3D12Resource>       fwdPointLightBuffer;
