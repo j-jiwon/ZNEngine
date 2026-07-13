@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include "../Math/ZNVector3.h"
 
 namespace ZNFramework
 {
@@ -13,6 +14,19 @@ namespace ZNFramework
     class ZNCamera;
     class ZNSpotLight;
     class ZNPointLight;
+
+    // A "disco source" is a small facet-covered mirror body (the ball, the monster's mirror
+    // tiles) that scatters each spotlight's light onto the room. The deferred lighting pass
+    // reads this list and, per pixel, adds a physically-motivated single-bounce caustic term
+    // (see deferred_lighting.hlsli ComputeDiscoCaustics) — reflected light lands on floor,
+    // walls, geometry alike, and tracks live light color/intensity and the source's rotation.
+    struct DiscoSource
+    {
+        ZNVector3 center;               // world-space center of the reflecting body
+        float     rotationYDeg = 0.f;   // current Y-rotation (deg); drives the glint sweep
+        float     facetGridN   = 16.f;  // facet grid resolution (cells per lat/long axis)
+        float     brightness   = 1.f;   // overall intensity multiplier
+    };
 
     class GraphicsContext
     {
@@ -93,6 +107,10 @@ namespace ZNFramework
         void SetPointLights(const std::vector<ZNPointLight*>& lights) { pointLights = lights; }
         const std::vector<ZNPointLight*>& GetPointLights() const { return pointLights; }
 
+        // Disco Sources (facet-mirror bodies scattering the spotlights onto the room)
+        void SetDiscoSources(const std::vector<DiscoSource>& sources) { discoSources = sources; }
+        const std::vector<DiscoSource>& GetDiscoSources() const { return discoSources; }
+
         // Directional Light
         void SetDirectionalLight(ZNDirectionalLight* inLight) { directionalLight = inLight; }
         ZNDirectionalLight* GetDirectionalLight() const { return directionalLight; }
@@ -116,6 +134,7 @@ namespace ZNFramework
         ZNCamera* camera = nullptr;
         std::vector<ZNSpotLight*> spotLights;
         std::vector<ZNPointLight*> pointLights;
+        std::vector<DiscoSource> discoSources;
         ZNDirectionalLight* directionalLight = nullptr;
 
         GraphicsContext() = default;

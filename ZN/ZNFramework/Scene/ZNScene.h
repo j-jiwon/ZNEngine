@@ -1,6 +1,7 @@
 #pragma once
 #include "../ZNTransform.h"
 #include "../ZNInputDef.h"
+#include "../Graphics/ZNGraphicsContext.h" // for DiscoSource
 #include <d3d12.h>
 #include <vector>
 #include <string>
@@ -63,6 +64,12 @@ namespace ZNFramework
 		void RemovePointLight(ZNPointLight* light);
 		const std::vector<ZNPointLight*>& GetPointLights() const { return pointLights; }
 
+		// Disco sources — facet-mirror bodies (ball, monster tiles) that scatter the spotlights
+		// onto the room. Rebuilt each frame by the owning scene's Update() (rotation changes),
+		// pushed to GraphicsContext by Render()/RenderForward() alongside the lights. Empty for
+		// scenes that never set it, so nothing leaks between scenes.
+		void SetDiscoSources(const std::vector<DiscoSource>& sources) { sceneDiscoSources = sources; }
+
 		ZNGameObject* FindGameObjectWithTag(const std::string& tag);
 		ZNGameObject* FindGameObjectWithName(const std::string& name);
 
@@ -109,6 +116,7 @@ namespace ZNFramework
 		std::vector<ZNGameObject*> forwardGameObjects;  // Objects rendered in forward pass
 		std::vector<ZNSpotLight*> spotLights;
 		std::vector<ZNPointLight*> pointLights;
+		std::vector<DiscoSource> sceneDiscoSources;
 		ZNCamera* camera = nullptr;
 		ZNDirectionalLight* directionalLight = nullptr;
 

@@ -16,7 +16,6 @@ private:
     ZNFramework::ZNShader* defaultShader     = nullptr;
     ZNFramework::ZNShader* glassShader       = nullptr;
     ZNFramework::ZNShader* envCaptureShader  = nullptr; // forward_pbr.hlsli, used only for the env cubemap capture
-    ZNFramework::ZNShader* scatterDecalShader = nullptr; // light_scatter_decal.hlsli, floor glint decals
 
     struct BallModel {
         std::vector<ZNFramework::ZNGameObject*> objects;
@@ -40,11 +39,10 @@ private:
     ZNFramework::ZNSpotLight*  spotLights[4] = {};
     ZNFramework::ZNPointLight* innerLight    = nullptr;
 
-    // Floor decals standing in for light scattered off small mirror facets — one under the
-    // rotating mirror ball (sweeps with it), one under the stationary monster (whose body has
-    // its own mirror-tile patches), both rendered via scatterDecalShader.
-    ZNFramework::ZNGameObject* ballLightScatter    = nullptr;
-    ZNFramework::ZNMaterial*   ballLightScatterMat = nullptr;
-    ZNFramework::ZNGameObject* monsterLightScatter    = nullptr;
-    ZNFramework::ZNMaterial*   monsterLightScatterMat = nullptr;
+    // Disco caustics are now computed per-pixel in deferred_lighting.hlsli's
+    // ComputeDiscoCaustics — the scene just registers the reflecting bodies (mirror ball,
+    // monster's mirror tiles) as DiscoSources each frame in Update() (updating each body's
+    // live center/rotation), and the deferred pass scatters every spotlight off them onto
+    // floor/walls/geometry, tracking live light color/intensity automatically. No sprite
+    // objects or per-glint materials to own here anymore.
 };

@@ -41,6 +41,7 @@ void ZNScene::Render()
 	ctx.SetSpotLights(spotLights);
 	ctx.SetPointLights(pointLights);
 	ctx.SetDirectionalLight(directionalLight);
+	ctx.SetDiscoSources(sceneDiscoSources);
 
 	// Render all game objects (deferred pass)
 	for (auto* obj : gameObjects)
@@ -68,6 +69,7 @@ void ZNScene::RenderForward()
 	ctx.SetSpotLights(spotLights);
 	ctx.SetPointLights(pointLights);
 	ctx.SetDirectionalLight(directionalLight);
+	ctx.SetDiscoSources(sceneDiscoSources);
 
 	// Render forward objects (after deferred lighting)
 	for (auto* obj : forwardGameObjects)

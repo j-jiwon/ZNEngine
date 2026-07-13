@@ -24,6 +24,17 @@ struct LightingVertex
 
 #define MAX_SPOT_LIGHTS   8
 #define MAX_POINT_LIGHTS  8
+#define MAX_DISCO_SOURCES 4
+
+// Must match DiscoSourceData in deferred_lighting.hlsli (2x float4 = 32 bytes).
+struct DiscoSourceData
+{
+    float center[3];
+    float rotationYDeg;
+    float facetGridN;
+    float brightness;
+    float _pad[2];
+};
 
 struct SpotLightData
 {
@@ -79,6 +90,11 @@ struct DeferredLightCB
 
     // Point Lights array
     PointLightData pointLights[MAX_POINT_LIGHTS];
+
+    // Disco sources array
+    int numDiscoSources;
+    int _discoPad[3];
+    DiscoSourceData discoSources[MAX_DISCO_SOURCES];
 };
 
 void DeferredLightingPass::Init()
@@ -274,6 +290,23 @@ void DeferredLightingPass::Render(GBufferManager* gbufferManager, ShadowMap* sha
         ++numPoints;
     }
     lightData.numPointLights = numPoints;
+
+    // Fill disco sources array (facet-mirror bodies scattering the spotlights)
+    const auto& discoCtx = GraphicsContext::GetInstance().GetDiscoSources();
+    int numDisco = 0;
+    for (size_t i = 0; i < discoCtx.size() && i < MAX_DISCO_SOURCES; ++i)
+    {
+        const DiscoSource& src = discoCtx[i];
+        DiscoSourceData& dd = lightData.discoSources[numDisco];
+        dd.center[0]    = src.center.x;
+        dd.center[1]    = src.center.y;
+        dd.center[2]    = src.center.z;
+        dd.rotationYDeg = src.rotationYDeg;
+        dd.facetGridN   = src.facetGridN;
+        dd.brightness   = src.brightness;
+        ++numDisco;
+    }
+    lightData.numDiscoSources = numDisco;
 
     if (camera)
     {
