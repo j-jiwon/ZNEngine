@@ -17,7 +17,7 @@ namespace ZNFramework
 		void DisableDepthWrite() override;
 		void EnableAlphaBlend() override;
 		// Pure additive (src + dst), ignoring alpha — used to combine bloom mip levels.
-		void EnableAdditiveBlend();
+		void EnableAdditiveBlend() override;
 
 	private:
 		void CreateShader(const wstring& path, const string& name, const string& version, ComPtr<ID3DBlob>& blob, D3D12_SHADER_BYTECODE& shaderByteCode);

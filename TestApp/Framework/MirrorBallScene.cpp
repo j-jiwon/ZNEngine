@@ -296,6 +296,52 @@ void MirrorBallScene::Initialize()
             std::cout << "[MirrorBallScene] room.glb not found at: " << roomPath << '\n';
     }
 
+    // --- Light-scatter floor decals: stand in for light bouncing off small mirror facets.
+    // Two independent sources, since two different objects carry mirror surfaces here:
+    // the mirror ball (rotates, so its glint pattern sweeps around the floor) and the
+    // monster's body-mounted mirror tiles (stationary, so its glints stay fixed). Both use
+    // the same additive procedural shader, just with different dot count/size/intensity.
+    scatterDecalShader = Platform::CreateShader();
+    scatterDecalShader->Load(GetResourcePath() / L"Shaders" / L"light_scatter_decal.hlsli");
+    scatterDecalShader->EnableAdditiveBlend();
+    scatterDecalShader->DisableDepthWrite();
+
+    {
+        // Many small glints, wide spread — matches a ceiling ball scattering light broadly.
+        ballLightScatterMat = ZNMaterialFactory::CreatePBR(scatterDecalShader,
+            ZNVector4(1.f, 1.f, 1.f, 1.f), /*metallic=dotCount*/40.f,
+            /*roughness=intensity*/1.0f, /*ao=dotRadius*/0.05f);
+
+        ZNMesh* mesh = ZNMeshFactory::CreatePlane(1.1f); // spans ~2.2m, centered under the ball
+        mesh->SetMaterial(ballLightScatterMat);
+
+        ballLightScatter = new ZNGameObject();
+        ballLightScatter->SetMesh(mesh);
+        ballLightScatter->SetMaterial(ballLightScatterMat);
+        ballLightScatter->SetName("BallLightScatter");
+        ballLightScatter->GetTransform().position = ZNVector3(0.f, 0.105f, 0.1f); // floor, under the ball's XZ
+        ballLightScatter->SetCastShadow(false);
+        AddForwardGameObject(ballLightScatter);
+    }
+    {
+        // Fewer, larger glints, tighter spread, static — matches sparse mirror tiles on a
+        // stationary body that doesn't sweep light around like the rotating ball does.
+        monsterLightScatterMat = ZNMaterialFactory::CreatePBR(scatterDecalShader,
+            ZNVector4(1.f, 1.f, 1.f, 1.f), /*metallic=dotCount*/10.f,
+            /*roughness=intensity*/0.7f, /*ao=dotRadius*/0.09f);
+
+        ZNMesh* mesh = ZNMeshFactory::CreatePlane(0.6f); // spans ~1.2m, centered under the monster
+        mesh->SetMaterial(monsterLightScatterMat);
+
+        monsterLightScatter = new ZNGameObject();
+        monsterLightScatter->SetMesh(mesh);
+        monsterLightScatter->SetMaterial(monsterLightScatterMat);
+        monsterLightScatter->SetName("MonsterLightScatter");
+        monsterLightScatter->GetTransform().position = ZNVector3(0.f, 0.105f, 0.f); // floor, under the monster's XZ
+        monsterLightScatter->SetCastShadow(false);
+        AddForwardGameObject(monsterLightScatter);
+    }
+
     // --- Environment cubemap: captured once from the mirror ball's position, feeds the
     // deferred lighting pass's reflection term (metallic/roughness-weighted, see
     // deferred_lighting.hlsli). The mirror ball's own meshes are excluded so the capture
@@ -324,6 +370,11 @@ void MirrorBallScene::Update(float deltaTime)
 
     for (auto* obj : glassBall.objects)
         obj->GetTransform().rotation.y -= 20.f * deltaTime;
+
+    // Sweeps in sync with the mirror ball's own rotation; monster's decal stays static since
+    // the monster itself doesn't rotate.
+    if (ballLightScatter)
+        ballLightScatter->GetTransform().rotation.y += 30.f * deltaTime;
 }
 
 void MirrorBallScene::Render()

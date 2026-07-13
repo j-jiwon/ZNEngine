@@ -16,6 +16,7 @@ private:
     ZNFramework::ZNShader* defaultShader     = nullptr;
     ZNFramework::ZNShader* glassShader       = nullptr;
     ZNFramework::ZNShader* envCaptureShader  = nullptr; // forward_pbr.hlsli, used only for the env cubemap capture
+    ZNFramework::ZNShader* scatterDecalShader = nullptr; // light_scatter_decal.hlsli, floor glint decals
 
     struct BallModel {
         std::vector<ZNFramework::ZNGameObject*> objects;
@@ -38,4 +39,12 @@ private:
 
     ZNFramework::ZNSpotLight*  spotLights[4] = {};
     ZNFramework::ZNPointLight* innerLight    = nullptr;
+
+    // Floor decals standing in for light scattered off small mirror facets — one under the
+    // rotating mirror ball (sweeps with it), one under the stationary monster (whose body has
+    // its own mirror-tile patches), both rendered via scatterDecalShader.
+    ZNFramework::ZNGameObject* ballLightScatter    = nullptr;
+    ZNFramework::ZNMaterial*   ballLightScatterMat = nullptr;
+    ZNFramework::ZNGameObject* monsterLightScatter    = nullptr;
+    ZNFramework::ZNMaterial*   monsterLightScatterMat = nullptr;
 };
