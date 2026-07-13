@@ -79,13 +79,6 @@ struct DeferredLightCB
 
     // Point Lights array
     PointLightData pointLights[MAX_POINT_LIGHTS];
-
-    // Camera ray reconstruction for skybox background pixels (depth == far, see
-    // deferred_lighting.hlsli) — forward/right/up must be the same basis a fullscreen
-    // quad's NDC would project through this camera's actual FOV/aspect.
-    float camForward[3]; float tanHalfFovX;
-    float camRight[3];   float tanHalfFovY;
-    float camUp[3];      float _skyboxPad;
 };
 
 void DeferredLightingPass::Init()
@@ -124,7 +117,7 @@ void DeferredLightingPass::Init()
     // Create descriptor heap for lighting pass
     D3D12_DESCRIPTOR_HEAP_DESC lightingHeapDesc = {};
     lightingHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-    lightingHeapDesc.NumDescriptors = TOTAL_DESCRIPTOR_TABLE_SIZE; // b0~b4 (5) + t0~t10 (11: gbuffer x5, shadow map, env cube, IBL irradiance/prefiltered/BRDF LUT, skybox)
+    lightingHeapDesc.NumDescriptors = TOTAL_DESCRIPTOR_TABLE_SIZE; // b0~b4 (5) + t0~t9 (10: gbuffer x5, shadow map, env cube, IBL irradiance/prefiltered/BRDF LUT)
     lightingHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
     ThrowIfFailed(device->Device()->CreateDescriptorHeap(&lightingHeapDesc, IID_PPV_ARGS(&lightingDescriptorHeap)));
 
@@ -139,22 +132,6 @@ void DeferredLightingPass::Init()
             cmd->ClearRenderTargetView(fallbackEnvCube->GetRTV(face), black, 0, nullptr);
         CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
             fallbackEnvCube->GetResource(),
-            D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-        cmd->ResourceBarrier(1, &barrier);
-        queue->FlushResourceQueue();
-    }
-
-    // Fallback black cubemap (t10) for scenes that never register a visible skybox.
-    fallbackSkyboxCube = new CubeRenderTexture();
-    fallbackSkyboxCube->Init(1);
-    {
-        CommandQueue* queue = GraphicsContext::GetInstance().GetAs<CommandQueue>();
-        ID3D12GraphicsCommandList* cmd = queue->ResourceCommandList();
-        float black[4] = { 0.f, 0.f, 0.f, 1.f };
-        for (uint32 face = 0; face < 6; ++face)
-            cmd->ClearRenderTargetView(fallbackSkyboxCube->GetRTV(face), black, 0, nullptr);
-        CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
-            fallbackSkyboxCube->GetResource(),
             D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
         cmd->ResourceBarrier(1, &barrier);
         queue->FlushResourceQueue();
@@ -304,21 +281,6 @@ void DeferredLightingPass::Render(GBufferManager* gbufferManager, ShadowMap* sha
         lightData.viewPosition[0] = camPos.x;
         lightData.viewPosition[1] = camPos.y;
         lightData.viewPosition[2] = camPos.z;
-
-        // Skybox ray reconstruction basis. tanHalfFovX/Y come straight out of the
-        // perspective projection matrix (_11 = xScale = 1/tan(halfFovX), _22 = yScale =
-        // 1/tan(halfFovY) — see ZNMatrix4::SetPerspective), avoiding the need for a
-        // separate FOV/aspect getter on ZNCamera.
-        ZNVector3 camForward = camera->GetForward();
-        ZNVector3 camRight   = camera->GetRight();
-        ZNVector3 camUp      = camera->GetUp();
-        lightData.camForward[0] = camForward.x; lightData.camForward[1] = camForward.y; lightData.camForward[2] = camForward.z;
-        lightData.camRight[0]   = camRight.x;   lightData.camRight[1]   = camRight.y;   lightData.camRight[2]   = camRight.z;
-        lightData.camUp[0]      = camUp.x;      lightData.camUp[1]      = camUp.y;      lightData.camUp[2]      = camUp.z;
-
-        ZNMatrix4 proj = camera->ProjectionMatrix();
-        lightData.tanHalfFovX = (proj._11 != 0.0f) ? 1.0f / proj._11 : 1.0f;
-        lightData.tanHalfFovY = (proj._22 != 0.0f) ? 1.0f / proj._22 : 1.0f;
     }
 
     lightData.unlitMode = (queue->GetViewMode() == ViewMode::Wireframe) ? 1 : 0;
@@ -402,16 +364,6 @@ void DeferredLightingPass::Render(GBufferManager* gbufferManager, ShadowMap* sha
         cpuHandle.ptr += lightingDescSize;
         if (iblBaker)
             device->Device()->CopyDescriptorsSimple(1, cpuHandle, iblBaker->GetBRDFLUTSRV(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-    }
-
-    // Copy visible skybox SRV (t10) — the active scene's background panorama, or the
-    // black fallback (background renders black, same as before skyboxes existed).
-    {
-        cpuHandle.ptr += lightingDescSize;
-        D3D12_CPU_DESCRIPTOR_HANDLE skySRV = queue->HasSkybox()
-            ? queue->GetSkyboxSRV()
-            : fallbackSkyboxCube->GetSRVCpuHandle();
-        device->Device()->CopyDescriptorsSimple(1, cpuHandle, skySRV, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
     }
 
     // Set descriptor heap

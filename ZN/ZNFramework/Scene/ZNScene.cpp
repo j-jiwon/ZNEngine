@@ -10,6 +10,7 @@
 #include "../Graphics/Platform/Direct3D12/RenderTexture.h"
 #include "../Graphics/Platform/Direct3D12/CubeRenderTexture.h"
 #include "../Graphics/Platform/Direct3D12/EquirectCubeTexture.h"
+#include "../Graphics/Platform/Direct3D12/SkyboxRenderer.h"
 #include "../Math/ZNMatrix4.h"
 #include "../Math/ZNVector3.h"
 #include <algorithm>
@@ -242,9 +243,21 @@ void ZNScene::AddCubemapCapture(const ZNVector3& position, float nearZ, float fa
 	}
 
 	CommandQueue* cmdQ = GraphicsContext::GetInstance().GetAs<CommandQueue>();
-	cmdQ->AddCubemapCapture(cams, cubeRT, resourceName, [this, idx]()
+	cmdQ->AddCubemapCapture(cams, cubeRT, resourceName, [this, idx, cubeRT, resolution](uint32 face)
 	{
 		CubemapCaptureEntry& entry = cubemapCaptureEntries[idx];
+
+		// Fill the whole face with the active skybox first (if any), so directions with
+		// no scene geometry show sky instead of the render target's black clear color.
+		// Real geometry rendered below naturally overwrites it via depth test.
+		CommandQueue* cmdQ2 = GraphicsContext::GetInstance().GetAs<CommandQueue>();
+		SkyboxRenderer* skyboxRenderer = cmdQ2->GetSkyboxRenderer();
+		if (skyboxRenderer)
+		{
+			ID3D12GraphicsCommandList* cmd = cmdQ2->CommandList();
+			skyboxRenderer->DrawBackground(cmd, face, cmdQ2->HasSkybox(), cmdQ2->GetSkyboxSRV(),
+			                               cubeRT->GetRTV(face), resolution);
+		}
 
 		// CubeCapturePass executes before GBufferPass in the render graph, which is the
 		// only place ZNScene::Render() (and thus SetSpotLights/SetDirectionalLight) normally

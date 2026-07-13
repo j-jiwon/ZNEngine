@@ -18,6 +18,7 @@ class DebugViewportRenderer;
 class ShadowMap;
 class BloomChain;
 class IBLBaker;
+class SkyboxRenderer;
 class ZNCamera;
 
 class CommandQueue : public ZNCommandQueue
@@ -44,6 +45,7 @@ public:
     RenderTexture*        GetSceneColorRT()      { return sceneColorRT; }
     BloomChain*           GetBloomChain()        { return bloomChain; }
     IBLBaker*             GetIBLBaker()          { return iblBaker; }
+    SkyboxRenderer*       GetSkyboxRenderer()    { return skyboxRenderer; }
 
     void SetGBufferManager(GBufferManager* manager)            { gbufferManager = manager; }
     void SetDeferredLightingPass(DeferredLightingPass* pass)   { deferredLightingPass = pass; }
@@ -52,6 +54,7 @@ public:
     void SetSceneColorRT(RenderTexture* rt)                    { sceneColorRT = rt; }
     void SetBloomChain(BloomChain* chain)                      { bloomChain = chain; }
     void SetIBLBaker(IBLBaker* baker)                          { iblBaker = baker; }
+    void SetSkyboxRenderer(SkyboxRenderer* renderer)           { skyboxRenderer = renderer; }
     void SetShadowRenderCallback(std::function<void()> cb)     { shadowRenderCallback = std::move(cb); }
     void SetGBufferRenderCallback(std::function<void()> cb)    { gbufferRenderCallback = std::move(cb); }
 
@@ -89,10 +92,11 @@ public:
 
     // One-shot cubemap capture: renders into all 6 faces on the first frame only, then
     // the CubeRenderTexture is a stable static environment map. Must be called before the
-    // first frame (before BuildRenderGraph runs).
+    // first frame (before BuildRenderGraph runs). cb receives the face index (0-5) being
+    // rendered, so callers can draw a per-face skybox background before scene geometry.
     void AddCubemapCapture(std::vector<ZNCamera*> cams, CubeRenderTexture* rt,
                            const std::string& resourceName,
-                           std::function<void()> cb)
+                           std::function<void(uint32)> cb)
     {
         cubemapCaptures.push_back({ std::move(cams), rt, resourceName, std::move(cb) });
     }
@@ -139,6 +143,7 @@ private:
     RenderTexture*         sceneColorRT          = nullptr;
     BloomChain*            bloomChain            = nullptr;
     IBLBaker*              iblBaker              = nullptr;
+    SkyboxRenderer*        skyboxRenderer        = nullptr;
 
     struct OffscreenCameraEntry {
         ZNCamera*       camera;
@@ -148,10 +153,10 @@ private:
     };
 
     struct CubemapCaptureEntry {
-        std::vector<ZNCamera*> cams;
-        CubeRenderTexture*     output;
-        std::string            resourceName;
-        std::function<void()>  renderCb;
+        std::vector<ZNCamera*>      cams;
+        CubeRenderTexture*          output;
+        std::string                 resourceName;
+        std::function<void(uint32)> renderCb;
     };
 
     std::function<void()> shadowRenderCallback;

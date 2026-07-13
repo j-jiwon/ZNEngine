@@ -56,13 +56,6 @@ cbuffer cbLight : register(b0)
 
     // Point Lights array
     PointLightData pointLights[MAX_POINT_LIGHTS];
-
-    // Skybox ray reconstruction (background pixels only, depth == far — see PS_Main).
-    // forward/right/up are this frame's camera basis; tanHalfFovX/Y let a fullscreen
-    // quad's NDC position reconstruct the same view ray a real projection would.
-    float3 camForward; float tanHalfFovX;
-    float3 camRight;   float tanHalfFovY;
-    float3 camUp;      float _skyboxPad;
 };
 
 // G-Buffer textures
@@ -76,7 +69,6 @@ TextureCube envCube : register(t6);   // Captured environment cubemap (static ba
 TextureCube irradianceCube : register(t7);   // IBL diffuse irradiance (cosine-convolved envCube); black = not baked yet
 TextureCube prefilteredCube : register(t8);  // IBL specular, roughness-mip chain (GGX prefiltered envCube); black = not baked yet
 Texture2D brdfLUT : register(t9);            // Split-sum BRDF LUT (scale,bias in .rg)
-TextureCube skyboxCube : register(t10);      // Visible background (drawn where depth == far); black = none set
 
 SamplerState sampler0 : register(s0);
 SamplerComparisonState shadowSampler : register(s1);  // Comparison sampler for PCF
@@ -248,18 +240,6 @@ float4 PS_Main(VS_OUT input) : SV_Target
         return float4(baseColor.rgb, baseColor.a);
     float4 encodedNormal = normalTexture.Sample(sampler0, input.uv);
     float depth = depthTexture.Sample(sampler0, input.uv).r;
-
-    // Background (no scene geometry hit this pixel, GBuffer depth copy is still at its
-    // far-plane clear value): show the visible skybox instead of lighting a cleared/empty
-    // GBuffer. Reconstruct the view ray from this camera's actual FOV/aspect rather than
-    // assuming any fixed projection.
-    if (depth >= 0.9999f)
-    {
-        float2 ndc = input.uv * 2.0f - 1.0f;
-        ndc.y = -ndc.y;
-        float3 rayDir = normalize(camForward + ndc.x * tanHalfFovX * camRight + ndc.y * tanHalfFovY * camUp);
-        return float4(skyboxCube.Sample(sampler0, rayDir).rgb, 1.0f);
-    }
 
     // Decode normal from [0,1] to [-1,1]
     float3 normal = encodedNormal.rgb * 2.0f - 1.0f;

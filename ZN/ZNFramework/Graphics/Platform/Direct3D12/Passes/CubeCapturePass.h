@@ -22,7 +22,7 @@ public:
                     ID3D12RootSignature* rootSig,
                     ID3D12DescriptorHeap* tableDescHeap,
                     bool& isForwardPassRef,
-                    std::function<void()> renderCb)
+                    std::function<void(uint32)> renderCb)
         : RenderPass(name)
         , cams(std::move(cams)), output(output)
         , rootSig(rootSig), tableDescHeap(tableDescHeap)
@@ -59,7 +59,7 @@ public:
             GraphicsContext::GetInstance().SetCamera(cams[face]);
 
             isForwardPassRef = true;
-            if (renderCb) renderCb();
+            if (renderCb) renderCb(face);
             isForwardPassRef = false;
         }
 
@@ -74,9 +74,9 @@ private:
     CubeRenderTexture*     output;
     ID3D12RootSignature*   rootSig;
     ID3D12DescriptorHeap*  tableDescHeap;
-    bool&                  isForwardPassRef;
-    std::function<void()>  renderCb;
-    bool                   captured = false;
+    bool&                       isForwardPassRef;
+    std::function<void(uint32)> renderCb;
+    bool                        captured = false;
 };
 
 } // namespace ZNFramework

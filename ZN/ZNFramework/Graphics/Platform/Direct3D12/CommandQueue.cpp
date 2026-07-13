@@ -11,6 +11,7 @@
 #include "ShadowMap.h"
 #include "BloomChain.h"
 #include "IBLBaker.h"
+#include "SkyboxRenderer.h"
 #include "Passes/ShadowPass.h"
 #include "Passes/GBufferPass.h"
 #include "Passes/DeferredLightingRenderPass.h"
@@ -21,6 +22,7 @@
 #include "Passes/OffscreenCameraPass.h"
 #include "Passes/CubeCapturePass.h"
 #include "Passes/IBLBakePass.h"
+#include "Passes/SkyboxPass.h"
 #include "ZNFramework.h"
 
 using namespace ZNFramework;
@@ -172,6 +174,12 @@ void CommandQueue::BuildRenderGraph()
     if (deferredLightingPass && gbufferManager && sceneColorRT) {
         renderGraph.AddPass(std::make_unique<DeferredLightingRenderPass>(
             deferredLightingPass, gbufferManager, shadowMap, swapChain, sceneColorRT));
+    }
+
+    // --- Skybox pass (fills SceneColor's background pixels, depth == far) ---
+    if (sceneColorRT && gbufferManager && skyboxRenderer) {
+        renderGraph.AddPass(std::make_unique<SkyboxPass>(
+            skyboxRenderer, gbufferManager, sceneColorRT, this));
     }
 
     // --- Bloom pass (bright-pass extract + downsample/upsample chain from SceneColor) ---

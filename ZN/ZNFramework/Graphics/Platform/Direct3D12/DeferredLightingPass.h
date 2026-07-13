@@ -33,9 +33,5 @@ namespace ZNFramework
         // Bound at t6 (envCube) when no scene has registered a captured environment cubemap —
         // an all-black cube contributes zero to the reflection term, i.e. no visible effect.
         CubeRenderTexture* fallbackEnvCube = nullptr;
-
-        // Bound at t10 (skyboxCube) when no scene has registered a visible skybox — an
-        // all-black cube means background pixels just render black, same as before skyboxes existed.
-        CubeRenderTexture* fallbackSkyboxCube = nullptr;
     };
 }

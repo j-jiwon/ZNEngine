@@ -42,6 +42,7 @@
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\DeferredLightingPass.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\BloomChain.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\IBLBaker.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\SkyboxRenderer.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\DebugViewportRenderer.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\ShadowMap.cpp" />
     <ClCompile Include="ZNFramework\Graphics\ZNMeshFactory.cpp" />
@@ -60,6 +61,8 @@
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Passes\BloomPass.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\IBLBaker.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Passes\IBLBakePass.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\SkyboxRenderer.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Passes\SkyboxPass.h" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ZNFramework\UI\ZNImGuiLayer.h" />

@@ -13,6 +13,7 @@
 #include "ZNFramework/Graphics/Platform/Direct3D12/RenderTexture.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/BloomChain.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/IBLBaker.h"
+#include "ZNFramework/Graphics/Platform/Direct3D12/SkyboxRenderer.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/DeferredLightingPass.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/DebugViewportRenderer.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/ShadowMap.h"
@@ -214,6 +215,13 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
         IBLBaker* iblBaker = new IBLBaker();
         iblBaker->Init();
         cmdQueue->SetIBLBaker(iblBaker);
+
+        // Initialize skybox renderer (main-camera background resolve + cube-capture
+        // background fill). No resize hook needed — DrawResolve() takes width/height
+        // as call parameters rather than owning a sized resource.
+        SkyboxRenderer* skyboxRenderer = new SkyboxRenderer();
+        skyboxRenderer->Init();
+        cmdQueue->SetSkyboxRenderer(skyboxRenderer);
     }
 
     commandQueue->WaitSync();

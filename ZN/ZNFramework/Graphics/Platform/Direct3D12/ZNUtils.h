@@ -60,8 +60,11 @@ enum
 
 	// Global SRV registers appended after the per-material t0~t4 GBuffer range in the
 	// shared root signature's descriptor table (see RootSignature.cpp): shadow map,
-	// env cube, IBL irradiance, IBL prefiltered specular, IBL BRDF LUT, visible skybox.
-	GLOBAL_SRV_COUNT = 6,
+	// env cube, IBL irradiance, IBL prefiltered specular, IBL BRDF LUT. The visible
+	// skybox (SkyboxPass/SkyboxRenderer) is NOT in this global set — it uses its own
+	// dedicated per-pass descriptor heap (t0/t1 local to that shader), same as
+	// BloomChain/ToneMappingPass/IBLBaker's own internal textures.
+	GLOBAL_SRV_COUNT = 5,
 
 	// Total descriptor count for a heap laid out to match the root signature's single
 	// descriptor table (b0~b4 CBVs, then t0~t4 GBuffer + GLOBAL_SRV_COUNT global SRVs).
