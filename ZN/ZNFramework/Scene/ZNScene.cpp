@@ -85,6 +85,16 @@ void ZNScene::RegisterDebugCamera(ZNCamera* cam, const std::string& name)
 		debugCameras.push_back({ cam, name });
 }
 
+ZNGameObject* ZNScene::AddModelRoot(const std::string& name, const Transform& modelTransform)
+{
+	ZNGameObject* root = new ZNGameObject();
+	root->SetName(name);
+	root->GetTransform() = modelTransform;
+	// No mesh -> renders nothing; it only drives child world transforms + Outliner grouping.
+	AddGameObject(root);
+	return root;
+}
+
 void ZNScene::AddGameObject(ZNGameObject* obj)
 {
 	if (obj)

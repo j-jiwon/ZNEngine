@@ -154,6 +154,13 @@ void MirrorBallScene::Initialize()
                     monster.materials.push_back(ZNMaterialFactory::CreatePBRFromData(defaultShader, fallback));
                 }
 
+                // R1: model transform now lives on a single root; parts inherit it.
+                Transform monsterXform;
+                monsterXform.position = ZNVector3(0.0f, 0.8f, 0.0f); // standing on the real floor (Y~0.1)
+                monsterXform.rotation = ZNVector3(0.0f, -40.f, 0.0f);
+                monsterXform.scale    = ZNVector3(0.5f, 0.5f, 0.5f); // ~15cm radius decorative sphere
+                monster.root = AddModelRoot("Monster", monsterXform);
+
                 for (const auto& meshData : modelData.meshes)
                 {
                     size_t matIdx = (meshData.materialIndex < monster.materials.size())
@@ -168,9 +175,8 @@ void MirrorBallScene::Initialize()
                     obj->SetMesh(mesh);
                     obj->SetMaterial(mat);
                     obj->SetName("Monster_" + std::to_string(monster.objects.size()));
-                    obj->GetTransform().position = ZNVector3(0.0f, 0.8f, 0.0f); // standing on the real floor (Y~0.1)
-                    obj->GetTransform().rotation = ZNVector3(0.0f, -40.f, 0.0f);
-                    obj->GetTransform().scale    = ZNVector3(0.5f, 0.5f, 0.5f); // ~15cm radius decorative sphere
+                    // identity local transform -> inherits monster.root's world transform
+                    monster.root->AddChild(obj);
                     AddGameObject(obj);
                     monster.objects.push_back(obj);
                 }
@@ -262,6 +268,10 @@ void MirrorBallScene::Initialize()
                     roomMatIsTransparent.push_back(false);
                 }
 
+                // R1: single room root; parts (opaque + transparent) parent under it. World
+                // transform is inherited regardless of which render list a part lives in.
+                room.root = AddModelRoot("Room", Transform{});
+
                 for (const auto& meshData : modelData.meshes)
                 {
                     size_t matIdx = (meshData.materialIndex < room.materials.size())
@@ -278,6 +288,7 @@ void MirrorBallScene::Initialize()
                     obj->SetName("Room_" + std::to_string(room.objects.size()));
                     obj->SetTag("Room");
                     obj->SetCastShadow(false);
+                    room.root->AddChild(obj);
 
                     if (roomMatIsTransparent[matIdx])
                         AddForwardGameObject(obj);

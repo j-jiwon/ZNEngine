@@ -44,7 +44,7 @@ void Mesh::Render()
 
 	// Build TransformMatrices (cbTransform : register(b0))
 	TransformMatrices transformMatrices;
-	transformMatrices.world = transform.GetWorldMatrix();
+	transformMatrices.world = worldMatrix;
 	transformMatrices.view = camera ? camera->ViewMatrix() : ZNMatrix4(); // Identity if no camera
 	transformMatrices.projection = camera ? camera->ProjectionMatrix() : ZNMatrix4(); // Identity if no camera
 
@@ -170,7 +170,7 @@ void Mesh::RenderShadow(const ZNMatrix4& lightViewProj, ZNShader* shadowShader)
 
 	// Build ShadowTransformCB (cbShadowTransform : register(b0))
 	ShadowTransformCB shadowTransform;
-	shadowTransform.world = transform.GetWorldMatrix();
+	shadowTransform.world = worldMatrix;
 	shadowTransform.lightViewProj = lightViewProj;
 
 	ConstantBuffer* constantBuffer = GraphicsContext::GetInstance().GetAs<ConstantBuffer>();

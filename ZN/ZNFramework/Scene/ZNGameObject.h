@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <vector>
 #include "../ZNTransform.h"
 
 namespace ZNFramework
@@ -53,6 +54,21 @@ namespace ZNFramework
 		Transform& GetTransform() { return transform; }
 		const Transform& GetTransform() const { return transform; }
 
+		// --- Hierarchy (R1) ---
+		// A "model" = one root node (usually mesh-less) with N mesh children. Moving the root
+		// moves every child, because child world = childLocal * parentWorld (see .cpp).
+		ZNGameObject* GetParent() const { return parent; }
+		const std::vector<ZNGameObject*>& GetChildren() const { return children; }
+		bool HasChildren() const { return !children.empty(); }
+		bool IsRootLevel() const { return parent == nullptr; }
+
+		void AddChild(ZNGameObject* child);   // re-parents child under this node
+		void DetachFromParent();
+
+		// Local = this node's own Transform. World = local composed up the parent chain.
+		ZNMatrix4 GetLocalMatrix() const;
+		ZNMatrix4 GetWorldMatrix() const;
+
 		std::string GetName() const { return name; }
 		void SetName(const std::string& newName) { name = newName; }
 		std::string GetTag() const { return tag; }
@@ -61,7 +77,9 @@ namespace ZNFramework
 	protected:
 		ZNMesh* mesh = nullptr;
 		ZNMaterial* material = nullptr;
-		Transform transform;
+		Transform transform;             // local transform (relative to parent)
+		ZNGameObject* parent = nullptr;  // R1: scene-graph hierarchy
+		std::vector<ZNGameObject*> children;
 		bool isActive = true;
 		bool isVisible = true;
 		bool castShadow = true;

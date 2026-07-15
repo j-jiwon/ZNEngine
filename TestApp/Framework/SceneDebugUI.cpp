@@ -6,6 +6,7 @@
 #include <Windows.h>
 #include <algorithm>
 #include <cmath>
+#include <functional>
 
 using namespace ZNFramework;
 
@@ -339,20 +340,51 @@ void SceneDebugUI::Render(ZNScene* scene)
     {
         if (scene)
         {
-            auto showObj = [&](ZNGameObject* obj) {
-                const auto& tag = obj->GetTag();
-                if (tag == "Debug" || tag == "Room") return;
+            auto selectObj = [&](ZNGameObject* obj) {
+                selection.type = SelectionType::GameObject;
+                selection.ptr  = obj;
+            };
+
+            // Recursive node drawer: parents become collapsible tree nodes, leaves are selectable.
+            std::function<void(ZNGameObject*)> drawNode = [&](ZNGameObject* obj) {
+                if (obj->GetTag() == "Debug") return;
                 bool isSelected = (selection.type == SelectionType::GameObject && selection.ptr == obj);
-                if (ImGui::Selectable(obj->GetName().c_str(), isSelected))
+
+                if (obj->HasChildren())
                 {
-                    selection.type = SelectionType::GameObject;
-                    selection.ptr  = obj;
+                    ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow
+                                             | ImGuiTreeNodeFlags_SpanAvailWidth;
+                    if (isSelected) flags |= ImGuiTreeNodeFlags_Selected;
+                    bool open = ImGui::TreeNodeEx(obj->GetName().c_str(), flags);
+                    if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
+                        selectObj(obj);
+                    if (open)
+                    {
+                        for (auto* child : obj->GetChildren())
+                            drawNode(child);
+                        ImGui::TreePop();
+                    }
+                }
+                else
+                {
+                    if (ImGui::Selectable(obj->GetName().c_str(), isSelected))
+                        selectObj(obj);
                 }
             };
-            for (auto* obj : scene->GetGameObjects())
-                showObj(obj);
-            for (auto* obj : scene->GetForwardGameObjects())
-                showObj(obj);
+
+            // Enter only from root-level nodes; children are reached via recursion, so nothing
+            // is listed twice even though child parts also live in the flat render lists.
+            // Legacy hide of flat "Room" parts stays at the TOP level only — un-converted scenes
+            // (e.g. CCTVScene, which groups Room via its own Outliner extra) keep their behavior,
+            // while a converted model root is untagged and shows its parts under the tree.
+            auto drawTop = [&](ZNGameObject* obj) {
+                if (!obj->IsRootLevel()) return;
+                const auto& tag = obj->GetTag();
+                if (tag == "Debug" || tag == "Room") return;
+                drawNode(obj);
+            };
+            for (auto* obj : scene->GetGameObjects())        drawTop(obj);
+            for (auto* obj : scene->GetForwardGameObjects()) drawTop(obj);
         }
         ImGui::TreePop();
     }

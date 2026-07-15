@@ -38,6 +38,10 @@ namespace ZNFramework
 		void RegisterDebugCamera(ZNCamera* cam, const std::string& name);
 		const std::vector<DebugCameraEntry>& GetDebugCameras() const { return debugCameras; }
 
+		// R1: creates a mesh-less model root at `modelTransform`, registers it, and returns it.
+		// Parent mesh objects under it (root->AddChild(part)) so the model moves as one unit.
+		ZNGameObject* AddModelRoot(const std::string& name, const Transform& modelTransform);
+
 		// GameObject management
 		void AddGameObject(ZNGameObject* obj);
 		void RemoveGameObject(ZNGameObject* obj);

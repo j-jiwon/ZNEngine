@@ -20,6 +20,7 @@ namespace ZNFramework
 		virtual void Render() = 0;
 		virtual void RenderShadow(const ZNMatrix4& lightViewProj, ZNShader* shadowShader) = 0;
 		virtual void SetTransform(const Transform& t) = 0;
+		virtual void SetWorldMatrix(const ZNMatrix4& world) = 0;  // R1: hierarchy-composed world
 		virtual void SetTexture(ZNTexture* inTexture) = 0;
 		virtual void SetMaterial(ZNMaterial* inMaterial) = 0;
 
