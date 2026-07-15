@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include "../ZNTransform.h"
+#include "ZNObjectHandle.h"
 
 namespace ZNFramework
 {
@@ -72,7 +73,11 @@ namespace ZNFramework
 		std::string GetName() const { return name; }
 		void SetName(const std::string& newName) { name = newName; }
 		std::string GetTag() const { return tag; }
-		void SetTag(const std::string& newTag) { tag = newTag; }	
+		void SetTag(const std::string& newTag) { tag = newTag; }
+
+		// stable handle into the owning scene's pool, set when the scene adopts this object.
+		ZNObjectHandle GetHandle() const { return handle; }
+		void SetHandle(ZNObjectHandle h) { handle = h; }  // scene only
 
 	protected:
 		ZNMesh* mesh = nullptr;
@@ -85,5 +90,6 @@ namespace ZNFramework
 		bool castShadow = true;
 		std::string name;
 		std::string tag;
+		ZNObjectHandle handle;           // identity in the owning scene's pool
 	};
 }

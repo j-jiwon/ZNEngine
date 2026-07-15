@@ -17,6 +17,9 @@
 
 using namespace ZNFramework;
 
+// out-of-line: unique_ptr<ZNGameObject> needs the complete type here. frees every gameobject.
+ZNScene::~ZNScene() = default;
+
 void ZNScene::Update(float deltaTime)
 {
 	// Update all game objects
@@ -95,30 +98,114 @@ ZNGameObject* ZNScene::AddModelRoot(const std::string& name, const Transform& mo
 	return root;
 }
 
-void ZNScene::AddGameObject(ZNGameObject* obj)
+// --- object pool -------------------------------------------------------------------------
+
+ZNObjectHandle ZNScene::AdoptObject(ZNGameObject* obj, bool forward)
 {
-	if (obj)
-		gameObjects.push_back(obj);
+	if (!obj)
+		return {};
+
+	uint32 index;
+	if (!freeSlots.empty())
+	{
+		index = freeSlots.back();
+		freeSlots.pop_back();
+	}
+	else
+	{
+		index = static_cast<uint32>(objectSlots.size());
+		objectSlots.emplace_back();
+	}
+
+	ObjectSlot& slot = objectSlots[index];
+	slot.generation += 1;          // bumped every use -> old handles go stale
+	slot.forward = forward;
+	slot.obj.reset(obj);           // take ownership
+
+	ZNObjectHandle h{ index, slot.generation };
+	obj->SetHandle(h);
+	return h;
+}
+
+ZNGameObject* ZNScene::Resolve(ZNObjectHandle h) const
+{
+	if (h.IsNull() || h.index >= objectSlots.size())
+		return nullptr;
+	const ObjectSlot& slot = objectSlots[h.index];
+	if (slot.generation != h.generation || !slot.obj)
+		return nullptr;            // stale: slot freed or reused
+	return slot.obj.get();
+}
+
+void ZNScene::RemoveFromRenderList(ZNGameObject* obj, bool forward)
+{
+	// swap-and-pop: O(1), render-list order doesn't matter here.
+	std::vector<ZNGameObject*>& list = forward ? forwardGameObjects : gameObjects;
+	auto it = std::find(list.begin(), list.end(), obj);
+	if (it != list.end())
+	{
+		*it = list.back();
+		list.pop_back();
+	}
+}
+
+void ZNScene::DestroyObjectInternal(ZNGameObject* obj)
+{
+	// destroy the subtree first (children are separately pool-owned). copy the list because
+	// each child's DetachFromParent() mutates it.
+	std::vector<ZNGameObject*> kids = obj->GetChildren();
+	for (auto* child : kids)
+		DestroyObjectInternal(child);
+
+	obj->DetachFromParent();  // so parent's children list doesn't dangle
+
+	const ZNObjectHandle h = obj->GetHandle();
+	ObjectSlot& slot = objectSlots[h.index];
+	RemoveFromRenderList(obj, slot.forward);
+
+	slot.obj.reset();          // free; outstanding handles now resolve to null
+	freeSlots.push_back(h.index);
+}
+
+void ZNScene::Destroy(ZNObjectHandle h)
+{
+	if (ZNGameObject* obj = Resolve(h))
+		DestroyObjectInternal(obj);
+}
+
+void ZNScene::Destroy(ZNGameObject* obj)
+{
+	// only if obj is genuinely a live pool object (guards double-destroy / non-adopted ptr).
+	if (obj && Resolve(obj->GetHandle()) == obj)
+		DestroyObjectInternal(obj);
+}
+
+ZNObjectHandle ZNScene::AddGameObject(ZNGameObject* obj)
+{
+	if (!obj)
+		return {};
+	ZNObjectHandle h = AdoptObject(obj, /*forward*/ false);
+	gameObjects.push_back(obj);
+	return h;
 }
 
 void ZNScene::RemoveGameObject(ZNGameObject* obj)
 {
-	auto it = std::find(gameObjects.begin(), gameObjects.end(), obj);
-	if (it != gameObjects.end())
-		gameObjects.erase(it);
+	Destroy(obj);
 }
 
-void ZNScene::AddForwardGameObject(ZNGameObject* obj)
+ZNObjectHandle ZNScene::AddForwardGameObject(ZNGameObject* obj)
 {
-	if (obj)
-		forwardGameObjects.push_back(obj);
+	if (!obj)
+		return {};
+	ZNObjectHandle h = AdoptObject(obj, /*forward*/ true);
+	forwardGameObjects.push_back(obj);
+	return h;
 }
 
 void ZNScene::RemoveForwardGameObject(ZNGameObject* obj)
 {
-	auto it = std::find(forwardGameObjects.begin(), forwardGameObjects.end(), obj);
-	if (it != forwardGameObjects.end())
-		forwardGameObjects.erase(it);
+	Destroy(obj);
 }
 
 void ZNScene::SetCamera(ZNCamera* cam)

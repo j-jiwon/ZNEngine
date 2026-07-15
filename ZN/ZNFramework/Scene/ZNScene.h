@@ -2,9 +2,11 @@
 #include "../ZNTransform.h"
 #include "../ZNInputDef.h"
 #include "../Graphics/ZNGraphicsContext.h" // for DiscoSource
+#include "ZNObjectHandle.h"
 #include <d3d12.h>
 #include <vector>
 #include <string>
+#include <memory>
 #include <unordered_map>
 
 namespace ZNFramework
@@ -24,7 +26,9 @@ namespace ZNFramework
 	{
 	public:
 		ZNScene() = default;
-		virtual ~ZNScene() = default;
+		// out-of-line: pool holds unique_ptr<ZNGameObject> (needs complete type in .cpp).
+		// frees every scene-owned gameobject.
+		virtual ~ZNScene();
 
 		virtual void Initialize() {}
 		virtual void Update(float deltaTime);
@@ -42,15 +46,23 @@ namespace ZNFramework
 		// Parent mesh objects under it (root->AddChild(part)) so the model moves as one unit.
 		ZNGameObject* AddModelRoot(const std::string& name, const Transform& modelTransform);
 
-		// GameObject management
-		void AddGameObject(ZNGameObject* obj);
-		void RemoveGameObject(ZNGameObject* obj);
+		// Add* adopt ownership into the scene's pool (don't delete the object elsewhere) and
+		// return a handle. the raw pointer stays valid for the object's lifetime (heap-fixed).
+		ZNObjectHandle AddGameObject(ZNGameObject* obj);
+		void           RemoveGameObject(ZNGameObject* obj);   // frees the object
 		const std::vector<ZNGameObject*>& GetGameObjects() const { return gameObjects; }
 
 		// Forward objects (rendered after deferred lighting)
-		void AddForwardGameObject(ZNGameObject* obj);
-		void RemoveForwardGameObject(ZNGameObject* obj);
+		ZNObjectHandle AddForwardGameObject(ZNGameObject* obj);
+		void           RemoveForwardGameObject(ZNGameObject* obj);  // frees the object
 		const std::vector<ZNGameObject*>& GetForwardGameObjects() const { return forwardGameObjects; }
+
+		// Resolve returns null for a stale/null handle instead of a dangling pointer. Destroy
+		// frees the object + its child subtree, detaches from parent, drops from render list.
+		ZNGameObject* Resolve(ZNObjectHandle h) const;
+		bool          IsValid(ZNObjectHandle h) const { return Resolve(h) != nullptr; }
+		void          Destroy(ZNObjectHandle h);
+		void          Destroy(ZNGameObject* obj);  // no-op if obj isn't pool-owned
 
 		// Camera
 		void SetCamera(ZNCamera* cam);
@@ -116,6 +128,8 @@ namespace ZNFramework
 		void ApplySkybox();
 
 	protected:
+		// non-owning render-list views (owned by objectSlots below). record which pass each
+		// object participates in.
 		std::vector<ZNGameObject*> gameObjects;
 		std::vector<ZNGameObject*> forwardGameObjects;  // Objects rendered in forward pass
 		std::vector<ZNSpotLight*> spotLights;
@@ -125,6 +139,21 @@ namespace ZNFramework
 		ZNDirectionalLight* directionalLight = nullptr;
 
 	private:
+		// owns every gameobject. one live slot = one unique_ptr (heap-fixed, so pointers/hierarchy
+		// links stay valid across pool growth). generation goes stale on reuse; forward records
+		// which render-list view the object is in.
+		struct ObjectSlot {
+			std::unique_ptr<ZNGameObject> obj;        // null when free
+			uint32 generation = 0;                    // bumped on (re)use
+			bool   forward    = false;                // forwardGameObjects vs gameObjects
+		};
+		std::vector<ObjectSlot> objectSlots;
+		std::vector<uint32>     freeSlots;            // reusable slot indices
+
+		ZNObjectHandle AdoptObject(ZNGameObject* obj, bool forward);
+		void           DestroyObjectInternal(ZNGameObject* obj);
+		void           RemoveFromRenderList(ZNGameObject* obj, bool forward);
+
 		std::vector<DebugCameraEntry> debugCameras;
 
 		struct OffscreenCamEntry {
