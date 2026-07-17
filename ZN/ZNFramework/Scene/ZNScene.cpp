@@ -356,6 +356,16 @@ void ZNScene::AddCubemapCapture(const ZNVector3& position, float nearZ, float fa
 			                               cubeRT->GetRTV(face), resolution);
 		}
 
+		// DrawBackground above re-bound the face RTV with NO depth buffer. Restore RTV + DSV so the
+		// geometry below actually depth-tests — otherwise it renders in draw order (wrong occlusion
+		// in the captured reflection) and its D32_FLOAT PSO mismatches the null DSV (debug-layer spam).
+		{
+			ID3D12GraphicsCommandList* cmd = cmdQ2->CommandList();
+			D3D12_CPU_DESCRIPTOR_HANDLE rtv = cubeRT->GetRTV(face);
+			D3D12_CPU_DESCRIPTOR_HANDLE dsv = cubeRT->GetDSV();
+			cmd->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
+		}
+
 		// CubeCapturePass executes before GBufferPass in the render graph, which is the
 		// only place ZNScene::Render() (and thus SetSpotLights/SetDirectionalLight) normally
 		// runs. Since this capture is one-shot on the very first frame, GraphicsContext's

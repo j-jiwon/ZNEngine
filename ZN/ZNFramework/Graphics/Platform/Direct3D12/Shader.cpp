@@ -44,13 +44,17 @@ void Shader::Load(const wstring& path)
 	DepthStencilBuffer* dsBuffer = GraphicsContext::GetInstance().GetAs<DepthStencilBuffer>();
 	pipelineDesc.DSVFormat = dsBuffer->GetDSVFormat();
 
-	GraphicsDevice* device = GraphicsContext::GetInstance().GetAs<GraphicsDevice>();
-	ThrowIfFailed(device->Device()->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&pipelineState)));
-	CreateWireframePSO();
+	// PSO is built lazily — on first Bind(), or when a state setter reconfigures pipelineDesc.
+	// Deferring avoids a throwaway default 1-RTV PSO for shaders whose real formats are set after
+	// Load (e.g. the 5-target G-buffer shader, whose 5 PS outputs would mismatch a 1-RTV PSO and
+	// trip the debug layer at creation).
 }
 
 void Shader::Bind()
 {
+	if (!pipelineState) // built lazily (see Load) — this shader was only Load()'ed, no state setter
+		RebuildPSO();
+
 	CommandQueue* queue = GraphicsContext::GetInstance().GetAs<CommandQueue>();
 	ID3D12PipelineState* pso =
 		(queue->GetViewMode() == ViewMode::Wireframe && pipelineStateWireframe)
@@ -75,6 +79,14 @@ void Shader::CreateWireframePSO()
 	GraphicsDevice* device = GraphicsContext::GetInstance().GetAs<GraphicsDevice>();
 	pipelineStateWireframe.Reset();
 	ThrowIfFailed(device->Device()->CreateGraphicsPipelineState(&wireDesc, IID_PPV_ARGS(&pipelineStateWireframe)));
+}
+
+void Shader::RebuildPSO()
+{
+	GraphicsDevice* device = GraphicsContext::GetInstance().GetAs<GraphicsDevice>();
+	pipelineState.Reset();
+	ThrowIfFailed(device->Device()->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&pipelineState)));
+	CreateWireframePSO();
 }
 
 void Shader::CreateShader(const wstring& path, const string& name, const string& version, ComPtr<ID3DBlob>& blob, D3D12_SHADER_BYTECODE& shaderByteCode)
@@ -139,10 +151,7 @@ void Shader::SetRenderTargetFormats(uint32 numRenderTargets, const DXGI_FORMAT* 
 	}
 
 	// Recreate pipeline state with new configuration
-	GraphicsDevice* device = GraphicsContext::GetInstance().GetAs<GraphicsDevice>();
-	pipelineState.Reset();
-	ThrowIfFailed(device->Device()->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&pipelineState)));
-	CreateWireframePSO();
+	RebuildPSO();
 }
 
 void Shader::DisableDepthTest()
@@ -151,20 +160,14 @@ void Shader::DisableDepthTest()
 	pipelineDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
 	pipelineDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
 
-	GraphicsDevice* device = GraphicsContext::GetInstance().GetAs<GraphicsDevice>();
-	pipelineState.Reset();
-	ThrowIfFailed(device->Device()->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&pipelineState)));
-	CreateWireframePSO();
+	RebuildPSO();
 }
 
 void Shader::DisableDepthWrite()
 {
 	pipelineDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
 
-	GraphicsDevice* device = GraphicsContext::GetInstance().GetAs<GraphicsDevice>();
-	pipelineState.Reset();
-	ThrowIfFailed(device->Device()->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&pipelineState)));
-	CreateWireframePSO();
+	RebuildPSO();
 }
 
 void Shader::EnableAlphaBlend()
@@ -179,10 +182,7 @@ void Shader::EnableAlphaBlend()
 	rtBlend.BlendOpAlpha = D3D12_BLEND_OP_ADD;
 	rtBlend.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
 
-	GraphicsDevice* device = GraphicsContext::GetInstance().GetAs<GraphicsDevice>();
-	pipelineState.Reset();
-	ThrowIfFailed(device->Device()->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&pipelineState)));
-	CreateWireframePSO();
+	RebuildPSO();
 }
 
 void Shader::EnableAdditiveBlend()
@@ -197,8 +197,5 @@ void Shader::EnableAdditiveBlend()
 	rtBlend.BlendOpAlpha = D3D12_BLEND_OP_ADD;
 	rtBlend.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
 
-	GraphicsDevice* device = GraphicsContext::GetInstance().GetAs<GraphicsDevice>();
-	pipelineState.Reset();
-	ThrowIfFailed(device->Device()->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&pipelineState)));
-	CreateWireframePSO();
+	RebuildPSO();
 }

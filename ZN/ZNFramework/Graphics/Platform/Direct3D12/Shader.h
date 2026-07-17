@@ -24,6 +24,7 @@ namespace ZNFramework
 		void CreateVertexShader(const wstring& path, const string& name, const string& version);
 		void CreatePixelShader(const wstring& path, const string& name, const string& version);
 		void CreateWireframePSO();
+		void RebuildPSO();   // (re)create the main + wireframe PSO from pipelineDesc
 
 	private:
 		ComPtr<ID3DBlob> vsBlob;
