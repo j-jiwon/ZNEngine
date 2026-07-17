@@ -297,7 +297,8 @@ void CommandQueue::RenderEnd()
 
     swapChain->Present();
     WaitSync();
-    swapChain->SwapIndex();
+    // Back-buffer index is now queried live from DXGI (SwapChain::GetCurrentBackBufferIndex),
+    // so no manual index advance is needed here anymore.
 
     if (!isFirstFrame && timestampQueryHeap && timestampFrequency > 0) {
         void* pData = nullptr;

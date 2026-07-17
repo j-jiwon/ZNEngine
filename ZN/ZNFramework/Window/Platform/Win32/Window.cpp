@@ -183,12 +183,29 @@ LRESULT Window::WindowProc(HWND inHwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         uint32 _width = LOWORD(lParam);
         uint32 _height = HIWORD(lParam);
 
-        if (_width != width || _height != height) {
-            for (const auto& [key, value] : resizeEventHandlers) {
-                value(_width, _height);
+        if (wParam == SIZE_MINIMIZED) {
+            // Minimized -> lParam is 0x0. Don't resize (keep the last valid size); the render
+            // loop skips drawing while minimized (see MessageLoop / IsMinimized()).
+            isMinimized = true;
+            isMaximized = false;
+        }
+        else {
+            isMinimized = false;
+            isMaximized = (wParam == SIZE_MAXIMIZED);
+
+            if (_width != width || _height != height) {
+                // Update the cached size BEFORE notifying resize handlers: some resize targets
+                // read window->Width()/Height() rather than the passed args (e.g.
+                // DepthStencilBuffer::Init). If left stale, the depth buffer is recreated at the
+                // OLD size while the G-buffer/swap chain get the new one — the size mismatch
+                // clamps rasterization to the old rect, leaving the scene stuck in a corner on
+                // maximize.
+                width = _width;
+                height = _height;
+                for (const auto& [key, value] : resizeEventHandlers) {
+                    value(_width, _height);
+                }
             }
-            width = _width;
-            height = _height;
         }
         return 0;
     }

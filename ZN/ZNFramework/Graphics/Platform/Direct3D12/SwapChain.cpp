@@ -49,10 +49,8 @@ void SwapChain::Resize(uint32 inWidth, uint32 inHeight)
         width,
         height,
         DXGI_FORMAT_R8G8B8A8_UNORM,
-        DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH
+        0 // flags must match creation (no ALLOW_MODE_SWITCH)
     ));
-
-    backBufferIndex = 0;
 
     for (int i = 0; i < SWAP_CHAIN_BUFFER_COUNT; i++)
     {
@@ -64,36 +62,54 @@ void SwapChain::Resize(uint32 inWidth, uint32 inHeight)
 
 void SwapChain::Present()
 {
-    ThrowIfFailed(swapChain->Present(0, 0));
-}
+    HRESULT hr = swapChain->Present(0, 0);
 
-void SwapChain::SwapIndex()
-{
-    backBufferIndex = (backBufferIndex + 1) % SWAP_CHAIN_BUFFER_COUNT;
+    // Window fully occluded (covered/minimized): DXGI didn't present. Not an error — just skip
+    // and retry next frame.
+    if (hr == DXGI_STATUS_OCCLUDED)
+        return;
+
+    // Device lost is unrecoverable at this layer (full device re-creation is out of scope) —
+    // surface the removal reason rather than a bare "Present failed".
+    if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)
+    {
+        ThrowIfFailed(device->Device()->GetDeviceRemovedReason());
+        ThrowIfFailed(hr);
+    }
+
+    ThrowIfFailed(hr);
 }
 
 void SwapChain::CreateSwapChainInternal()
 {
     swapChain.Reset();
 
-    DXGI_SWAP_CHAIN_DESC sd;
-    sd.BufferDesc.Width = static_cast<uint32>(width); // 버퍼의 해상도 너비
-    sd.BufferDesc.Height = static_cast<uint32>(height); // 버퍼의 해상도 높이
-    sd.BufferDesc.RefreshRate.Numerator = 60; // 화면 갱신 비율
-    sd.BufferDesc.RefreshRate.Denominator = 1; // 화면 갱신 비율
-    sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; // 버퍼의 디스플레이 형식
-    sd.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
-    sd.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
-    sd.SampleDesc.Count = 1; // 멀티 샘플링 OFF
+    // Flip-model swap chain via CreateSwapChainForHwnd (the modern path; the legacy
+    // CreateSwapChain + DXGI_SWAP_CHAIN_DESC is discouraged for flip effects).
+    DXGI_SWAP_CHAIN_DESC1 sd = {};
+    sd.Width       = width;
+    sd.Height      = height;
+    sd.Format      = DXGI_FORMAT_R8G8B8A8_UNORM;
+    sd.Stereo      = FALSE;
+    sd.SampleDesc.Count   = 1;   // no MSAA on the back buffer (required for flip model)
     sd.SampleDesc.Quality = 0;
-    sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT; // 후면 버퍼에 렌더링할 것 
-    sd.BufferCount = SWAP_CHAIN_BUFFER_COUNT; // 전면+후면 버퍼
-    sd.OutputWindow = hwnd;
-    sd.Windowed = true;
-    sd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD; // 전면 후면 버퍼 교체 시 이전 프레임 정보 버림
-    sd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-    
-    device->Factory()->CreateSwapChain(queue->Queue(), &sd, &swapChain);
+    sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+    sd.BufferCount = SWAP_CHAIN_BUFFER_COUNT;
+    sd.Scaling     = DXGI_SCALING_STRETCH;
+    sd.SwapEffect  = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+    sd.AlphaMode   = DXGI_ALPHA_MODE_UNSPECIFIED;
+    sd.Flags       = 0; // no ALLOW_MODE_SWITCH — app owns all sizing (see MakeWindowAssociation)
+
+    ComPtr<IDXGISwapChain1> swapChain1;
+    ThrowIfFailed(device->Factory()->CreateSwapChainForHwnd(
+        queue->Queue(), hwnd, &sd, nullptr, nullptr, &swapChain1));
+
+    // Stop DXGI from silently handling Alt+Enter / window-state changes (its automatic
+    // fullscreen transitions are a common cause of maximize/present glitches). The app
+    // drives every resize itself.
+    device->Factory()->MakeWindowAssociation(hwnd, DXGI_MWA_NO_ALT_ENTER | DXGI_MWA_NO_WINDOW_CHANGES);
+
+    ThrowIfFailed(swapChain1.As(&swapChain)); // QI to IDXGISwapChain3 for GetCurrentBackBufferIndex()
 
     for (int i = 0; i < SWAP_CHAIN_BUFFER_COUNT; i++)
     {

@@ -57,6 +57,18 @@ int ApplicationContext::MessageLoop()
         }
         else
         {
+            // Skip rendering while minimized: nothing is visible and the swap chain has no
+            // valid surface to present to. Keep the loop spinning (lightly) so we resume as
+            // soon as the window is restored, and reset the timer so the first live frame
+            // after restore doesn't see a huge accumulated deltaTime.
+            ZNWindow* win = WindowContext::GetInstance().GetWindow();
+            if (win && win->IsMinimized())
+            {
+                timer->Reset();
+                ::Sleep(10);
+                continue;
+            }
+
             // No messages to process, update and render
             timer->Tick();
             Update();
