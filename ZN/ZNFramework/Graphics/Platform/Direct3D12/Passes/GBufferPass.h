@@ -12,10 +12,12 @@ class GBufferPass : public RenderPass {
 public:
     GBufferPass(GBufferManager* gbufMgr, ZNShader* gbufShader,
                 DepthStencilBuffer* dsBuffer, SwapChain* swapChain,
+                ID3D12RootSignature* rootSig, ID3D12DescriptorHeap* tableDescHeap,
                 std::function<void()> cb)
         : RenderPass("GBuffer")
         , gbufMgr(gbufMgr), gbufShader(gbufShader)
         , dsBuffer(dsBuffer), swapChain(swapChain)
+        , rootSig(rootSig), tableDescHeap(tableDescHeap)
         , renderCb(std::move(cb))
     {}
 
@@ -26,6 +28,14 @@ public:
         D3D12_RECT     rect = { 0, 0, (LONG)w, (LONG)h };
         cmd->RSSetViewports(1, &vp);
         cmd->RSSetScissorRects(1, &rect);
+
+        // Re-bind the shared root signature + descriptor heap. The one-shot IBLBakePass /
+        // CubeCapturePass that run just before us leave THEIR own shader-visible heap bound, so
+        // without this the per-object CommitTable() here would set a root table with a shared-heap
+        // handle while a different heap is current — the GPU then reads garbage descriptors for
+        // the whole GBuffer on that frame (same "restore" convention as Forward/Offscreen passes).
+        cmd->SetGraphicsRootSignature(rootSig);
+        cmd->SetDescriptorHeaps(1, &tableDescHeap);
 
         // Transition all GBuffer targets → RENDER_TARGET
         static const char* names[] = {
@@ -66,6 +76,8 @@ private:
     ZNShader*             gbufShader;
     DepthStencilBuffer*   dsBuffer;
     SwapChain*            swapChain;
+    ID3D12RootSignature*  rootSig;
+    ID3D12DescriptorHeap* tableDescHeap;
     std::function<void()> renderCb;
 };
 

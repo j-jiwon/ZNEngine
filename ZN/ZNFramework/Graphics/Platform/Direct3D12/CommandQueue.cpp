@@ -167,6 +167,7 @@ void CommandQueue::BuildRenderGraph()
     if (gbufferManager) {
         renderGraph.AddPass(std::make_unique<GBufferPass>(
             gbufferManager, gbufShader, dsBuffer, swapChain,
+            rootSig->GetSignature().Get(), tdh->GetDescriptorHeap().Get(),
             [this]() { if (gbufferRenderCallback) gbufferRenderCallback(); }));
     }
 
