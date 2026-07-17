@@ -295,6 +295,7 @@
     <ClInclude Include="ZNFramework\ZNColor.h" />
     <ClInclude Include="ZNFramework\ZNGeometry.h" />
     <ClInclude Include="ZNFramework\ZNTimer.h" />
+    <ClInclude Include="ZNFramework\ZNLog.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\ZNUtils.h" />
     <ClInclude Include="ZNFramework\ZNTransform.h" />
     <ClInclude Include="ZNInclude.h" />
@@ -364,6 +365,7 @@
     <ClCompile Include="ZNFramework\ZNCamera.cpp" />
     <ClCompile Include="ZNFramework\ZNColor.cpp" />
     <ClCompile Include="ZNFramework\ZNTimer.cpp" />
+    <ClCompile Include="ZNFramework\ZNLog.cpp" />
     <ClCompile Include="ZNFramework\Math\ZNAffineTransform2.cpp" />
     <ClCompile Include="ZNFramework\Math\ZNAffineTransform3.cpp" />
     <ClCompile Include="ZNFramework\Math\ZNLinearTransform2.cpp" />

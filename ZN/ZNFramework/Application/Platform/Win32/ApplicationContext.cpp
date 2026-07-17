@@ -5,6 +5,7 @@
 #include "ZNFramework.h"
 #include "ZNFramework/UI/Platform/Win32_DX12/ImGuiLayer.h"
 #include "ZNFramework/UI/ImGuiAnchor.h"
+#include "ZNFramework/ZNLog.h"
 #include "imgui.h"
 #include "ZNFramework/Graphics/Platform/GraphicsAPI.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/Shader.h"
@@ -458,6 +459,9 @@ void ApplicationContext::Update()
 
 void ApplicationContext::Render()
 {
+    static uint64 frameIndex = 0;
+    ZNLog::Get().SetFrame(++frameIndex);   // stamp all logs this frame with the frame number
+
     ZNGameObject::FlushDrawCalls();
 
     if (imguiLayer)

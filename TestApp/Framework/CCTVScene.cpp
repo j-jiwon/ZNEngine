@@ -85,7 +85,7 @@ void CCTVScene::Initialize()
 
         if (std::filesystem::exists(roomPath))
         {
-            std::cout << "[CCTVScene] Loading room.glb..." << std::endl;
+            ZNLOG_INFO(LogChannel::Scene, "Loading room.glb");
             ZNModelLoader* loader = Platform::CreateModelLoader();
             ModelData modelData;
             if (loader->Load(roomPath, modelData))
@@ -151,18 +151,18 @@ void CCTVScene::Initialize()
                         AddGameObject(obj);
                     room.objects.push_back(obj);
                 }
-                std::cout << "[CCTVScene] Room loaded: " << room.objects.size()
-                          << " meshes, " << room.materials.size() << " materials." << std::endl;
+                ZNLOG_INFO(LogChannel::Scene, "Room loaded: %zu meshes, %zu materials",
+                           room.objects.size(), room.materials.size());
             }
             else
             {
-                std::cout << "[CCTVScene] Failed to load room.glb." << std::endl;
+                ZNLOG_WARN(LogChannel::Scene, "Failed to load room.glb");
             }
             delete loader;
         }
         else
         {
-            std::cout << "[CCTVScene] room.glb not found at: " << roomPath << std::endl;
+            ZNLOG_WARN(LogChannel::Scene, "room.glb not found: %s", roomPath.string().c_str());
         }
     }
 

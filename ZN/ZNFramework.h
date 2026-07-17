@@ -29,6 +29,7 @@ using uint64 = unsigned __int64;
 #include "ZNFramework/ZNColor.h"
 #include "ZNFramework/ZNCamera.h"
 #include "ZNFramework/ZNTimer.h"
+#include "ZNFramework/ZNLog.h"
 
 #include "ZNFramework/ZNInputDef.h"
 

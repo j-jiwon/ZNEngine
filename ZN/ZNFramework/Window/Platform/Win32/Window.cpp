@@ -2,6 +2,7 @@
 #include "Window.h"
 #include "Math/ZNMath.h"
 #include "ZNInputDef.h"
+#include "ZNLog.h"
 #include <iostream>
 #include <windowsx.h>
 #include <dwmapi.h>
@@ -244,7 +245,14 @@ LRESULT Window::WindowProc(HWND inHwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         break;
     case WM_KEYDOWN:
     case WM_SYSKEYDOWN:
-        if (wParam < 256) keyStates[wParam] = true;  // held-state for frame-based polling
+        if (wParam < 256)
+        {
+            // Log only the state change (first press), not OS auto-repeat, on the Input channel
+            // at Trace — quiet by default (min level is Info), visible when you lower it.
+            if (!keyStates[wParam])
+                ZNLOG_TRACE(LogChannel::Input, "key down 0x%02X", (unsigned)wParam);
+            keyStates[wParam] = true;  // held-state for frame-based polling
+        }
         keyboardEvent.type = keyType;
         // Check if this is a repeated key press (lParam bit 30)
         keyboardEvent.state = (lParam & (1 << 30)) ? KEY_STATE::PRESS : KEY_STATE::DOWN;
@@ -252,7 +260,12 @@ LRESULT Window::WindowProc(HWND inHwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         return 0;
     case WM_KEYUP:
     case WM_SYSKEYUP:
-        if (wParam < 256) keyStates[wParam] = false;
+        if (wParam < 256)
+        {
+            if (keyStates[wParam])
+                ZNLOG_TRACE(LogChannel::Input, "key up   0x%02X", (unsigned)wParam);
+            keyStates[wParam] = false;
+        }
         keyboardEvent.type = keyType;
         keyboardEvent.state = KEY_STATE::UP;
         OnKeyboardEvent(keyboardEvent);

@@ -2,6 +2,7 @@
 #include "SceneManager.h"
 #include "UILayout.h"
 #include <ZNFramework.h>
+#include <ZNFramework/ZNLog.h>
 #include <ZNFramework/Graphics/ZNLight.h>
 #include <imgui.h>
 #include <Windows.h>
@@ -248,6 +249,68 @@ void SceneDebugUI::RenderDebugPanel(ZNScene* scene)
         ImGui::Separator();
         onDebugExtras();
     }
+
+    ImGui::End();
+}
+
+void SceneDebugUI::RenderLogPanel()
+{
+    ZNLog& log = ZNLog::Get();
+
+    // Default: bottom-left, wide + short (a console strip). Movable/resizable afterwards.
+    const ImGuiViewport* vp = ImGui::GetMainViewport();
+    ImGui::SetNextWindowPos(
+        ImVec2(vp->WorkPos.x + UILayout::Margin,
+               vp->WorkPos.y + vp->WorkSize.y - 210.f - UILayout::Margin), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(UILayout::PanelWidth * 2.6f, 210.f), ImGuiCond_FirstUseEver);
+    ImGui::Begin("Log");
+
+    // Level threshold (channels below it are dropped at the source).
+    const char* levels[] = { "Trace", "Info", "Warn", "Error" };
+    int lvl = static_cast<int>(log.GetMinLevel());
+    ImGui::SetNextItemWidth(80.f);
+    if (ImGui::Combo("##level", &lvl, levels, IM_ARRAYSIZE(levels)))
+        log.SetMinLevel(static_cast<LogLevel>(lvl));
+
+    // Per-channel on/off.
+    for (int i = 0; i < ZNLog::ChannelCount; ++i)
+    {
+        LogChannel ch = static_cast<LogChannel>(i);
+        bool on = log.IsChannelEnabled(ch);
+        ImGui::SameLine();
+        if (ImGui::Checkbox(ZNLog::ChannelName(ch), &on))
+            log.SetChannelEnabled(ch, on);
+    }
+
+    ImGui::SameLine(); if (ImGui::Button("Clear")) log.Clear();
+    ImGui::SameLine(); const bool doCopy = ImGui::Button("Copy");
+    ImGui::SameLine(); ImGui::Checkbox("Auto", &logAutoScroll);
+    ImGui::Separator();
+
+    ImGui::BeginChild("log_scroll", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
+    if (doCopy) ImGui::LogToClipboard();
+    for (const auto& e : log.Entries())
+    {
+        ImVec4 col;
+        switch (e.level)
+        {
+        case LogLevel::Trace: col = ImVec4(0.55f, 0.55f, 0.55f, 1.f); break;
+        case LogLevel::Warn:  col = ImVec4(0.95f, 0.80f, 0.20f, 1.f); break;
+        case LogLevel::Error: col = ImVec4(0.96f, 0.35f, 0.30f, 1.f); break;
+        default:              col = ImVec4(0.85f, 0.85f, 0.85f, 1.f); break;
+        }
+        char buf[1280];
+        snprintf(buf, sizeof(buf), "[%llu][%s][%s] %s",
+            static_cast<unsigned long long>(e.frame), ZNLog::ChannelName(e.channel),
+            ZNLog::LevelName(e.level), e.text.c_str());
+        ImGui::PushStyleColor(ImGuiCol_Text, col);
+        ImGui::TextUnformatted(buf);
+        ImGui::PopStyleColor();
+    }
+    if (doCopy) ImGui::LogFinish();
+    if (logAutoScroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
+        ImGui::SetScrollHereY(1.0f);
+    ImGui::EndChild();
 
     ImGui::End();
 }
@@ -598,6 +661,9 @@ void SceneDebugUI::Render(ZNScene* scene)
 
     // --- Debug (common + scene-specific) ---
     RenderDebugPanel(scene);
+
+    // --- Log console (ZNLog) ---
+    // RenderLogPanel();
 }
 
 void SceneDebugUI::RenderToggle()

@@ -72,6 +72,7 @@ private:
     void UpdateDebugEntries();
     void RenderDebugEntries();
     void RenderDebugPanel(ZNFramework::ZNScene* scene);
+    void RenderLogPanel();  // ZNLog console (levels/channels filter, clear, copy, auto-scroll)
 
     ZNFramework::ZNShader* dbgSolidShader = nullptr;
     ZNFramework::ZNShader* dbgAlphaShader = nullptr;
@@ -80,7 +81,8 @@ private:
     std::vector<CamEntry>  camEntries;
 
     // ---- UI state ----
-    bool      visible    = true;
+    bool      visible       = true;
+    bool      logAutoScroll = true;
     Selection selection;
 
     float     fpsAccum   = 0.0f;

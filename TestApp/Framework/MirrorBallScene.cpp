@@ -71,20 +71,20 @@ void MirrorBallScene::Initialize()
     std::vector<MeshData> meshes;
     if (std::filesystem::exists(fbxPath))
     {
-        std::cout << "[MirrorBallScene] Loading mirrorball_a.fbx...\n";
+        ZNLOG_INFO(LogChannel::Scene, "Loading mirrorball_a.fbx");
         ZNModelLoader* loader = Platform::CreateModelLoader();
         ModelData modelData;
         if (loader->Load(fbxPath, modelData))
         {
             meshes = std::move(modelData.meshes);
-            std::cout << "[MirrorBallScene] Loaded " << meshes.size() << " meshes.\n";
+            ZNLOG_INFO(LogChannel::Scene, "Loaded %zu mirror-ball meshes", meshes.size());
         }
         else
-            std::cout << "[MirrorBallScene] Load failed.\n";
+            ZNLOG_WARN(LogChannel::Scene, "mirrorball_a.fbx load failed");
         delete loader;
     }
     else
-        std::cout << "[MirrorBallScene] mirrorball_a.fbx not found at: " << fbxPath << '\n';
+        ZNLOG_WARN(LogChannel::Scene, "mirrorball_a.fbx not found: %s", fbxPath.string().c_str());
 
     // --- Mirror ball: Metallic=1.0, Roughness=0.0, deferred ---
     {
@@ -121,7 +121,7 @@ void MirrorBallScene::Initialize()
 
         if (std::filesystem::exists(monsterPath))
         {
-            std::cout << "[MirrorBallScene] Loading Monster_S_0.glb...\n";
+            ZNLOG_INFO(LogChannel::Scene, "Loading Monster_S_0.glb");
             ZNModelLoader* loader = Platform::CreateModelLoader();
             ModelData modelData;
             if (loader->Load(monsterPath, modelData))
@@ -180,15 +180,15 @@ void MirrorBallScene::Initialize()
                     AddGameObject(obj);
                     monster.objects.push_back(obj);
                 }
-                std::cout << "[MirrorBallScene] Monster loaded: " << monster.objects.size()
-                          << " meshes, " << monster.materials.size() << " materials.\n";
+                ZNLOG_INFO(LogChannel::Scene, "Monster loaded: %zu meshes, %zu materials",
+                           monster.objects.size(), monster.materials.size());
             }
             else
-                std::cout << "[MirrorBallScene] Failed to load Monster_S_0.glb.\n";
+                ZNLOG_WARN(LogChannel::Scene, "Failed to load Monster_S_0.glb");
             delete loader;
         }
         else
-            std::cout << "[MirrorBallScene] Monster_S_0.glb not found at: " << monsterPath << '\n';
+            ZNLOG_WARN(LogChannel::Scene, "Monster_S_0.glb not found: %s", monsterPath.string().c_str());
     }
 
     // --- Glass ball: semi-transparent, forward pass with alpha blend ---
@@ -225,7 +225,7 @@ void MirrorBallScene::Initialize()
 
         if (std::filesystem::exists(roomPath))
         {
-            std::cout << "[MirrorBallScene] Loading room.glb...\n";
+            ZNLOG_INFO(LogChannel::Scene, "Loading room.glb");
             ZNModelLoader* loader = Platform::CreateModelLoader();
             ModelData modelData;
             if (loader->Load(roomPath, modelData))
@@ -296,15 +296,15 @@ void MirrorBallScene::Initialize()
                         AddGameObject(obj);
                     room.objects.push_back(obj);
                 }
-                std::cout << "[MirrorBallScene] Room loaded: " << room.objects.size()
-                          << " meshes, " << room.materials.size() << " materials.\n";
+                ZNLOG_INFO(LogChannel::Scene, "Room loaded: %zu meshes, %zu materials",
+                           room.objects.size(), room.materials.size());
             }
             else
-                std::cout << "[MirrorBallScene] Failed to load room.glb.\n";
+                ZNLOG_WARN(LogChannel::Scene, "Failed to load room.glb");
             delete loader;
         }
         else
-            std::cout << "[MirrorBallScene] room.glb not found at: " << roomPath << '\n';
+            ZNLOG_WARN(LogChannel::Scene, "room.glb not found: %s", roomPath.string().c_str());
     }
 
     // Disco caustics are registered per-frame in Update() (see SetDiscoSources) — no
