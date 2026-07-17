@@ -147,18 +147,24 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
         std::filesystem::path shaderPath = GetResourcePath() / L"Shaders" / L"gbuffer.hlsli";
         gbufferShader->Load(shaderPath);
 
-        // Configure for 3 render targets
-        DXGI_FORMAT mrtFormats[3] = {
-            DXGI_FORMAT_R8G8B8A8_UNORM,      // Base Color
-            DXGI_FORMAT_R16G16B16A16_FLOAT,  // World Normal
-            DXGI_FORMAT_R32_FLOAT            // Depth
+        // Configure for all 5 MRT targets — must match GBufferManager's targets exactly, or the
+        // PSO leaves slots 3/4 as UNKNOWN while GBufferPass binds 5 RTVs and gbuffer.hlsli writes
+        // 5 SV_Targets. That mismatch floods the debug layer ("render target format in slot 3/4
+        // does not match") and makes WorldPos/ARM writes unreliable (spec: writes past the PSO's
+        // RTV count are discarded).
+        DXGI_FORMAT mrtFormats[5] = {
+            DXGI_FORMAT_R8G8B8A8_UNORM,      // 0 Base Color
+            DXGI_FORMAT_R16G16B16A16_FLOAT,  // 1 World Normal
+            DXGI_FORMAT_R32_FLOAT,           // 2 Depth copy
+            DXGI_FORMAT_R16G16B16A16_FLOAT,  // 3 World Position
+            DXGI_FORMAT_R8G8B8A8_UNORM       // 4 ARM (AO / Roughness / Metallic)
         };
 
         // Cast to concrete type to access SetRenderTargetFormats
         Shader* d3dShader = dynamic_cast<Shader*>(gbufferShader);
         if (d3dShader)
         {
-            d3dShader->SetRenderTargetFormats(3, mrtFormats);
+            d3dShader->SetRenderTargetFormats(5, mrtFormats);
         }
 
         GraphicsContext::GetInstance().SetGBufferShader(gbufferShader);

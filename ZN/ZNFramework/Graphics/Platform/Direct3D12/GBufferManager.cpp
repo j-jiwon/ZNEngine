@@ -94,11 +94,17 @@ void GBufferManager::CreateSRVs()
 {
     GraphicsDevice* device = GraphicsContext::GetInstance().GetAs<GraphicsDevice>();
 
-    // Create SRV descriptor heap
+    // Create SRV descriptor heap. NON-shader-visible on purpose: these SRVs are only ever used
+    // as the SOURCE of CopyDescriptorsSimple (DeferredLightingPass copies them into its own
+    // shader-visible table heap; the ImGui GBuffer preview copies them into ImGui's heap).
+    // A shader-visible heap is CPU-write-only, so reading it as a copy source is invalid (D3D12
+    // debug layer floods "SrcDescriptorRangeStart ... CPU write only ... invalid") and yields
+    // garbage descriptors — which showed up as corrupted WorldPos/ARM reads after descriptor
+    // churn from the cubemap capture / IBL bake path.
     D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
     srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
     srvHeapDesc.NumDescriptors = GBUFFER_COUNT;
-    srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+    srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 
     ThrowIfFailed(device->Device()->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&srvHeap)));
 
