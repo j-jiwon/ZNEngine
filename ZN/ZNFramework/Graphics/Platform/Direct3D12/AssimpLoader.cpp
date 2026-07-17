@@ -220,12 +220,12 @@ void AssimpLoader::ProcessMaterial(aiMaterial* material, const aiScene* scene,
 		{
 			aiString rawPath;
 			material->GetTexture(entry.type, ti, &rawPath);
-			std::cout << "[AssimpLoader]   " << matName.C_Str()
-			          << " [" << entry.name << "] raw=\"" << rawPath.C_Str() << "\"\n";
+			ZNLOG_TRACE(LogChannel::Asset, "  %s [%s] raw=\"%s\"",
+			            matName.C_Str(), entry.name, rawPath.C_Str());
 		}
 	}
 	if (!anyTex)
-		std::cout << "[AssimpLoader] " << matName.C_Str() << " — no textures in FBX\n";
+		ZNLOG_TRACE(LogChannel::Asset, "%s: no textures in FBX", matName.C_Str());
 
 	// Fallback for texture types GetTextureCount()/GetTexture() fail to find even though
 	// the material actually has the property (observed with this Assimp build for the
@@ -331,17 +331,17 @@ void AssimpLoader::ProcessMaterial(aiMaterial* material, const aiScene* scene,
 			{ anyResolved = true; break; }
 	if (anyResolved)
 	{
-		std::cout << "[AssimpLoader] Resolved " << matName.C_Str();
+		std::string dump = std::string("Resolved ") + matName.C_Str();
 		for (size_t i = 0; i < static_cast<size_t>(TextureType::Count); ++i)
 		{
-			std::cout << slotNames[i];
+			dump += slotNames[i];
 			if (!outMaterial.embeddedTextureData[i].empty())
-				std::cout << "(embedded, " << outMaterial.embeddedTextureData[i].size() << " bytes)";
+				dump += "(embedded, " + std::to_string(outMaterial.embeddedTextureData[i].size()) + " bytes)";
 			else if (!outMaterial.texturePaths[i].empty())
-				std::cout << std::filesystem::path(outMaterial.texturePaths[i]).filename().string();
+				dump += std::filesystem::path(outMaterial.texturePaths[i]).filename().string();
 			else
-				std::cout << "(none)";
+				dump += "(none)";
 		}
-		std::cout << "\n";
+		ZNLOG_TRACE(LogChannel::Asset, "%s", dump.c_str());
 	}
 }

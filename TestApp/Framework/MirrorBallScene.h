@@ -25,12 +25,14 @@ private:
     BallModel glassBall;   // Translucent glass, forward pass
 
     struct MonsterModel {
+        ZNFramework::ZNGameObject*              root = nullptr; // R1: model root (moves all parts)
         std::vector<ZNFramework::ZNGameObject*> objects;
         std::vector<ZNFramework::ZNMaterial*>   materials; // one per glTF material slot
     };
     MonsterModel monster;  // Monster_S_0.glb, deferred pass
 
     struct RoomModel {
+        ZNFramework::ZNGameObject*              root = nullptr; // R1: model root
         std::vector<ZNFramework::ZNGameObject*> objects;
         std::vector<ZNFramework::ZNMaterial*>   materials; // one per glTF material slot
     };

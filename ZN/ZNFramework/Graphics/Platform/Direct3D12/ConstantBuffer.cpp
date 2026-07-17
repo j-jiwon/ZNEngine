@@ -1,6 +1,7 @@
 #include "ConstantBuffer.h"
 #include "CommandQueue.h"
 #include "GraphicsDevice.h"
+#include "ZNLog.h"
 #include <iostream>
 
 using namespace ZNFramework;
@@ -50,9 +51,9 @@ D3D12_CPU_DESCRIPTOR_HANDLE ConstantBuffer::PushData(int32 inRootParamIndex, voi
 		static bool warned = false;
 		if (!warned)
 		{
-			std::cout << "[ConstantBuffer] currentIndex (" << currentIndex
-			          << ") reached elementCount (" << elementCount << ") - clamping. "
-			          << "Increase the Init() capacity.\n";
+			ZNLOG_WARN(LogChannel::Render,
+				"ConstantBuffer currentIndex (%llu) reached elementCount (%llu) - clamping. Increase the Init() capacity.",
+				(unsigned long long)currentIndex, (unsigned long long)elementCount);
 			warned = true;
 		}
 		currentIndex = elementCount - 1;

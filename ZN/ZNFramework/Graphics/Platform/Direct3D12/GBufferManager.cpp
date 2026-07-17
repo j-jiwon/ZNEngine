@@ -4,6 +4,17 @@
 
 using namespace ZNFramework;
 
+// Optimised clear values, one per target — MUST match how GBufferPass clears them.
+static const float kGBufferClear[5][4] = {
+    { 0.f, 0.f, 0.f, 1.f }, // BaseColor: black, alpha 1
+    { 0.f, 0.f, 0.f, 0.f }, // Normal
+    { 1.f, 0.f, 0.f, 0.f }, // DepthCopy: far (1.0)
+    { 0.f, 0.f, 0.f, 0.f }, // WorldPos
+    { 0.f, 0.f, 0.f, 0.f }, // ARM
+};
+
+const float* GBufferManager::ClearColor(uint32 index) { return kGBufferClear[index]; }
+
 void GBufferManager::Init(uint32 inWidth, uint32 inHeight)
 {
     width = inWidth;
@@ -48,13 +59,10 @@ void GBufferManager::CreateGBufferResources()
 
         D3D12_HEAP_PROPERTIES heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 
-        // Clear value for optimization (optional)
+        // Optimised clear value — must match GBufferPass's ClearRenderTargetView (see kGBufferClear).
         D3D12_CLEAR_VALUE clearValue = {};
         clearValue.Format = formats[i];
-        clearValue.Color[0] = 0.0f;
-        clearValue.Color[1] = 0.0f;
-        clearValue.Color[2] = 0.0f;
-        clearValue.Color[3] = 1.0f;
+        memcpy(clearValue.Color, kGBufferClear[i], sizeof(clearValue.Color));
 
         ThrowIfFailed(device->Device()->CreateCommittedResource(
             &heapProps,
@@ -94,11 +102,17 @@ void GBufferManager::CreateSRVs()
 {
     GraphicsDevice* device = GraphicsContext::GetInstance().GetAs<GraphicsDevice>();
 
-    // Create SRV descriptor heap
+    // Create SRV descriptor heap. NON-shader-visible on purpose: these SRVs are only ever used
+    // as the SOURCE of CopyDescriptorsSimple (DeferredLightingPass copies them into its own
+    // shader-visible table heap; the ImGui GBuffer preview copies them into ImGui's heap).
+    // A shader-visible heap is CPU-write-only, so reading it as a copy source is invalid (D3D12
+    // debug layer floods "SrcDescriptorRangeStart ... CPU write only ... invalid") and yields
+    // garbage descriptors — which showed up as corrupted WorldPos/ARM reads after descriptor
+    // churn from the cubemap capture / IBL bake path.
     D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
     srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
     srvHeapDesc.NumDescriptors = GBUFFER_COUNT;
-    srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+    srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 
     ThrowIfFailed(device->Device()->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&srvHeap)));
 

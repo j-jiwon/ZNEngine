@@ -34,6 +34,11 @@ namespace ZNFramework
         ID3D12Resource* GetARMResource() const { return gbufferTextures[4].Get(); }
         ID3D12DescriptorHeap* GetSRVHeap() const { return srvHeap.Get(); }
 
+        // Per-target optimised clear colour (index 0..4). Single source of truth shared by resource
+        // creation and GBufferPass's ClearRenderTargetView — if the two drift, D3D12 falls back to
+        // the slow non-optimised clear path ("clear values do not match" warning).
+        static const float* ClearColor(uint32 index);
+
     private:
         void CreateGBufferResources();
         void CreateRTVs();

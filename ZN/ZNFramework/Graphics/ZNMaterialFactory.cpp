@@ -46,8 +46,8 @@ namespace ZNFramework
 			{
 				if (!std::filesystem::exists(matData.texturePaths[i]))
 				{
-					std::cout << "[ZNMaterialFactory] Texture not found: "
-					          << std::filesystem::path(matData.texturePaths[i]).string() << "\n";
+					ZNLOG_WARN(LogChannel::Asset, "Texture not found: %s",
+						std::filesystem::path(matData.texturePaths[i]).string().c_str());
 					continue;
 				}
 				tex = Platform::CreateTexture();

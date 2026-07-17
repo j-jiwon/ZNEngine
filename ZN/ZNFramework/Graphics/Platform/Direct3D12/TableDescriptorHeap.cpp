@@ -2,6 +2,7 @@
 #include "Graphics/ZNGraphicsContext.h"
 #include "GraphicsDevice.h"
 #include "CommandQueue.h"
+#include "ZNLog.h"
 #include <iostream>
 
 using namespace ZNFramework;
@@ -83,9 +84,9 @@ D3D12_CPU_DESCRIPTOR_HANDLE TableDescriptorHeap::GetCPUHandle(uint8 reg)
 		static bool warned = false;
 		if (!warned)
 		{
-			std::cout << "[TableDescriptorHeap] currentGroupIndex (" << currentGroupIndex
-			          << ") reached groupCount (" << groupCount << ") - clamping. "
-			          << "Increase the Init() capacity.\n";
+			ZNLOG_WARN(LogChannel::Render,
+				"TableDescriptorHeap currentGroupIndex (%llu) reached groupCount (%llu) - clamping. Increase the Init() capacity.",
+				(unsigned long long)currentGroupIndex, (unsigned long long)groupCount);
 			warned = true;
 		}
 		currentGroupIndex = groupCount - 1;

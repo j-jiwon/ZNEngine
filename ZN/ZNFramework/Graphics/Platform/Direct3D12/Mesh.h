@@ -14,7 +14,8 @@ namespace ZNFramework
 		void Init(const vector<Vertex>& vertrexBuffer, const vector<uint32>& indexBuffer) override;
 		void Render() override;
 		void RenderShadow(const ZNMatrix4& lightViewProj, ZNShader* shadowShader) override;
-		void SetTransform(const Transform& t) override { transform = t; }
+		void SetTransform(const Transform& t) override { worldMatrix = t.GetWorldMatrix(); }
+		void SetWorldMatrix(const ZNMatrix4& world) override { worldMatrix = world; }
 		void SetTexture(ZNTexture* inTexture) override;
 		void SetMaterial(ZNMaterial* inMaterial) override;
 
@@ -34,7 +35,7 @@ namespace ZNFramework
 		D3D12_INDEX_BUFFER_VIEW		indexBufferView = {};
 		uint32 indexCount = 0;
 
-		Transform transform = {};
+		ZNMatrix4 worldMatrix = {};   // already composed (local or hierarchy world)
 		Texture* texture = {};
 		Material* material = nullptr;
 	};

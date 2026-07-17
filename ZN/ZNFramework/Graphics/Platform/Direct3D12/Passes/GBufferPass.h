@@ -12,10 +12,12 @@ class GBufferPass : public RenderPass {
 public:
     GBufferPass(GBufferManager* gbufMgr, ZNShader* gbufShader,
                 DepthStencilBuffer* dsBuffer, SwapChain* swapChain,
+                ID3D12RootSignature* rootSig, ID3D12DescriptorHeap* tableDescHeap,
                 std::function<void()> cb)
         : RenderPass("GBuffer")
         , gbufMgr(gbufMgr), gbufShader(gbufShader)
         , dsBuffer(dsBuffer), swapChain(swapChain)
+        , rootSig(rootSig), tableDescHeap(tableDescHeap)
         , renderCb(std::move(cb))
     {}
 
@@ -27,6 +29,14 @@ public:
         cmd->RSSetViewports(1, &vp);
         cmd->RSSetScissorRects(1, &rect);
 
+        // Re-bind the shared root signature + descriptor heap. The one-shot IBLBakePass /
+        // CubeCapturePass that run just before us leave THEIR own shader-visible heap bound, so
+        // without this the per-object CommitTable() here would set a root table with a shared-heap
+        // handle while a different heap is current — the GPU then reads garbage descriptors for
+        // the whole GBuffer on that frame (same "restore" convention as Forward/Offscreen passes).
+        cmd->SetGraphicsRootSignature(rootSig);
+        cmd->SetDescriptorHeaps(1, &tableDescHeap);
+
         // Transition all GBuffer targets → RENDER_TARGET
         static const char* names[] = {
             "GBuf_BaseColor","GBuf_Normal","GBuf_DepthCopy","GBuf_WorldPos","GBuf_ARM"
@@ -36,14 +46,13 @@ public:
 
         if (gbufShader) gbufShader->Bind();
 
-        float black[4]  = { 0.f, 0.f, 0.f, 1.f };
-        float zero[4]   = { 0.f, 0.f, 0.f, 0.f };
-        float depth1[4] = { 1.f, 0.f, 0.f, 0.f };
-        cmd->ClearRenderTargetView(gbufMgr->GetBaseColorRTV(), black,  0, nullptr);
-        cmd->ClearRenderTargetView(gbufMgr->GetNormalRTV(),    zero,   0, nullptr);
-        cmd->ClearRenderTargetView(gbufMgr->GetDepthCopyRTV(),depth1, 0, nullptr);
-        cmd->ClearRenderTargetView(gbufMgr->GetWorldPosRTV(),  zero,   0, nullptr);
-        cmd->ClearRenderTargetView(gbufMgr->GetARMRTV(),       zero,   0, nullptr);
+        // Clear values come from GBufferManager so they match the resources' optimised clear
+        // values (see GBufferManager::ClearColor) and take the fast clear path.
+        cmd->ClearRenderTargetView(gbufMgr->GetBaseColorRTV(), GBufferManager::ClearColor(0), 0, nullptr);
+        cmd->ClearRenderTargetView(gbufMgr->GetNormalRTV(),    GBufferManager::ClearColor(1), 0, nullptr);
+        cmd->ClearRenderTargetView(gbufMgr->GetDepthCopyRTV(), GBufferManager::ClearColor(2), 0, nullptr);
+        cmd->ClearRenderTargetView(gbufMgr->GetWorldPosRTV(),  GBufferManager::ClearColor(3), 0, nullptr);
+        cmd->ClearRenderTargetView(gbufMgr->GetARMRTV(),       GBufferManager::ClearColor(4), 0, nullptr);
 
         D3D12_CPU_DESCRIPTOR_HANDLE rtvs[5] = {
             gbufMgr->GetBaseColorRTV(), gbufMgr->GetNormalRTV(),
@@ -66,6 +75,8 @@ private:
     ZNShader*             gbufShader;
     DepthStencilBuffer*   dsBuffer;
     SwapChain*            swapChain;
+    ID3D12RootSignature*  rootSig;
+    ID3D12DescriptorHeap* tableDescHeap;
     std::function<void()> renderCb;
 };
 

@@ -1,11 +1,14 @@
 #include "SceneDebugUI.h"
 #include "SceneManager.h"
+#include "UILayout.h"
 #include <ZNFramework.h>
+#include <ZNFramework/ZNLog.h>
 #include <ZNFramework/Graphics/ZNLight.h>
 #include <imgui.h>
 #include <Windows.h>
 #include <algorithm>
 #include <cmath>
+#include <functional>
 
 using namespace ZNFramework;
 
@@ -14,6 +17,41 @@ static constexpr float kPI = 3.14159265f;
 SceneDebugUI::SceneDebugUI()
     : lastTime(Clock::now())
 {
+}
+
+SceneDebugUI::~SceneDebugUI()
+{
+    ClearDebugEntries();
+    delete dbgSolidShader;
+    delete dbgAlphaShader;
+}
+
+void SceneDebugUI::ClearDebugEntries()
+{
+    // Indicators are owned solely here (never adopted into the scene pool), and ZNGameObject owns
+    // neither its mesh nor its material — so each must be freed explicitly or it leaks on every
+    // scene switch. Safe to delete now: with no frame pipelining, the previous frame's GPU work has
+    // already completed (RenderEnd WaitSync), so nothing in flight still references these buffers.
+    for (auto& e : spotEntries)
+    {
+        if (e.marker) delete e.marker->GetMesh();
+        if (e.cone)   delete e.cone->GetMesh();
+        delete e.markerMat;
+        delete e.coneMat;
+        delete e.marker;
+        delete e.cone;
+    }
+    spotEntries.clear();
+
+    for (auto& e : camEntries)
+    {
+        if (e.marker) delete e.marker->GetMesh();
+        if (e.lens)   delete e.lens->GetMesh();
+        delete e.mat;   // shared by marker + lens — deleted once
+        delete e.marker;
+        delete e.lens;
+    }
+    camEntries.clear();
 }
 
 // ---------------------------------------------------------------------------
@@ -38,10 +76,8 @@ void SceneDebugUI::EnsureDebugShaders()
 
 void SceneDebugUI::OnSceneChanged(ZNScene* scene)
 {
-    // Old entries become orphaned (not deleted — GPU may still reference their meshes).
-    // Bounded memory: one set per scene switch, reclaimed on app exit.
-    spotEntries.clear();
-    camEntries.clear();
+    // Free the previous scene's indicators before rebuilding (see ClearDebugEntries).
+    ClearDebugEntries();
     showSpotIndicators = false;
     showCamIndicators  = false;
     trackedScene       = scene;
@@ -193,7 +229,10 @@ void SceneDebugUI::RenderDebugPanel(ZNScene* scene)
     if (!visible) return;
 
     ZNCommandQueue* cq = GraphicsContext::GetInstance().GetCommandQueue();
-    ImGui::SetNextWindowSize(ImVec2(220.f, 0.f), ImGuiCond_FirstUseEver);
+    // Top bar, right of the Scenes panel. Width fixed to the shared panel width; auto-fit height
+    // so added rows (camera info/sliders, scene extras) are never clipped by a stale imgui.ini size.
+    ImGui::SetNextWindowPos(ImVec2(UILayout::DebugX, UILayout::DebugY), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(UILayout::PanelWidth, 0.f), ImGuiCond_FirstUseEver);
     ImGui::Begin("Debug");
 
     // Wireframe (common to all scenes)
@@ -209,12 +248,102 @@ void SceneDebugUI::RenderDebugPanel(ZNScene* scene)
     if (!camEntries.empty())
         ImGui::Checkbox("Camera Indicators", &showCamIndicators);
 
+    // Camera — read-out (Pos/Rot moved here from Stats) + runtime tuning of the frame-based movement.
+    if (scene && scene->GetCamera())
+    {
+        ZNCamera* cam = scene->GetCamera();
+        ImGui::Separator();
+        ImGui::Text("Camera");
+
+        ZNVector3 camPos = cam->GetPosition();
+        const float RAD_TO_DEG = 180.0f / 3.14159265f;
+        float pitchDeg = cam->GetPitch() * RAD_TO_DEG;
+        float yawDeg   = cam->GetYaw()   * RAD_TO_DEG;
+        ImGui::Text("Pos  %.2f, %.2f, %.2f", camPos.x, camPos.y, camPos.z);
+        ImGui::Text("Rot  pitch %.1f, yaw %.1f", pitchDeg, yawDeg);
+        if (ImGui::Button("Copy as code", ImVec2(-1, 0)))
+        {
+            char buf[256];
+            snprintf(buf, sizeof(buf),
+                "cam->SetPosition(ZNVector3(%.3ff, %.3ff, %.3ff));\ncam->SetRotation(%.2ff, %.2ff);",
+                camPos.x, camPos.y, camPos.z, pitchDeg, yawDeg);
+            ImGui::SetClipboardText(buf);
+        }
+
+        CameraControlConfig& cfg = cam->ControlConfig();
+        // Short labels so they aren't clipped at the uniform panel width.
+        ImGui::SliderFloat("Speed", &cfg.moveSpeed,   0.1f, 20.0f);
+        ImGui::SliderFloat("Sens.", &cfg.sensitivity, 0.0005f, 0.01f, "%.4f");
+    }
+
     // Scene-specific extras (grid toggle, turntable, etc.)
     if (onDebugExtras)
     {
         ImGui::Separator();
         onDebugExtras();
     }
+
+    ImGui::End();
+}
+
+void SceneDebugUI::RenderLogPanel()
+{
+    ZNLog& log = ZNLog::Get();
+
+    // Default: bottom-left, wide + short (a console strip). Movable/resizable afterwards.
+    const ImGuiViewport* vp = ImGui::GetMainViewport();
+    ImGui::SetNextWindowPos(
+        ImVec2(vp->WorkPos.x + UILayout::Margin,
+               vp->WorkPos.y + vp->WorkSize.y - 210.f - UILayout::Margin), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(UILayout::PanelWidth * 2.6f, 210.f), ImGuiCond_FirstUseEver);
+    ImGui::Begin("Log");
+
+    // Level threshold (channels below it are dropped at the source).
+    const char* levels[] = { "Trace", "Info", "Warn", "Error" };
+    int lvl = static_cast<int>(log.GetMinLevel());
+    ImGui::SetNextItemWidth(80.f);
+    if (ImGui::Combo("##level", &lvl, levels, IM_ARRAYSIZE(levels)))
+        log.SetMinLevel(static_cast<LogLevel>(lvl));
+
+    // Per-channel on/off.
+    for (int i = 0; i < ZNLog::ChannelCount; ++i)
+    {
+        LogChannel ch = static_cast<LogChannel>(i);
+        bool on = log.IsChannelEnabled(ch);
+        ImGui::SameLine();
+        if (ImGui::Checkbox(ZNLog::ChannelName(ch), &on))
+            log.SetChannelEnabled(ch, on);
+    }
+
+    ImGui::SameLine(); if (ImGui::Button("Clear")) log.Clear();
+    ImGui::SameLine(); const bool doCopy = ImGui::Button("Copy");
+    ImGui::SameLine(); ImGui::Checkbox("Auto", &logAutoScroll);
+    ImGui::Separator();
+
+    ImGui::BeginChild("log_scroll", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
+    if (doCopy) ImGui::LogToClipboard();
+    for (const auto& e : log.Entries())
+    {
+        ImVec4 col;
+        switch (e.level)
+        {
+        case LogLevel::Trace: col = ImVec4(0.55f, 0.55f, 0.55f, 1.f); break;
+        case LogLevel::Warn:  col = ImVec4(0.95f, 0.80f, 0.20f, 1.f); break;
+        case LogLevel::Error: col = ImVec4(0.96f, 0.35f, 0.30f, 1.f); break;
+        default:              col = ImVec4(0.85f, 0.85f, 0.85f, 1.f); break;
+        }
+        char buf[1280];
+        snprintf(buf, sizeof(buf), "[%llu][%s][%s] %s",
+            static_cast<unsigned long long>(e.frame), ZNLog::ChannelName(e.channel),
+            ZNLog::LevelName(e.level), e.text.c_str());
+        ImGui::PushStyleColor(ImGuiCol_Text, col);
+        ImGui::TextUnformatted(buf);
+        ImGui::PopStyleColor();
+    }
+    if (doCopy) ImGui::LogFinish();
+    if (logAutoScroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
+        ImGui::SetScrollHereY(1.0f);
+    ImGui::EndChild();
 
     ImGui::End();
 }
@@ -267,6 +396,9 @@ void SceneDebugUI::Render(ZNScene* scene)
     // Render indicator game objects directly (forward pass context is active)
     RenderDebugEntries();
 
+    // Mirror visibility onto GraphicsContext so the engine-drawn GBuffer preview hides with us.
+    GraphicsContext::GetInstance().SetDebugOverlayVisible(visible);
+
     if (!visible) return;
 
     // --- Stats ---
@@ -291,10 +423,10 @@ void SceneDebugUI::Render(ZNScene* scene)
         }
     }
 
-    ImGui::SetNextWindowPos(ImVec2(10.f, 10.f), ImGuiCond_Always);
-    ImGui::SetNextWindowSize(ImVec2(220.f, 0.f), ImGuiCond_Always);
-    ImGui::Begin("Stats", nullptr,
-        ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
+    // --- Stats (left column, top) ---
+    ImGui::SetNextWindowPos(ImVec2(UILayout::StatsX, UILayout::StatsY), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(UILayout::PanelWidth, 0.f), ImGuiCond_FirstUseEver);
+    ImGui::Begin("Stats");
 
     ImGui::Text("FPS        %.1f",  fpsDisplay);
     ImGui::Text("CPU        %.2f ms", cpuMs);
@@ -307,52 +439,68 @@ void SceneDebugUI::Render(ZNScene* scene)
     ImGui::Text("GPU Mem    %.0f / %.0f MB", gpuMemUsedMB, gpuMemBudgMB);
     ImGui::Text("Triangles  %d",    ZNGameObject::GetLastFrameTriangles());
     ImGui::Text("Vertices   %d",    ZNGameObject::GetLastFrameVertices());
-
-    if (scene && scene->GetCamera())
-    {
-        ZNCamera* cam = scene->GetCamera();
-        ZNVector3 camPos = cam->GetPosition();
-        const float RAD_TO_DEG = 180.0f / 3.14159265f;
-        float pitchDeg = cam->GetPitch() * RAD_TO_DEG;
-        float yawDeg   = cam->GetYaw()   * RAD_TO_DEG;
-
-        ImGui::Separator();
-        ImGui::Text("Cam Pos    %.2f, %.2f, %.2f", camPos.x, camPos.y, camPos.z);
-        ImGui::Text("Cam Rot    pitch %.1f, yaw %.1f", pitchDeg, yawDeg);
-        if (ImGui::Button("Copy as code", ImVec2(-1, 0)))
-        {
-            char buf[256];
-            snprintf(buf, sizeof(buf),
-                "cam->SetPosition(ZNVector3(%.3ff, %.3ff, %.3ff));\ncam->SetRotation(%.2ff, %.2ff);",
-                camPos.x, camPos.y, camPos.z, pitchDeg, yawDeg);
-            ImGui::SetClipboardText(buf);
-        }
-    }
+    // (Cam Pos/Rot moved to the Debug panel's Camera section.)
 
     ImGui::End();
 
-    // --- Outliner ---
-    ImGui::SetNextWindowSize(ImVec2(220.f, 400.f), ImGuiCond_FirstUseEver);
+    // --- Outliner + Inspector (left column, below Stats; merged into one panel) ---
+    ImGui::SetNextWindowPos(ImVec2(UILayout::OutlinerX, UILayout::OutlinerY), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(UILayout::PanelWidth, UILayout::OutlinerHeight), ImGuiCond_FirstUseEver);
     ImGui::Begin("Outliner");
+
+    // Hierarchy lives in a fixed-height scrollable region so the Inspector below it stays visible
+    // no matter how many objects the scene has.
+    ImGui::BeginChild("Hierarchy", ImVec2(0.f, UILayout::HierarchyHeight), true /*border*/);
 
     if (ImGui::TreeNodeEx("GameObjects", ImGuiTreeNodeFlags_DefaultOpen))
     {
         if (scene)
         {
-            auto showObj = [&](ZNGameObject* obj) {
-                const auto& tag = obj->GetTag();
-                if (tag == "Debug" || tag == "Room") return;
+            auto selectObj = [&](ZNGameObject* obj) {
+                selection.type = SelectionType::GameObject;
+                selection.ptr  = obj;
+            };
+
+            // Recursive node drawer: parents become collapsible tree nodes, leaves are selectable.
+            std::function<void(ZNGameObject*)> drawNode = [&](ZNGameObject* obj) {
+                if (obj->GetTag() == "Debug") return;
                 bool isSelected = (selection.type == SelectionType::GameObject && selection.ptr == obj);
-                if (ImGui::Selectable(obj->GetName().c_str(), isSelected))
+
+                if (obj->HasChildren())
                 {
-                    selection.type = SelectionType::GameObject;
-                    selection.ptr  = obj;
+                    ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow
+                                             | ImGuiTreeNodeFlags_SpanAvailWidth;
+                    if (isSelected) flags |= ImGuiTreeNodeFlags_Selected;
+                    bool open = ImGui::TreeNodeEx(obj->GetName().c_str(), flags);
+                    if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
+                        selectObj(obj);
+                    if (open)
+                    {
+                        for (auto* child : obj->GetChildren())
+                            drawNode(child);
+                        ImGui::TreePop();
+                    }
+                }
+                else
+                {
+                    if (ImGui::Selectable(obj->GetName().c_str(), isSelected))
+                        selectObj(obj);
                 }
             };
-            for (auto* obj : scene->GetGameObjects())
-                showObj(obj);
-            for (auto* obj : scene->GetForwardGameObjects())
-                showObj(obj);
+
+            // Enter only from root-level nodes; children are reached via recursion, so nothing
+            // is listed twice even though child parts also live in the flat render lists.
+            // Legacy hide of flat "Room" parts stays at the TOP level only — un-converted scenes
+            // (e.g. CCTVScene, which groups Room via its own Outliner extra) keep their behavior,
+            // while a converted model root is untagged and shows its parts under the tree.
+            auto drawTop = [&](ZNGameObject* obj) {
+                if (!obj->IsRootLevel()) return;
+                const auto& tag = obj->GetTag();
+                if (tag == "Debug" || tag == "Room") return;
+                drawNode(obj);
+            };
+            for (auto* obj : scene->GetGameObjects())        drawTop(obj);
+            for (auto* obj : scene->GetForwardGameObjects()) drawTop(obj);
         }
         ImGui::TreePop();
     }
@@ -400,11 +548,12 @@ void SceneDebugUI::Render(ZNScene* scene)
         ImGui::TreePop();
     }
 
-    ImGui::End();
+    ImGui::EndChild(); // end the Hierarchy scroll region
 
-    // --- Inspector ---
-    ImGui::SetNextWindowSize(ImVec2(280.f, 400.f), ImGuiCond_FirstUseEver);
-    ImGui::Begin("Inspector");
+    // Inspector section — details of the current Outliner selection, in the same panel.
+    ImGui::Separator();
+    ImGui::TextDisabled("INSPECTOR");
+    ImGui::Separator();
 
     switch (selection.type)
     {
@@ -525,8 +674,9 @@ void SceneDebugUI::Render(ZNScene* scene)
 
     ImGui::End();
 
-    // --- Scenes ---
-    ImGui::SetNextWindowSize(ImVec2(180.f, 0.f), ImGuiCond_FirstUseEver);
+    // --- Scenes (top bar) ---
+    ImGui::SetNextWindowPos(ImVec2(UILayout::ScenesX, UILayout::ScenesY), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(UILayout::PanelWidth, 0.f), ImGuiCond_FirstUseEver);
     ImGui::Begin("Scenes");
     const auto& entries = SceneManager::Get().GetEntries();
     int current = SceneManager::Get().GetCurrentIndex();
@@ -544,6 +694,9 @@ void SceneDebugUI::Render(ZNScene* scene)
 
     // --- Debug (common + scene-specific) ---
     RenderDebugPanel(scene);
+
+    // --- Log console (ZNLog) ---
+    // RenderLogPanel();
 }
 
 void SceneDebugUI::RenderToggle()

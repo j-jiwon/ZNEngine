@@ -2,6 +2,7 @@
 #include "Window.h"
 #include "Math/ZNMath.h"
 #include "ZNInputDef.h"
+#include "ZNLog.h"
 #include <iostream>
 #include <windowsx.h>
 #include <dwmapi.h>
@@ -183,12 +184,29 @@ LRESULT Window::WindowProc(HWND inHwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         uint32 _width = LOWORD(lParam);
         uint32 _height = HIWORD(lParam);
 
-        if (_width != width || _height != height) {
-            for (const auto& [key, value] : resizeEventHandlers) {
-                value(_width, _height);
+        if (wParam == SIZE_MINIMIZED) {
+            // Minimized -> lParam is 0x0. Don't resize (keep the last valid size); the render
+            // loop skips drawing while minimized (see MessageLoop / IsMinimized()).
+            isMinimized = true;
+            isMaximized = false;
+        }
+        else {
+            isMinimized = false;
+            isMaximized = (wParam == SIZE_MAXIMIZED);
+
+            if (_width != width || _height != height) {
+                // Update the cached size BEFORE notifying resize handlers: some resize targets
+                // read window->Width()/Height() rather than the passed args (e.g.
+                // DepthStencilBuffer::Init). If left stale, the depth buffer is recreated at the
+                // OLD size while the G-buffer/swap chain get the new one — the size mismatch
+                // clamps rasterization to the old rect, leaving the scene stuck in a corner on
+                // maximize.
+                width = _width;
+                height = _height;
+                for (const auto& [key, value] : resizeEventHandlers) {
+                    value(_width, _height);
+                }
             }
-            width = _width;
-            height = _height;
         }
         return 0;
     }
@@ -227,6 +245,14 @@ LRESULT Window::WindowProc(HWND inHwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         break;
     case WM_KEYDOWN:
     case WM_SYSKEYDOWN:
+        if (wParam < 256)
+        {
+            // Log only the state change (first press), not OS auto-repeat, on the Input channel
+            // at Trace — quiet by default (min level is Info), visible when you lower it.
+            if (!keyStates[wParam])
+                ZNLOG_TRACE(LogChannel::Input, "key down 0x%02X", (unsigned)wParam);
+            keyStates[wParam] = true;  // held-state for frame-based polling
+        }
         keyboardEvent.type = keyType;
         // Check if this is a repeated key press (lParam bit 30)
         keyboardEvent.state = (lParam & (1 << 30)) ? KEY_STATE::PRESS : KEY_STATE::DOWN;
@@ -234,10 +260,21 @@ LRESULT Window::WindowProc(HWND inHwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         return 0;
     case WM_KEYUP:
     case WM_SYSKEYUP:
+        if (wParam < 256)
+        {
+            if (keyStates[wParam])
+                ZNLOG_TRACE(LogChannel::Input, "key up   0x%02X", (unsigned)wParam);
+            keyStates[wParam] = false;
+        }
         keyboardEvent.type = keyType;
         keyboardEvent.state = KEY_STATE::UP;
         OnKeyboardEvent(keyboardEvent);
         return 0;
+    case WM_KILLFOCUS:
+        // Focus lost (alt-tab / click away) -> we stop receiving WM_KEYUP, so clear held state
+        // to avoid a "stuck" key driving the camera after focus returns.
+        for (bool& k : keyStates) k = false;
+        break;
     default:
         break;
     }

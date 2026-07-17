@@ -91,14 +91,17 @@ void Texture::UploadToGPU()
     }
 
     CommandQueue* queue = GraphicsContext::GetInstance().GetAs<CommandQueue>();
-    hr = ::UpdateSubresources(queue->ResourceCommandList(),
+    // UpdateSubresources returns the number of bytes uploaded (UINT64), 0 on failure — NOT an
+    // HRESULT. The old `hr = UpdateSubresources(...); if (FAILED(hr))` truncated that byte count
+    // to HRESULT (C4244) and mis-checked it. Check the documented failure sentinel instead.
+    const UINT64 uploadedBytes = ::UpdateSubresources(queue->ResourceCommandList(),
         tex2d.Get(),
         textureUploadHeap.Get(),
         0, 0,
         static_cast<unsigned int>(subResources.size()),
         subResources.data());
 
-    if (FAILED(hr))
+    if (uploadedBytes == 0)
     {
         assert(nullptr);
         return;

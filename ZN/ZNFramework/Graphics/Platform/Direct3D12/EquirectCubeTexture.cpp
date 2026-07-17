@@ -139,8 +139,12 @@ void EquirectCubeTexture::Init(const std::wstring& path, uint32 faceSize)
         D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(uploadHeap.GetAddressOf())));
 
     CommandQueue* queue = GraphicsContext::GetInstance().GetAs<CommandQueue>();
-    ThrowIfFailed(::UpdateSubresources(queue->ResourceCommandList(), cubeResource.Get(), uploadHeap.Get(),
-                                        0, 0, static_cast<uint32>(subResources.size()), subResources.data()));
+    // UpdateSubresources returns bytes uploaded (UINT64), 0 on failure — not an HRESULT. Wrapping
+    // it in ThrowIfFailed truncated the byte count to HRESULT (C4244); check the sentinel instead.
+    const UINT64 uploadedBytes = ::UpdateSubresources(queue->ResourceCommandList(), cubeResource.Get(),
+        uploadHeap.Get(), 0, 0, static_cast<uint32>(subResources.size()), subResources.data());
+    if (uploadedBytes == 0)
+        ThrowIfFailed(E_FAIL);
 
     CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
         cubeResource.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);

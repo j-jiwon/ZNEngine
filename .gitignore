@@ -41,6 +41,10 @@
 
 # Other files
 claude.md
+.claude/*.md
+
+# ImGui layout cache (regenerated at runtime, per-user)
+imgui.ini
 
 Build/
 nul

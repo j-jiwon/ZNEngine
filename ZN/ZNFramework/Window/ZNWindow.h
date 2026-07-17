@@ -23,6 +23,14 @@ namespace ZNFramework
 		virtual uint32 Height() const = 0;
 		virtual void* PlatformHandle() const = 0;
 
+		// Window state (set by the platform WndProc; read by the render loop to skip work).
+		bool IsMinimized() const { return isMinimized; }
+		bool IsPaused()    const { return isPaused; }
+
+		// Held-key query (VK code) for frame-based polling (e.g. WASD camera movement). The app
+		// loop reads this every frame instead of reacting to per-key WM_KEYDOWN repeat events.
+		virtual bool IsKeyDown(int vk) const = 0;
+
 		using EventHandler = const void*;
 		using ResizeEventCallback = std::function<void(uint32, uint32)>;
 		using MouseEventCallback = std::function<void(MouseEvent)>;

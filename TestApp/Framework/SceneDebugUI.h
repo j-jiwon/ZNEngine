@@ -49,6 +49,7 @@ public:
 
 private:
     SceneDebugUI();
+    ~SceneDebugUI();
 
     // ---- Shared debug overlay (spotlight + camera indicators) ----
     struct SpotEntry {
@@ -68,10 +69,12 @@ private:
     };
 
     void EnsureDebugShaders();
+    void ClearDebugEntries();  // frees indicator meshes/materials/objects (owned solely here)
     void OnSceneChanged(ZNFramework::ZNScene* scene);
     void UpdateDebugEntries();
     void RenderDebugEntries();
     void RenderDebugPanel(ZNFramework::ZNScene* scene);
+    void RenderLogPanel();  // ZNLog console (levels/channels filter, clear, copy, auto-scroll)
 
     ZNFramework::ZNShader* dbgSolidShader = nullptr;
     ZNFramework::ZNShader* dbgAlphaShader = nullptr;
@@ -80,7 +83,8 @@ private:
     std::vector<CamEntry>  camEntries;
 
     // ---- UI state ----
-    bool      visible    = true;
+    bool      visible       = true;
+    bool      logAutoScroll = true;
     Selection selection;
 
     float     fpsAccum   = 0.0f;

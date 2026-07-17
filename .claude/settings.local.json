@@ -40,7 +40,9 @@
       "PowerShell(\\(Get-Item \"c:\\\\Work\\\\ZNEngine\\\\Resources\\\\Models\\\\33-the-room-2\\\\The room\\\\room.fbx\"\\).Length / 1MB)",
       "PowerShell($result = & \"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Community\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe\" \"c:\\\\Work\\\\ZNEngine\\\\ZNEngine.sln\" /t:TestApp:Rebuild /p:Configuration=Debug /p:Platform=x64 /m /nologo /verbosity:minimal 2>&1; $result | Where-Object { $_ -match \"error C|오류|FAILED|succeeded|빌드했습니다\" } | Select-Object -Last 10)",
       "Bash(git push *)",
-      "PowerShell(& \"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Community\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe\" ZNEngine.sln /t:ZN /p:Configuration=Debug /p:Platform=x64 /nologo /v:minimal 2>&1)"
+      "PowerShell(& \"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Community\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe\" ZNEngine.sln /t:ZN /p:Configuration=Debug /p:Platform=x64 /nologo /v:minimal 2>&1)",
+      "Bash(git ls-tree *)",
+      "Bash(grep -v \"//\")"
     ]
   }
 }

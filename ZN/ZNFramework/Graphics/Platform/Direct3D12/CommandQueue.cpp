@@ -167,6 +167,7 @@ void CommandQueue::BuildRenderGraph()
     if (gbufferManager) {
         renderGraph.AddPass(std::make_unique<GBufferPass>(
             gbufferManager, gbufShader, dsBuffer, swapChain,
+            rootSig->GetSignature().Get(), tdh->GetDescriptorHeap().Get(),
             [this]() { if (gbufferRenderCallback) gbufferRenderCallback(); }));
     }
 
@@ -297,7 +298,8 @@ void CommandQueue::RenderEnd()
 
     swapChain->Present();
     WaitSync();
-    swapChain->SwapIndex();
+    // Back-buffer index is now queried live from DXGI (SwapChain::GetCurrentBackBufferIndex),
+    // so no manual index advance is needed here anymore.
 
     if (!isFirstFrame && timestampQueryHeap && timestampFrequency > 0) {
         void* pData = nullptr;

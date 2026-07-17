@@ -157,7 +157,7 @@ void TestGameScene::Initialize()
     debug.gridPlane->SetTag("Debug");
     debug.gridPlane->SetVisible(false);
     AddForwardGameObject(debug.gridPlane);
-    std::cout << "Scene initialized. Press F1 to toggle debug visuals." << std::endl;
+    ZNLOG_INFO(LogChannel::Scene, "TestGameScene initialized (F1 toggles debug visuals)");
 }
 
 void TestGameScene::Update(float deltaTime)
@@ -181,10 +181,9 @@ void TestGameScene::OnKeyboardEvent(const KeyboardEvent& event)
 
     case KEY_TYPE::KEY_T:
         turntableEnabled = !turntableEnabled;
-        std::cout << "Turntable: " << (turntableEnabled ? "ON" : "OFF");
-        if (turntableObj)
-            std::cout << " (" << turntableObj->GetName() << ")";
-        std::cout << std::endl;
+        ZNLOG_INFO(LogChannel::Scene, "Turntable: %s (%s)",
+                   turntableEnabled ? "ON" : "OFF",
+                   turntableObj ? turntableObj->GetName().c_str() : "-");
         break;
     }
 }
