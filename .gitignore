@@ -41,6 +41,7 @@
 
 # Other files
 claude.md
+.claude/*.md
 
 Build/
 nul
