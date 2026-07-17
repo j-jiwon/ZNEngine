@@ -105,7 +105,7 @@
       <ExceptionHandling>Async</ExceptionHandling>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <ObjectFileName>$(IntDir)%(RelativeDir)</ObjectFileName>
-      <AdditionalOptions>/Qpar %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/Qpar /utf-8 %(AdditionalOptions)</AdditionalOptions>
       <AdditionalIncludeDirectories>$(SolutionDir)Library\Include;$(ProjectDir)ZNFramework;$(ProjectDir);$(ProjectDir)ZNFramework\ThirdParty\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
@@ -115,6 +115,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
+      <AdditionalOptions>/ignore:4006 %(AdditionalOptions)</AdditionalOptions>
       <AdditionalDependencies>d3d12.lib;dxgi.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
@@ -134,7 +135,7 @@
       <ExceptionHandling>Async</ExceptionHandling>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <ObjectFileName>$(IntDir)%(RelativeDir)</ObjectFileName>
-      <AdditionalOptions>/Qpar %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/Qpar /utf-8 %(AdditionalOptions)</AdditionalOptions>
       <AdditionalIncludeDirectories>$(SolutionDir)Library\Include;$(ProjectDir)ZNFramework;$(ProjectDir);$(ProjectDir)ZNFramework\ThirdParty\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
@@ -146,6 +147,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
+      <AdditionalOptions>/ignore:4006 %(AdditionalOptions)</AdditionalOptions>
       <AdditionalDependencies>d3d12.lib;dxgi.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
@@ -163,7 +165,7 @@
       <ExceptionHandling>Async</ExceptionHandling>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <ObjectFileName>$(IntDir)%(RelativeDir)</ObjectFileName>
-      <AdditionalOptions>/Qpar %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/Qpar /utf-8 %(AdditionalOptions)</AdditionalOptions>
       <AdditionalIncludeDirectories>$(SolutionDir)Library\Include;$(ProjectDir)ZNFramework;$(ProjectDir);$(ProjectDir)ZNFramework\ThirdParty\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <LanguageStandard>stdcpp20</LanguageStandard>
@@ -174,6 +176,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
+      <AdditionalOptions>/ignore:4006 %(AdditionalOptions)</AdditionalOptions>
       <AdditionalDependencies>d3d12.lib;dxgi.lib;d3dcompiler.lib;DirectXTex.lib;assimp-vc143-mt.lib;</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)Library\Lib\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
@@ -193,7 +196,7 @@
       <ExceptionHandling>Async</ExceptionHandling>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <ObjectFileName>$(IntDir)%(RelativeDir)</ObjectFileName>
-      <AdditionalOptions>/Qpar %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/Qpar /utf-8 %(AdditionalOptions)</AdditionalOptions>
       <AdditionalIncludeDirectories>$(SolutionDir)Library\Include;$(ProjectDir)ZNFramework;$(ProjectDir);$(ProjectDir)ZNFramework\ThirdParty\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
@@ -205,6 +208,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
+      <AdditionalOptions>/ignore:4006 %(AdditionalOptions)</AdditionalOptions>
       <AdditionalDependencies>d3d12.lib;dxgi.lib;d3dcompiler.lib;DirectXTex.lib;assimp-vc143-mt.lib;</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)Library\Lib\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
@@ -310,9 +314,9 @@
     <ClInclude Include="ZNFramework\UI\Platform\Win32_DX12\ImGuiLayer.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="ZNFramework\Application\Platform\ApplicationPlatform.h" />
+    <ClInclude Include="ZNFramework\Application\Platform\ApplicationPlatform.h" />
     <ClCompile Include="ZNFramework\Application\Platform\Win32\ApplicationContext.cpp" />
-    <ClCompile Include="ZNFramework\Application\Platform\Win32\ApplicationContext.h" />
+    <ClInclude Include="ZNFramework\Application\Platform\Win32\ApplicationContext.h" />
     <ClCompile Include="ZNFramework\Application\ZNApplication.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\CommandQueue.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\ConstantBuffer.cpp" />

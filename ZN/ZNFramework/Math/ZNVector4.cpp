@@ -119,7 +119,7 @@ ZNVector4& ZNFramework::ZNVector4::operator*=(float f)
 
 float ZNVector4::Length() const
 {
-	return sqrt(x * x + y * y + z * z + w * w);
+	return static_cast<float>(sqrt(x * x + y * y + z * z + w * w));
 }
 
 float ZNVector4::LengthSq() const

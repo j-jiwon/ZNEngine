@@ -39,8 +39,8 @@ ZNLinearTransform3& ZNLinearTransform3::Scale(const ZNVector3& v)
 
 ZNLinearTransform3& ZNLinearTransform3::RotateX(float angle)
 {
-	float cosA = cos(angle);
-	float sinA = sin(angle);
+	float cosA = static_cast<float>(cos(angle));
+	float sinA = static_cast<float>(sin(angle));
 	matrix3 *= ZNMatrix3(1.0f, 0.0f, 0.0f,
 						0.0f, cosA, -sinA,
 						0.0f, sinA, cosA);
@@ -49,8 +49,8 @@ ZNLinearTransform3& ZNLinearTransform3::RotateX(float angle)
 
 ZNLinearTransform3& ZNLinearTransform3::RotateY(float angle)
 {
-	float cosA = cos(angle);
-	float sinA = sin(angle);
+	float cosA = static_cast<float>(cos(angle));
+	float sinA = static_cast<float>(sin(angle));
 	matrix3 *= ZNMatrix3(cosA, 0.0f, -sinA,
 		                 0.0f, 1.0f, 0.0f,
 		                 sinA, 0.0f, cosA);
@@ -59,8 +59,8 @@ ZNLinearTransform3& ZNLinearTransform3::RotateY(float angle)
 
 ZNLinearTransform3& ZNLinearTransform3::RotateZ(float angle)
 {
-	float cosA = cos(angle);
-	float sinA = sin(angle);
+	float cosA = static_cast<float>(cos(angle));
+	float sinA = static_cast<float>(sin(angle));
 	matrix3 *= ZNMatrix3(cosA, -sinA, 0.0f,
 		                sinA, cosA, 0.0f,
 		                 0.0f, 0.0f, 1.0f);
@@ -69,8 +69,8 @@ ZNLinearTransform3& ZNLinearTransform3::RotateZ(float angle)
 
 ZNLinearTransform3& ZNLinearTransform3::Rotate(const ZNVector3& axis, float angle)
 {
-	float cosA = cos(angle);
-	float sinA = sin(angle);
+	float cosA = static_cast<float>(cos(angle));
+	float sinA = static_cast<float>(sin(angle));
 	float revCos = 1 - cosA;
 
 	matrix3 *= ZNMatrix3(cosA + axis.x * axis.x * revCos

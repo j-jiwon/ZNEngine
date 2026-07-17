@@ -25,7 +25,7 @@ namespace ZNFramework
 		ComPtr<ID3D12DescriptorHeap> descHeap;
 		uint64 handleSize = 0;
 		uint64 groupSize = 0;
-		uint64 groupCount = 0;
+		uint32 groupCount = 0;   // count (from Init's uint32); kept uint32 so index math stays warning-free
 		uint32 currentGroupIndex = 0;
 	};
 }

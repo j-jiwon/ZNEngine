@@ -38,8 +38,8 @@ ZNLinearTransform2& ZNLinearTransform2::Scale(const ZNVector2& v)
 
 ZNLinearTransform2& ZNLinearTransform2::Rotate(float angle)
 {
-	float cosA = cos(angle);
-	float sinA = sin(angle);
+	float cosA = static_cast<float>(cos(angle));
+	float sinA = static_cast<float>(sin(angle));
 
 	matrix2 *= ZNMatrix2 (cosA, sinA, -sinA, cosA);
 	return *this;

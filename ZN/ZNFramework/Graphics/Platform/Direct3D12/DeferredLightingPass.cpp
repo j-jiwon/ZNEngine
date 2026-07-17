@@ -341,7 +341,7 @@ void DeferredLightingPass::Render(GBufferManager* gbufferManager, ShadowMap* sha
     D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = lightingDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
     D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
     cbvDesc.BufferLocation = lightingConstantBuffer->GetGPUVirtualAddress();
-    cbvDesc.SizeInBytes = lightingConstantBuffer->GetDesc().Width;
+    cbvDesc.SizeInBytes = static_cast<UINT>(lightingConstantBuffer->GetDesc().Width);
     device->Device()->CreateConstantBufferView(&cbvDesc, cpuHandle);
 
     // Copy G-Buffer SRVs
