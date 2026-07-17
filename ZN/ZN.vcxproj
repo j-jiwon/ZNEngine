@@ -311,6 +311,7 @@
     <ClInclude Include="ZNFramework\Math\ZNVector4.h" />
     <ClInclude Include="ZNFramework\Window\ZNWindow.h" />
     <ClInclude Include="ZNFramework\UI\ZNImGuiLayer.h" />
+    <ClInclude Include="ZNFramework\UI\ImGuiAnchor.h" />
     <ClInclude Include="ZNFramework\UI\Platform\Win32_DX12\ImGuiLayer.h" />
   </ItemGroup>
   <ItemGroup>

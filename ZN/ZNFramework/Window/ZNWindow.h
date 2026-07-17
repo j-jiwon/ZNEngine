@@ -27,6 +27,10 @@ namespace ZNFramework
 		bool IsMinimized() const { return isMinimized; }
 		bool IsPaused()    const { return isPaused; }
 
+		// Held-key query (VK code) for frame-based polling (e.g. WASD camera movement). The app
+		// loop reads this every frame instead of reacting to per-key WM_KEYDOWN repeat events.
+		virtual bool IsKeyDown(int vk) const = 0;
+
 		using EventHandler = const void*;
 		using ResizeEventCallback = std::function<void(uint32, uint32)>;
 		using MouseEventCallback = std::function<void(MouseEvent)>;

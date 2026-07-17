@@ -23,6 +23,7 @@ namespace ZNFramework
 		uint32 Width() const override { return width; }
 		uint32 Height() const override { return height; }
 		void* PlatformHandle() const override { return hwnd; };
+		bool IsKeyDown(int vk) const override { return (vk >= 0 && vk < 256) && keyStates[vk]; }
 
 		void OnMouseEvent(struct MouseEvent mouseEvent);
 		void OnMouseMove(struct MouseEvent mouseEvent);

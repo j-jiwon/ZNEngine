@@ -13,7 +13,6 @@ ZNCamera::ZNCamera()
 	, up(ZNVector3(0.0f, 1.0f, 0.0f))
 	, pitch(0.0f)
 	, yaw(0.0f)
-	, moveSpeed(5.0f)
 	, autoUpdateView(true)
 	, isDragging(false)
 	, lastMouseX(0)
@@ -164,38 +163,25 @@ void ZNCamera::RotateYaw(float angle)
 }
 
 // Input handling
-void ZNCamera::ProcessKeyboard(const KeyboardEvent& event, float deltaTime)
+void ZNCamera::ProcessMovement(const ZNVector3& localIntent, float deltaTime)
 {
-	if (event.state != KEY_STATE::DOWN && event.state != KEY_STATE::PRESS)
-		return;
+	// Compose a world-space direction from the camera's own axes, normalize so a diagonal
+	// (e.g. W+D) isn't faster than a single axis, then step by moveSpeed * deltaTime.
+	ZNVector3 dir = right * localIntent.x + up * localIntent.y + forward * localIntent.z;
+	float len = dir.Length();
+	if (len < 0.0001f)
+		return; // no movement keys held this frame
 
-	float velocity = moveSpeed * deltaTime;
+	dir = dir * (1.0f / len);
+	position = position + dir * (control.moveSpeed * deltaTime);
 
-	switch (event.type)
-	{
-	case KEY_TYPE::KEY_W:
-		MoveForward(velocity);
-		break;
-	case KEY_TYPE::KEY_S:
-		MoveForward(-velocity);
-		break;
-	case KEY_TYPE::KEY_A:
-		MoveRight(-velocity);
-		break;
-	case KEY_TYPE::KEY_D:
-		MoveRight(velocity);
-		break;
-	case KEY_TYPE::KEY_Q:
-		MoveUp(-velocity);
-		break;
-	case KEY_TYPE::KEY_E:
-		MoveUp(velocity);
-		break;
-	}
+	if (autoUpdateView)
+		UpdateViewMatrix();
 }
 
-void ZNCamera::ProcessMouse(const MouseEvent& event, float sensitivity)
+void ZNCamera::ProcessMouse(const MouseEvent& event)
 {
+	const float sensitivity = control.sensitivity;
 	if (event.state == MOUSE_STATE::DOWN)
 	{
 		// Start dragging - initialize last position

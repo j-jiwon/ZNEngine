@@ -4,6 +4,7 @@
 #include "ApplicationContext.h"
 #include "ZNFramework.h"
 #include "ZNFramework/UI/Platform/Win32_DX12/ImGuiLayer.h"
+#include "ZNFramework/UI/ImGuiAnchor.h"
 #include "imgui.h"
 #include "ZNFramework/Graphics/Platform/GraphicsAPI.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/Shader.h"
@@ -265,32 +266,41 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
 
         commandQueue->SetImGuiRenderCallback([this, guiLayer, gfxDevice, d3dCmdQueue, hasShadow]()
         {
-            GBufferManager* gbufferMgr = d3dCmdQueue->GetGBufferManager();
-            ShadowMap* shadowMapPtr    = d3dCmdQueue->GetShadowMap();
+            // Hide together with the rest of the debug panels (the app's SceneDebugUI toggle
+            // mirrors its state onto GraphicsContext since this window is engine-drawn).
+            if (GraphicsContext::GetInstance().IsDebugOverlayVisible())
+            {
+                GBufferManager* gbufferMgr = d3dCmdQueue->GetGBufferManager();
+                ShadowMap* shadowMapPtr    = d3dCmdQueue->GetShadowMap();
 
-            // Refresh descriptors every frame so GBuffer resize is automatically reflected
-            ImTextureID baseColorTexId = guiLayer->SetTexture(gfxDevice->Device().Get(), gbufferMgr->GetBaseColorSRV(), 1);
-            ImTextureID normalTexId    = guiLayer->SetTexture(gfxDevice->Device().Get(), gbufferMgr->GetNormalSRV(), 2);
-            ImTextureID worldPosTexId  = guiLayer->SetTexture(gfxDevice->Device().Get(), gbufferMgr->GetWorldPosSRV(), 3);
-            ImTextureID armTexId       = guiLayer->SetTexture(gfxDevice->Device().Get(), gbufferMgr->GetARMSRV(), 4);
-            ImTextureID depthTexId     = guiLayer->SetGrayscaleTexture(gfxDevice->Device().Get(), gbufferMgr->GetDepthCopyResource(), DXGI_FORMAT_R32_FLOAT, 5);
-            ImTextureID shadowTexId    = (hasShadow && shadowMapPtr) ? guiLayer->SetGrayscaleTexture(gfxDevice->Device().Get(), shadowMapPtr->GetResource(), DXGI_FORMAT_R32_FLOAT, 6) : 0;
+                // Refresh descriptors every frame so GBuffer resize is automatically reflected
+                ImTextureID baseColorTexId = guiLayer->SetTexture(gfxDevice->Device().Get(), gbufferMgr->GetBaseColorSRV(), 1);
+                ImTextureID normalTexId    = guiLayer->SetTexture(gfxDevice->Device().Get(), gbufferMgr->GetNormalSRV(), 2);
+                ImTextureID worldPosTexId  = guiLayer->SetTexture(gfxDevice->Device().Get(), gbufferMgr->GetWorldPosSRV(), 3);
+                ImTextureID armTexId       = guiLayer->SetTexture(gfxDevice->Device().Get(), gbufferMgr->GetARMSRV(), 4);
+                ImTextureID depthTexId     = guiLayer->SetGrayscaleTexture(gfxDevice->Device().Get(), gbufferMgr->GetDepthCopyResource(), DXGI_FORMAT_R32_FLOAT, 5);
+                ImTextureID shadowTexId    = (hasShadow && shadowMapPtr) ? guiLayer->SetGrayscaleTexture(gfxDevice->Device().Get(), shadowMapPtr->GetResource(), DXGI_FORMAT_R32_FLOAT, 6) : 0;
 
-            ImVec2 thumbSize(160.0f, 90.0f);
-            ImGui::SetNextWindowSize(ImVec2(200.0f, 0.0f), ImGuiCond_FirstUseEver);
-            ImGui::Begin("GBuffer Preview");
-            auto thumb = [&](const char* label, ImTextureID tex) {
-                ImGui::Text("%s", label);
-                ImGui::Image(tex, thumbSize);
-            };
-            thumb("BaseColor", baseColorTexId);
-            thumb("Normal",    normalTexId);
-            thumb("WorldPos",  worldPosTexId);
-            thumb("ARM",       armTexId);
-            thumb("Depth",     depthTexId);
-            if (shadowTexId != 0)
-                thumb("Shadow", shadowTexId);
-            ImGui::End();
+                // Pinned to the top-right corner (re-computed every frame, so it hugs the corner
+                // across window resize / maximize). Width matches the app's uniform panel width
+                // (UILayout::PanelWidth = 240; kept in sync by hand since this window is engine-drawn).
+                const float panelW = 240.0f;
+                AnchorNextWindow(UICorner::TopRight, ImVec2(panelW, 0.0f), 10.0f);
+                ImVec2 thumbSize(panelW - 40.0f, (panelW - 40.0f) * 9.0f / 16.0f);
+                ImGui::Begin("GBuffer Preview");
+                auto thumb = [&](const char* label, ImTextureID tex) {
+                    ImGui::Text("%s", label);
+                    ImGui::Image(tex, thumbSize);
+                };
+                thumb("BaseColor", baseColorTexId);
+                thumb("Normal",    normalTexId);
+                thumb("WorldPos",  worldPosTexId);
+                thumb("ARM",       armTexId);
+                thumb("Depth",     depthTexId);
+                if (shadowTexId != 0)
+                    thumb("Shadow", shadowTexId);
+                ImGui::End();
+            }
 
             imguiLayer->EndFrame();
         });
@@ -415,31 +425,35 @@ void ApplicationContext::OnKeyboardEvent(struct KeyboardEvent event)
 
     if (currentScene)
     {
-        static int callCount = 0;
-        if (callCount++ < 5)
-        {
-            std::cout << "Key Event: type=" << static_cast<int>(event.type)
-                      << ", state=" << static_cast<int>(event.state)
-                      << ", deltaTime=" << timer->DeltaTime() << std::endl;
-        }
-
-        // Forward to scene for custom handling
+        // Discrete key events go to the scene for hotkeys (F1/F2/T, etc.). Continuous camera
+        // movement is handled by frame-based polling in Update() (ProcessMovement), not here.
         currentScene->OnKeyboardEvent(event);
-
-        // Forward to camera for movement
-        if (currentScene->GetCamera())
-        {
-            currentScene->GetCamera()->ProcessKeyboard(event, timer->DeltaTime());
-        }
     }
 }
 
 void ApplicationContext::Update()
 {
-    if (currentScene)
+    if (!currentScene)
+        return;
+
+    // Frame-based (held-state) camera movement — polled once per frame and decoupled from the OS
+    // key-repeat stream, so holding a key moves smoothly + framerate-independently and diagonals
+    // combine naturally. Skipped while ImGui owns the keyboard (typing in a field).
+    ZNCamera* camera = currentScene->GetCamera();
+    ZNWindow*  win    = WindowContext::GetInstance().GetWindow();
+    if (camera && win && !ImGui::GetIO().WantCaptureKeyboard)
     {
-        currentScene->Update(timer->DeltaTime());
+        ZNVector3 intent(0.0f, 0.0f, 0.0f);
+        if (win->IsKeyDown('D')) intent.x += 1.0f;  // right
+        if (win->IsKeyDown('A')) intent.x -= 1.0f;  // left
+        if (win->IsKeyDown('E')) intent.y += 1.0f;  // up
+        if (win->IsKeyDown('Q')) intent.y -= 1.0f;  // down
+        if (win->IsKeyDown('W')) intent.z += 1.0f;  // forward
+        if (win->IsKeyDown('S')) intent.z -= 1.0f;  // back
+        camera->ProcessMovement(intent, timer->DeltaTime());
     }
+
+    currentScene->Update(timer->DeltaTime());
 }
 
 void ApplicationContext::Render()

@@ -244,6 +244,7 @@ LRESULT Window::WindowProc(HWND inHwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         break;
     case WM_KEYDOWN:
     case WM_SYSKEYDOWN:
+        if (wParam < 256) keyStates[wParam] = true;  // held-state for frame-based polling
         keyboardEvent.type = keyType;
         // Check if this is a repeated key press (lParam bit 30)
         keyboardEvent.state = (lParam & (1 << 30)) ? KEY_STATE::PRESS : KEY_STATE::DOWN;
@@ -251,10 +252,16 @@ LRESULT Window::WindowProc(HWND inHwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         return 0;
     case WM_KEYUP:
     case WM_SYSKEYUP:
+        if (wParam < 256) keyStates[wParam] = false;
         keyboardEvent.type = keyType;
         keyboardEvent.state = KEY_STATE::UP;
         OnKeyboardEvent(keyboardEvent);
         return 0;
+    case WM_KILLFOCUS:
+        // Focus lost (alt-tab / click away) -> we stop receiving WM_KEYUP, so clear held state
+        // to avoid a "stuck" key driving the camera after focus returns.
+        for (bool& k : keyStates) k = false;
+        break;
     default:
         break;
     }

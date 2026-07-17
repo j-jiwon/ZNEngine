@@ -239,6 +239,7 @@
     <ClInclude Include="Framework\SceneDebugUI.h" />
     <ClInclude Include="Framework\SceneManager.h" />
     <ClInclude Include="Framework\TestGameScene.h" />
+    <ClInclude Include="Framework\UILayout.h" />
     <ClInclude Include="Libs\googletest\include\gmock\gmock-actions.h" />
     <ClInclude Include="Libs\googletest\include\gmock\gmock-cardinalities.h" />
     <ClInclude Include="Libs\googletest\include\gmock\gmock-function-mocker.h" />

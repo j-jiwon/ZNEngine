@@ -1,5 +1,6 @@
 #include "SceneDebugUI.h"
 #include "SceneManager.h"
+#include "UILayout.h"
 #include <ZNFramework.h>
 #include <ZNFramework/Graphics/ZNLight.h>
 #include <imgui.h>
@@ -194,7 +195,10 @@ void SceneDebugUI::RenderDebugPanel(ZNScene* scene)
     if (!visible) return;
 
     ZNCommandQueue* cq = GraphicsContext::GetInstance().GetCommandQueue();
-    ImGui::SetNextWindowSize(ImVec2(220.f, 0.f), ImGuiCond_FirstUseEver);
+    // Top bar, right of the Scenes panel. Width fixed to the shared panel width; auto-fit height
+    // so added rows (camera info/sliders, scene extras) are never clipped by a stale imgui.ini size.
+    ImGui::SetNextWindowPos(ImVec2(UILayout::DebugX, UILayout::DebugY), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(UILayout::PanelWidth, 0.f), ImGuiCond_FirstUseEver);
     ImGui::Begin("Debug");
 
     // Wireframe (common to all scenes)
@@ -209,6 +213,34 @@ void SceneDebugUI::RenderDebugPanel(ZNScene* scene)
     // Camera indicators (shown only when scene has registered debug cameras)
     if (!camEntries.empty())
         ImGui::Checkbox("Camera Indicators", &showCamIndicators);
+
+    // Camera — read-out (Pos/Rot moved here from Stats) + runtime tuning of the frame-based movement.
+    if (scene && scene->GetCamera())
+    {
+        ZNCamera* cam = scene->GetCamera();
+        ImGui::Separator();
+        ImGui::Text("Camera");
+
+        ZNVector3 camPos = cam->GetPosition();
+        const float RAD_TO_DEG = 180.0f / 3.14159265f;
+        float pitchDeg = cam->GetPitch() * RAD_TO_DEG;
+        float yawDeg   = cam->GetYaw()   * RAD_TO_DEG;
+        ImGui::Text("Pos  %.2f, %.2f, %.2f", camPos.x, camPos.y, camPos.z);
+        ImGui::Text("Rot  pitch %.1f, yaw %.1f", pitchDeg, yawDeg);
+        if (ImGui::Button("Copy as code", ImVec2(-1, 0)))
+        {
+            char buf[256];
+            snprintf(buf, sizeof(buf),
+                "cam->SetPosition(ZNVector3(%.3ff, %.3ff, %.3ff));\ncam->SetRotation(%.2ff, %.2ff);",
+                camPos.x, camPos.y, camPos.z, pitchDeg, yawDeg);
+            ImGui::SetClipboardText(buf);
+        }
+
+        CameraControlConfig& cfg = cam->ControlConfig();
+        // Short labels so they aren't clipped at the uniform panel width.
+        ImGui::SliderFloat("Speed", &cfg.moveSpeed,   0.1f, 20.0f);
+        ImGui::SliderFloat("Sens.", &cfg.sensitivity, 0.0005f, 0.01f, "%.4f");
+    }
 
     // Scene-specific extras (grid toggle, turntable, etc.)
     if (onDebugExtras)
@@ -268,6 +300,9 @@ void SceneDebugUI::Render(ZNScene* scene)
     // Render indicator game objects directly (forward pass context is active)
     RenderDebugEntries();
 
+    // Mirror visibility onto GraphicsContext so the engine-drawn GBuffer preview hides with us.
+    GraphicsContext::GetInstance().SetDebugOverlayVisible(visible);
+
     if (!visible) return;
 
     // --- Stats ---
@@ -292,10 +327,10 @@ void SceneDebugUI::Render(ZNScene* scene)
         }
     }
 
-    ImGui::SetNextWindowPos(ImVec2(10.f, 10.f), ImGuiCond_Always);
-    ImGui::SetNextWindowSize(ImVec2(220.f, 0.f), ImGuiCond_Always);
-    ImGui::Begin("Stats", nullptr,
-        ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
+    // --- Stats (left column, top) ---
+    ImGui::SetNextWindowPos(ImVec2(UILayout::StatsX, UILayout::StatsY), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(UILayout::PanelWidth, 0.f), ImGuiCond_FirstUseEver);
+    ImGui::Begin("Stats");
 
     ImGui::Text("FPS        %.1f",  fpsDisplay);
     ImGui::Text("CPU        %.2f ms", cpuMs);
@@ -308,33 +343,18 @@ void SceneDebugUI::Render(ZNScene* scene)
     ImGui::Text("GPU Mem    %.0f / %.0f MB", gpuMemUsedMB, gpuMemBudgMB);
     ImGui::Text("Triangles  %d",    ZNGameObject::GetLastFrameTriangles());
     ImGui::Text("Vertices   %d",    ZNGameObject::GetLastFrameVertices());
-
-    if (scene && scene->GetCamera())
-    {
-        ZNCamera* cam = scene->GetCamera();
-        ZNVector3 camPos = cam->GetPosition();
-        const float RAD_TO_DEG = 180.0f / 3.14159265f;
-        float pitchDeg = cam->GetPitch() * RAD_TO_DEG;
-        float yawDeg   = cam->GetYaw()   * RAD_TO_DEG;
-
-        ImGui::Separator();
-        ImGui::Text("Cam Pos    %.2f, %.2f, %.2f", camPos.x, camPos.y, camPos.z);
-        ImGui::Text("Cam Rot    pitch %.1f, yaw %.1f", pitchDeg, yawDeg);
-        if (ImGui::Button("Copy as code", ImVec2(-1, 0)))
-        {
-            char buf[256];
-            snprintf(buf, sizeof(buf),
-                "cam->SetPosition(ZNVector3(%.3ff, %.3ff, %.3ff));\ncam->SetRotation(%.2ff, %.2ff);",
-                camPos.x, camPos.y, camPos.z, pitchDeg, yawDeg);
-            ImGui::SetClipboardText(buf);
-        }
-    }
+    // (Cam Pos/Rot moved to the Debug panel's Camera section.)
 
     ImGui::End();
 
-    // --- Outliner ---
-    ImGui::SetNextWindowSize(ImVec2(220.f, 400.f), ImGuiCond_FirstUseEver);
+    // --- Outliner + Inspector (left column, below Stats; merged into one panel) ---
+    ImGui::SetNextWindowPos(ImVec2(UILayout::OutlinerX, UILayout::OutlinerY), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(UILayout::PanelWidth, UILayout::OutlinerHeight), ImGuiCond_FirstUseEver);
     ImGui::Begin("Outliner");
+
+    // Hierarchy lives in a fixed-height scrollable region so the Inspector below it stays visible
+    // no matter how many objects the scene has.
+    ImGui::BeginChild("Hierarchy", ImVec2(0.f, UILayout::HierarchyHeight), true /*border*/);
 
     if (ImGui::TreeNodeEx("GameObjects", ImGuiTreeNodeFlags_DefaultOpen))
     {
@@ -432,11 +452,12 @@ void SceneDebugUI::Render(ZNScene* scene)
         ImGui::TreePop();
     }
 
-    ImGui::End();
+    ImGui::EndChild(); // end the Hierarchy scroll region
 
-    // --- Inspector ---
-    ImGui::SetNextWindowSize(ImVec2(280.f, 400.f), ImGuiCond_FirstUseEver);
-    ImGui::Begin("Inspector");
+    // Inspector section — details of the current Outliner selection, in the same panel.
+    ImGui::Separator();
+    ImGui::TextDisabled("INSPECTOR");
+    ImGui::Separator();
 
     switch (selection.type)
     {
@@ -557,8 +578,9 @@ void SceneDebugUI::Render(ZNScene* scene)
 
     ImGui::End();
 
-    // --- Scenes ---
-    ImGui::SetNextWindowSize(ImVec2(180.f, 0.f), ImGuiCond_FirstUseEver);
+    // --- Scenes (top bar) ---
+    ImGui::SetNextWindowPos(ImVec2(UILayout::ScenesX, UILayout::ScenesY), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(UILayout::PanelWidth, 0.f), ImGuiCond_FirstUseEver);
     ImGui::Begin("Scenes");
     const auto& entries = SceneManager::Get().GetEntries();
     int current = SceneManager::Get().GetCurrentIndex();

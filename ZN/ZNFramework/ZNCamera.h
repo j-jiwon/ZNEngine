@@ -10,6 +10,15 @@ namespace ZNFramework
 	struct KeyboardEvent;
 	struct MouseEvent;
 
+	// Tunable camera-control parameters, gathered in one place (were scattered: moveSpeed on the
+	// camera, sensitivity passed into ProcessMouse each call). Exposed via ControlConfig() so the
+	// Debug panel can drive them with sliders at runtime.
+	struct CameraControlConfig
+	{
+		float moveSpeed   = 5.0f;    // world units / second
+		float sensitivity = 0.002f;  // radians per pixel of mouse drag
+	};
+
 	class ZNCamera
 	{
 	public:
@@ -45,9 +54,13 @@ namespace ZNFramework
 		void RotatePitch(float angle); // Up/Down (X-axis rotation)
 		void RotateYaw(float angle);   // Left/Right (Y-axis rotation)
 
-		// Input handling
-		void ProcessKeyboard(const KeyboardEvent& event, float deltaTime);
-		void ProcessMouse(const MouseEvent& event, float sensitivity = 0.002f);
+		// Input handling.
+		// ProcessMovement: frame-based (polled) movement. localIntent components are the desired
+		// motion along the camera's own axes — x=right, y=up, z=forward, each typically -1/0/+1
+		// from the held key set. The vector is normalized (so diagonals aren't faster) then scaled
+		// by moveSpeed*deltaTime. Call once per frame from the app loop, not per key event.
+		void ProcessMovement(const ZNVector3& localIntent, float deltaTime);
+		void ProcessMouse(const MouseEvent& event);
 
 		// Matrix getters
 		ZNMatrix4 ViewMatrix() const { return this->viewMatrix; }
@@ -59,8 +72,10 @@ namespace ZNFramework
 		void UpdateViewMatrix();
 
 		// Camera settings
-		void SetMoveSpeed(float speed) { moveSpeed = speed; }
-		float GetMoveSpeed() const { return moveSpeed; }
+		void SetMoveSpeed(float speed) { control.moveSpeed = speed; }
+		float GetMoveSpeed() const { return control.moveSpeed; }
+		CameraControlConfig&       ControlConfig()       { return control; }
+		const CameraControlConfig& ControlConfig() const { return control; }
 
 	private:
 		void UpdateVectors(); // Update forward, right, up vectors from pitch/yaw
@@ -79,7 +94,7 @@ namespace ZNFramework
 		float yaw;   // Y-axis rotation (radians)
 
 		// Camera settings
-		float moveSpeed;
+		CameraControlConfig control;
 		bool autoUpdateView; // Auto update view matrix when position/rotation changes
 
 		// Mouse input state

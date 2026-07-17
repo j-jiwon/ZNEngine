@@ -122,6 +122,12 @@ namespace ZNFramework
         void SetToneMapShader(ZNShader* inShader) { toneMapShader = inShader; }
         ZNShader* GetToneMapShader() const { return toneMapShader; }
 
+        // Debug-overlay visibility. The app's debug UI (SceneDebugUI) owns the real toggle, but
+        // the GBuffer-preview window is drawn from the engine's ImGui pass — it mirrors the flag
+        // here so it hides/shows together with the rest of the panels.
+        void SetDebugOverlayVisible(bool v) { debugOverlayVisible = v; }
+        bool IsDebugOverlayVisible() const { return debugOverlayVisible; }
+
     private:
         ZNGraphicsDevice* device = nullptr;
         ZNCommandQueue* queue = nullptr;
@@ -136,6 +142,7 @@ namespace ZNFramework
         std::vector<ZNPointLight*> pointLights;
         std::vector<DiscoSource> discoSources;
         ZNDirectionalLight* directionalLight = nullptr;
+        bool debugOverlayVisible = true;
 
         GraphicsContext() = default;
         ~GraphicsContext() = default;
