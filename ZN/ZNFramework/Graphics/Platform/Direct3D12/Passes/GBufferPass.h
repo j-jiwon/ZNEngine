@@ -46,14 +46,13 @@ public:
 
         if (gbufShader) gbufShader->Bind();
 
-        float black[4]  = { 0.f, 0.f, 0.f, 1.f };
-        float zero[4]   = { 0.f, 0.f, 0.f, 0.f };
-        float depth1[4] = { 1.f, 0.f, 0.f, 0.f };
-        cmd->ClearRenderTargetView(gbufMgr->GetBaseColorRTV(), black,  0, nullptr);
-        cmd->ClearRenderTargetView(gbufMgr->GetNormalRTV(),    zero,   0, nullptr);
-        cmd->ClearRenderTargetView(gbufMgr->GetDepthCopyRTV(),depth1, 0, nullptr);
-        cmd->ClearRenderTargetView(gbufMgr->GetWorldPosRTV(),  zero,   0, nullptr);
-        cmd->ClearRenderTargetView(gbufMgr->GetARMRTV(),       zero,   0, nullptr);
+        // Clear values come from GBufferManager so they match the resources' optimised clear
+        // values (see GBufferManager::ClearColor) and take the fast clear path.
+        cmd->ClearRenderTargetView(gbufMgr->GetBaseColorRTV(), GBufferManager::ClearColor(0), 0, nullptr);
+        cmd->ClearRenderTargetView(gbufMgr->GetNormalRTV(),    GBufferManager::ClearColor(1), 0, nullptr);
+        cmd->ClearRenderTargetView(gbufMgr->GetDepthCopyRTV(), GBufferManager::ClearColor(2), 0, nullptr);
+        cmd->ClearRenderTargetView(gbufMgr->GetWorldPosRTV(),  GBufferManager::ClearColor(3), 0, nullptr);
+        cmd->ClearRenderTargetView(gbufMgr->GetARMRTV(),       GBufferManager::ClearColor(4), 0, nullptr);
 
         D3D12_CPU_DESCRIPTOR_HANDLE rtvs[5] = {
             gbufMgr->GetBaseColorRTV(), gbufMgr->GetNormalRTV(),
