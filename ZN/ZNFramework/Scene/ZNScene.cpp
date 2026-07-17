@@ -36,50 +36,48 @@ void ZNScene::Update(float deltaTime)
 	}
 }
 
-void ZNScene::Render()
+namespace {
+	// Single object-traversal shared by every pass — each pass supplies the per-object action
+	// (its "filter"), so the null-check + loop live in one place instead of being copy-pasted
+	// across Render / RenderShadow / RenderForward.
+	template<typename F>
+	void ForEachObject(const std::vector<ZNGameObject*>& list, F&& action)
+	{
+		for (auto* obj : list)
+			if (obj)
+				action(obj);
+	}
+}
+
+void ZNScene::SyncGraphicsContext()
 {
-	// Set camera and lights to GraphicsContext
 	GraphicsContext& ctx = GraphicsContext::GetInstance();
 	ctx.SetCamera(camera);
 	ctx.SetSpotLights(spotLights);
 	ctx.SetPointLights(pointLights);
 	ctx.SetDirectionalLight(directionalLight);
 	ctx.SetDiscoSources(sceneDiscoSources);
+}
 
-	// Render all game objects (deferred pass)
-	for (auto* obj : gameObjects)
-	{
-		if (obj)
-			obj->Render();
-	}
+void ZNScene::Render()
+{
+	// Runs inside GBufferPass, before DeferredLightingPass/ForwardRenderPass read the context.
+	SyncGraphicsContext();
+	ForEachObject(gameObjects, [](ZNGameObject* obj) { obj->Render(); });  // deferred (opaque)
 }
 
 void ZNScene::RenderShadow(const ZNMatrix4& lightViewProj, ZNShader* shadowShader)
 {
-	// Render all game objects for shadow pass
-	for (auto* obj : gameObjects)
-	{
-		if (obj)
-			obj->RenderShadow(lightViewProj, shadowShader);
-	}
+	// Shadow casters come from the deferred (opaque) list; each object self-filters on
+	// castShadow. Forward/transparent objects (glass, windows) intentionally cast no shadow.
+	ForEachObject(gameObjects, [&](ZNGameObject* obj) { obj->RenderShadow(lightViewProj, shadowShader); });
 }
 
 void ZNScene::RenderForward()
 {
-	// Set camera and lights to GraphicsContext (in case they weren't set)
-	GraphicsContext& ctx = GraphicsContext::GetInstance();
-	ctx.SetCamera(camera);
-	ctx.SetSpotLights(spotLights);
-	ctx.SetPointLights(pointLights);
-	ctx.SetDirectionalLight(directionalLight);
-	ctx.SetDiscoSources(sceneDiscoSources);
-
-	// Render forward objects (after deferred lighting)
-	for (auto* obj : forwardGameObjects)
-	{
-		if (obj)
-			obj->Render();
-	}
+	// GraphicsContext was already synced by Render() earlier this frame (GBufferPass precedes
+	// ForwardRenderPass, and nothing in between rebinds camera/lights), so no re-push here.
+	ForEachObject(forwardGameObjects, [](ZNGameObject* obj) { obj->Render(); });
 }
 
 void ZNScene::RegisterDebugCamera(ZNCamera* cam, const std::string& name)

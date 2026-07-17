@@ -154,6 +154,10 @@ namespace ZNFramework
 		void           DestroyObjectInternal(ZNGameObject* obj);
 		void           RemoveFromRenderList(ZNGameObject* obj, bool forward);
 
+		// Pushes camera + lights + disco sources to the global GraphicsContext. Called once per
+		// frame from Render() (see .cpp) — previously duplicated in Render() and RenderForward().
+		void           SyncGraphicsContext();
+
 		std::vector<DebugCameraEntry> debugCameras;
 
 		struct OffscreenCamEntry {
