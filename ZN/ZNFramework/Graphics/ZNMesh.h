@@ -14,7 +14,7 @@ namespace ZNFramework
 	{
 	public:
 		ZNMesh() = default;
-		~ZNMesh() = default;
+		virtual ~ZNMesh() = default;  // polymorphic base — deleted through ZNMesh* (releases GPU buffers)
 
 		virtual void Init(const std::vector<Vertex>& vertexBuffer, const std::vector<uint32>& indexBuffer) = 0;
 		virtual void Render() = 0;

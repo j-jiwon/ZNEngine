@@ -49,6 +49,7 @@ public:
 
 private:
     SceneDebugUI();
+    ~SceneDebugUI();
 
     // ---- Shared debug overlay (spotlight + camera indicators) ----
     struct SpotEntry {
@@ -68,6 +69,7 @@ private:
     };
 
     void EnsureDebugShaders();
+    void ClearDebugEntries();  // frees indicator meshes/materials/objects (owned solely here)
     void OnSceneChanged(ZNFramework::ZNScene* scene);
     void UpdateDebugEntries();
     void RenderDebugEntries();

@@ -19,6 +19,41 @@ SceneDebugUI::SceneDebugUI()
 {
 }
 
+SceneDebugUI::~SceneDebugUI()
+{
+    ClearDebugEntries();
+    delete dbgSolidShader;
+    delete dbgAlphaShader;
+}
+
+void SceneDebugUI::ClearDebugEntries()
+{
+    // Indicators are owned solely here (never adopted into the scene pool), and ZNGameObject owns
+    // neither its mesh nor its material — so each must be freed explicitly or it leaks on every
+    // scene switch. Safe to delete now: with no frame pipelining, the previous frame's GPU work has
+    // already completed (RenderEnd WaitSync), so nothing in flight still references these buffers.
+    for (auto& e : spotEntries)
+    {
+        if (e.marker) delete e.marker->GetMesh();
+        if (e.cone)   delete e.cone->GetMesh();
+        delete e.markerMat;
+        delete e.coneMat;
+        delete e.marker;
+        delete e.cone;
+    }
+    spotEntries.clear();
+
+    for (auto& e : camEntries)
+    {
+        if (e.marker) delete e.marker->GetMesh();
+        if (e.lens)   delete e.lens->GetMesh();
+        delete e.mat;   // shared by marker + lens — deleted once
+        delete e.marker;
+        delete e.lens;
+    }
+    camEntries.clear();
+}
+
 // ---------------------------------------------------------------------------
 // Debug overlay helpers
 // ---------------------------------------------------------------------------
@@ -41,10 +76,8 @@ void SceneDebugUI::EnsureDebugShaders()
 
 void SceneDebugUI::OnSceneChanged(ZNScene* scene)
 {
-    // Old entries become orphaned (not deleted — GPU may still reference their meshes).
-    // Bounded memory: one set per scene switch, reclaimed on app exit.
-    spotEntries.clear();
-    camEntries.clear();
+    // Free the previous scene's indicators before rebuilding (see ClearDebugEntries).
+    ClearDebugEntries();
     showSpotIndicators = false;
     showCamIndicators  = false;
     trackedScene       = scene;
