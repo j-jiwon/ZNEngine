@@ -1,0 +1,67 @@
+<svg viewBox="0 0 840 560" xmlns="http://www.w3.org/2000/svg" font-family="'Segoe UI','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#8b949e"/>
+    </marker>
+    <marker id="arrowA" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#6ee7b7"/>
+    </marker>
+  </defs>
+
+  <!-- canvas -->
+  <rect x="0" y="0" width="840" height="560" rx="16" fill="#0d1117"/>
+
+  <!-- title -->
+  <text x="40" y="46" font-size="22" font-weight="700" fill="#e6edf3">3층 추상화 <tspan fill="#6e7681" font-weight="500">(엔진 / 플랫폼 / 앱)</tspan></text>
+  <text x="40" y="72" font-size="13.5" fill="#8b949e">콘텐츠 코드가 D3D12를 전혀 모르도록 분리한 세 겹의 구조.</text>
+
+  <!-- ===== Layer 1 : App ===== -->
+  <rect x="40" y="98" width="760" height="104" rx="12" fill="#161b22" stroke="#7dd3fc" stroke-opacity="0.35"/>
+  <circle cx="72" cy="150" r="15" fill="#7dd3fc"/>
+  <text x="72" y="155" font-size="15" font-weight="700" fill="#0d1117" text-anchor="middle">1</text>
+  <text x="100" y="134" font-size="19" font-weight="700" fill="#e6edf3">TestApp
+    <tspan font-size="12.5" font-weight="600" fill="#7dd3fc" dx="10">콘텐츠 · 앱</tspan></text>
+  <text x="100" y="158" font-size="13.5" font-style="italic" fill="#7dd3fc">“무엇을 그릴지”</text>
+  <text x="100" y="184" font-size="12.5" fill="#6e7681" font-family="'SF Mono','Consolas','D2Coding',ui-monospace,monospace">TestGameScene · CCTVScene · MirrorBallScene · SceneDebugUI</text>
+  <!-- badge -->
+  <rect x="612" y="118" width="164" height="26" rx="13" fill="#7dd3fc" fill-opacity="0.12" stroke="#7dd3fc" stroke-opacity="0.5"/>
+  <text x="694" y="135" font-size="12" font-weight="600" fill="#7dd3fc" text-anchor="middle">D3D12를 전혀 모름</text>
+
+  <!-- seam 1 : the key interface seam -->
+  <line x1="420" y1="202" x2="420" y2="240" stroke="#8b949e" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <rect x="182" y="207" width="476" height="28" rx="14" fill="#0d1117" stroke="#fcd34d" stroke-opacity="0.7"/>
+  <text x="420" y="225" font-size="12.5" font-weight="600" fill="#fcd34d" text-anchor="middle" font-family="'SF Mono','Consolas','D2Coding',ui-monospace,monospace">ZNXxx 인터페이스  +  Platform::CreateXxx() 팩토리</text>
+
+  <!-- ===== Layer 2 : Framework ===== -->
+  <rect x="40" y="242" width="760" height="104" rx="12" fill="#161b22" stroke="#fcd34d" stroke-opacity="0.35"/>
+  <circle cx="72" cy="294" r="15" fill="#fcd34d"/>
+  <text x="72" y="299" font-size="15" font-weight="700" fill="#0d1117" text-anchor="middle">2</text>
+  <text x="100" y="278" font-size="19" font-weight="700" fill="#e6edf3">ZNFramework
+    <tspan font-size="12.5" font-weight="600" fill="#fcd34d" dx="10">인터페이스 · 엔진</tspan></text>
+  <text x="100" y="302" font-size="13.5" font-style="italic" fill="#fcd34d">“그리는 방법의 계약”</text>
+  <text x="100" y="328" font-size="12.5" fill="#6e7681" font-family="'SF Mono','Consolas','D2Coding',ui-monospace,monospace">Application · Window · Scene · Graphics · Math · UI</text>
+
+  <!-- seam 2 : fork to implementations -->
+  <path d="M420,346 L420,362 L300,362 L300,378" fill="none" stroke="#6ee7b7" stroke-width="1.5" marker-end="url(#arrowA)"/>
+  <path d="M420,362 L667,362 L667,378" fill="none" stroke="#6e7681" stroke-width="1.5" stroke-dasharray="4 4" marker-end="url(#arrow)"/>
+
+  <!-- ===== Layer 3a : D3D12 (active) ===== -->
+  <rect x="40" y="380" width="520" height="104" rx="12" fill="#161b22" stroke="#6ee7b7" stroke-opacity="0.4"/>
+  <circle cx="72" cy="432" r="15" fill="#6ee7b7"/>
+  <text x="72" y="437" font-size="15" font-weight="700" fill="#0d1117" text-anchor="middle">3</text>
+  <text x="100" y="416" font-size="18" font-weight="700" fill="#e6edf3">Platform / Direct3D12
+    <tspan font-size="12" font-weight="600" fill="#6ee7b7" dx="8">구현 · 활성</tspan></text>
+  <text x="100" y="440" font-size="13.5" font-style="italic" fill="#6ee7b7">“실제로 그리는 코드”</text>
+  <text x="100" y="466" font-size="12" fill="#6e7681" font-family="'SF Mono','Consolas','D2Coding',ui-monospace,monospace">CommandQueue · RenderGraph · Passes · GBuffer</text>
+
+  <!-- ===== Layer 3b : Vulkan (future / swappable) ===== -->
+  <rect x="584" y="380" width="216" height="104" rx="12" fill="#161b22" fill-opacity="0.5" stroke="#6e7681" stroke-opacity="0.6" stroke-dasharray="5 4"/>
+  <text x="692" y="416" font-size="16" font-weight="700" fill="#8b949e" text-anchor="middle">Platform / Vulkan</text>
+  <text x="692" y="440" font-size="12.5" fill="#6e7681" text-anchor="middle">미래 · 교체 가능</text>
+  <text x="692" y="464" font-size="11.5" fill="#565d66" text-anchor="middle">상위 두 층 그대로 재사용</text>
+
+  <!-- takeaway -->
+  <rect x="40" y="506" width="6" height="34" rx="3" fill="#fcd34d"/>
+  <text x="60" y="521" font-size="12.5" fill="#8b949e">핵심 — 위 두 층(App · Framework)은 백엔드와 무관. <tspan fill="#c9d1d9" font-weight="600">하단 구현만 갈아끼우면 됨.</tspan></text>
+  <text x="60" y="537" font-size="12.5" fill="#565d66">→ Vulkan 백엔드 포팅의 토대 (로드맵 줄기 D).</text>
+</svg>
