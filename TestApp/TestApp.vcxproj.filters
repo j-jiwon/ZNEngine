@@ -13,6 +13,35 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Vehicle">
+      <UniqueIdentifier>{a1b2c3d4-0001-4a5b-9c8d-000000000001}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Framework\VehicleScene.cpp">
+      <Filter>Vehicle</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Vehicle\SyntheticSource.cpp">
+      <Filter>Vehicle</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Vehicle\SceneBinding.cpp">
+      <Filter>Vehicle</Filter>
+    </ClCompile>
+    <ClInclude Include="Framework\VehicleScene.h">
+      <Filter>Vehicle</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Vehicle\FrameData.h">
+      <Filter>Vehicle</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Vehicle\IDataSource.h">
+      <Filter>Vehicle</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Vehicle\SyntheticSource.h">
+      <Filter>Vehicle</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Vehicle\SceneBinding.h">
+      <Filter>Vehicle</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Framework\App.cpp">
