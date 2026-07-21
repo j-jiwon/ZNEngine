@@ -226,6 +226,9 @@
     <ClCompile Include="Framework\MirrorBallScene.cpp" />
     <ClCompile Include="Framework\SceneDebugUI.cpp" />
     <ClCompile Include="Framework\TestGameScene.cpp" />
+    <ClCompile Include="Framework\VehicleScene.cpp" />
+    <ClCompile Include="Framework\Vehicle\SyntheticSource.cpp" />
+    <ClCompile Include="Framework\Vehicle\SceneBinding.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ZN\ZN.vcxproj">
@@ -240,6 +243,11 @@
     <ClInclude Include="Framework\SceneManager.h" />
     <ClInclude Include="Framework\TestGameScene.h" />
     <ClInclude Include="Framework\UILayout.h" />
+    <ClInclude Include="Framework\VehicleScene.h" />
+    <ClInclude Include="Framework\Vehicle\FrameData.h" />
+    <ClInclude Include="Framework\Vehicle\IDataSource.h" />
+    <ClInclude Include="Framework\Vehicle\SyntheticSource.h" />
+    <ClInclude Include="Framework\Vehicle\SceneBinding.h" />
     <ClInclude Include="Libs\googletest\include\gmock\gmock-actions.h" />
     <ClInclude Include="Libs\googletest\include\gmock\gmock-cardinalities.h" />
     <ClInclude Include="Libs\googletest\include\gmock\gmock-function-mocker.h" />
