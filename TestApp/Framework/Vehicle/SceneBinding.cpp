@@ -44,7 +44,7 @@ namespace Vehicle
             auto it = trackToHandle.find(o.id);
             ZNGameObject* obj = (it != trackToHandle.end()) ? scene.Resolve(it->second) : nullptr;
 
-            if (!obj)   // new track -> pull a fresh object from the pool
+            if (!obj)   // new id -> new object (pool recycles the slot, not the object)
             {
                 obj = new ZNGameObject();
                 obj->SetMesh(scene.GetClassMesh(o.cls));
@@ -59,7 +59,7 @@ namespace Vehicle
             ApplyTransform(obj, o);
         }
 
-        // Sweep: any track absent from this frame has left the sensor range -> return to the pool.
+        // absent this frame = left the sensor range -> destroy (frees object + releases the slot).
         for (auto it = trackToHandle.begin(); it != trackToHandle.end(); )
         {
             if (present.find(it->first) == present.end())

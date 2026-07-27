@@ -52,8 +52,7 @@ namespace Vehicle
             a.bboxW = 0.6f; a.bboxL = 0.6f;
         }
 
-        // Enter from the end it will move away from: closingRate = agentSpeed - egoSpeed.
-        // rate <= 0 -> relZ decreases -> come in from the front (zMax); else from behind (zMin).
+        // Enter from the end it moves away from: rate<=0 (relZ shrinking) -> front (zMax), else back.
         const float rate = a.speed - egoSpeed;
         a.relZ = (rate <= 0.f) ? zMax : zMin;
     }

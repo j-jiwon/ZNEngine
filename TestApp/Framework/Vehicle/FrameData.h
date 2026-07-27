@@ -1,10 +1,8 @@
 #pragma once
 #include <vector>
 
-// Automotive sensor-frame schema. A data source (synthetic, log playback, audio...) emits one
-// FrameData per tick: a relative-coordinate snapshot of what is around the ego RIGHT NOW. The ego
-// is fixed at the world origin; every object coordinate is relative to it. This is the automotive
-// mental model (relative stream -> scene graph) as opposed to the game model (pre-placed world).
+// Sensor-frame schema. A data source emits one FrameData per tick: a relative-coordinate snapshot
+// of what's around the ego now. Ego is fixed at the origin; all coords are ego-relative.
 namespace Vehicle
 {
     enum class ObjectClass { Car, Pedestrian, Cyclist };

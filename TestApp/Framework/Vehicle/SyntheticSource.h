@@ -5,10 +5,9 @@
 
 namespace Vehicle
 {
-    // Procedurally generates traffic around a fixed ego at the world origin. Each agent has an
-    // absolute speed; its on-screen (relative) Z advances at (agentSpeed - egoSpeed). An agent
-    // that leaves the sensor range is recycled to the far end WITH A NEW id, so the scene binding
-    // observes a genuine despawn + spawn — this is what exercises the object pool (get/return).
+    // Procedural traffic around a fixed ego at the origin. Each agent's relative Z advances at
+    // (agentSpeed - egoSpeed); leaving the sensor range recycles it to the far end WITH A NEW id,
+    // so the binding sees a genuine despawn + spawn (drives the pool's slot get/return).
     class SyntheticSource : public IDataSource
     {
     public:
@@ -33,8 +32,7 @@ namespace Vehicle
             int         id    = 0;
         };
 
-        // (Re)assign class/lane/speed and drop the agent at whichever end it will travel INTO,
-        // so it converges through the sensor range instead of instantly re-exiting.
+        // (Re)assign class/lane/speed; drop it at the end it travels INTO so it doesn't re-exit at once.
         void Respawn(Agent& a);
 
         std::vector<Agent> agents;

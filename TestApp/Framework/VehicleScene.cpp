@@ -11,8 +11,7 @@ using Vehicle::ObjectClass;
 
 VehicleScene::~VehicleScene()
 {
-    // Pool frees the game objects (ego, tracks, lane dashes) via ~ZNScene. The meshes/materials
-    // those objects referenced are ours — ~ZNGameObject is default and never touches them.
+    // ~ZNScene frees the game objects; the meshes/materials are ours (~ZNGameObject won't touch them).
     for (auto* mat  : ownedMaterials) delete mat;
     for (auto* mesh : ownedMeshes)    delete mesh;
 }
@@ -34,8 +33,8 @@ void VehicleScene::Initialize()
     mainShader = Platform::CreateShader();
     mainShader->Load(GetResourcePath() / L"Shaders" / L"deferred_lighting.hlsli");
 
-    // Chase camera: behind + above the ego, looking down the +Z road. (Projection is set by
-    // ApplicationContext each frame from the window aspect — far plane 100 covers the road.)
+    // Chase camera: behind + above the ego, looking down +Z. (Projection is overwritten each frame
+    // by ApplicationContext — far plane 100 covers the road.)
     ZNCamera* cam = new ZNCamera();
     cam->SetPosition(ZNVector3(0.0f, 5.5f, -12.0f));
     cam->SetRotation(-15.0f, 0.0f);     // pitch down 15deg, looking straight ahead

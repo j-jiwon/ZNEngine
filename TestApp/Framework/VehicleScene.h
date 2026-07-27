@@ -5,10 +5,9 @@
 #include <vector>
 #include <memory>
 
-// Automotive 3D-visualisation demo. The ego is fixed at the world origin; a data source emits a
-// relative-coordinate FrameData every tick and SceneBinding maps it onto pool-owned game objects.
-// Objects are engine primitives, colour-coded by class (ego=blue, car=teal, pedestrian=coral).
-// See .claude/zn_automative3d.md (vertical slice) and automative_demo_layout_mockup.html.
+// Automotive 3D-viz demo. Ego fixed at the origin; a data source emits ego-relative FrameData each
+// tick, SceneBinding maps it onto pool objects. Engine primitives, colour-coded by class
+// (ego=blue, car=teal, ped=coral). See .claude/zn_automative3d.md.
 class VehicleScene : public ZNFramework::ZNScene
 {
 public:
@@ -20,9 +19,8 @@ public:
     void Render()                override;
     void RenderForward()         override;
 
-    // Shared per-class render resources: one mesh (with its material bound) per class. Spawned
-    // track objects reuse these — only the transform differs per object — so there is no per-object
-    // GPU-buffer allocation and no material-sharing ambiguity (see ZNGameObject::Render).
+    // One shared mesh+material per class; spawned tracks reuse it and only differ by transform
+    // (no per-object GPU buffer; material is mesh-bound, so no ambiguity — see ZNGameObject::Render).
     ZNFramework::ZNMesh*     GetClassMesh(Vehicle::ObjectClass c) const;
     ZNFramework::ZNMaterial* GetClassMaterial(Vehicle::ObjectClass c) const;
 
