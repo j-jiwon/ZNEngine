@@ -466,6 +466,8 @@ void SceneDebugUI::Render(ZNScene* scene)
                 if (obj->GetTag() == "Debug") return;
                 bool isSelected = (selection.type == SelectionType::GameObject && selection.ptr == obj);
 
+                // Distinct ImGui id per object so same-named objects don't collide (label = id).
+                ImGui::PushID(obj);
                 if (obj->HasChildren())
                 {
                     ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow
@@ -486,6 +488,7 @@ void SceneDebugUI::Render(ZNScene* scene)
                     if (ImGui::Selectable(obj->GetName().c_str(), isSelected))
                         selectObj(obj);
                 }
+                ImGui::PopID();
             };
 
             // Enter only from root-level nodes; children are reached via recursion, so nothing
@@ -496,7 +499,7 @@ void SceneDebugUI::Render(ZNScene* scene)
             auto drawTop = [&](ZNGameObject* obj) {
                 if (!obj->IsRootLevel()) return;
                 const auto& tag = obj->GetTag();
-                if (tag == "Debug" || tag == "Room") return;
+                if (tag == "Debug" || tag == "Room" || tag == "Lane") return;  // decorative scenery
                 drawNode(obj);
             };
             for (auto* obj : scene->GetGameObjects())        drawTop(obj);

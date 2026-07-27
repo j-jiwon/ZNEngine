@@ -17,8 +17,6 @@
     <ClCompile Include="ZNFramework\Math\ZNVector4.cpp" />
     <ClCompile Include="ZNFramework\Application\ZNApplication.cpp" />
     <ClCompile Include="ZNFramework\Application\Platform\Win32\ApplicationContext.cpp" />
-    <ClCompile Include="ZNFramework\Application\Platform\ApplicationPlatform.h" />
-    <ClCompile Include="ZNFramework\Application\Platform\Win32\ApplicationContext.h" />
     <ClCompile Include="ZNFramework\Window\Platform\Win32\Window.cpp" />
     <ClCompile Include="ZNFramework\Graphics\ZNGraphicsDevice.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\CommandQueue.cpp" />
@@ -56,6 +54,11 @@
     <ClCompile Include="ZNFramework\UI\Platform\Win32_DX12\ImGuiLayer.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\RenderGraph.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\Passes\ToneMappingPass.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\PointLight.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\RenderTexture.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\CubeRenderTexture.cpp" />
+    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\EquirectCubeTexture.cpp" />
+    <ClCompile Include="ZNFramework\ZNLog.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Passes\BloomPass.h" />
@@ -63,6 +66,19 @@
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Passes\IBLBakePass.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\SkyboxRenderer.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Passes\SkyboxPass.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\PointLight.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\RenderTexture.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\CubeRenderTexture.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\EquirectCubeTexture.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Passes\OffscreenCameraPass.h" />
+    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\Passes\CubeCapturePass.h" />
+    <ClInclude Include="ZNFramework\Graphics\ZNMaterialParams.h" />
+    <ClInclude Include="ZNFramework\Graphics\ViewMode.h" />
+    <ClInclude Include="ZNFramework\ZNLog.h" />
+    <ClInclude Include="ZNFramework\UI\ImGuiAnchor.h" />
+    <ClInclude Include="ZNFramework\Application\Platform\ApplicationPlatform.h" />
+    <ClInclude Include="ZNFramework\Application\Platform\Win32\ApplicationContext.h" />
+    <ClInclude Include="ZNFramework\Scene\ZNObjectHandle.h" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ZNFramework\UI\ZNImGuiLayer.h" />
@@ -153,5 +169,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="claude.md" />
+    <None Include="ZNFramework\Scene\ZNGameObject.h.bak" />
   </ItemGroup>
 </Project>

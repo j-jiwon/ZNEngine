@@ -50,12 +50,14 @@ namespace ZNFramework
 		// return a handle. the raw pointer stays valid for the object's lifetime (heap-fixed).
 		ZNObjectHandle AddGameObject(ZNGameObject* obj);
 		void           RemoveGameObject(ZNGameObject* obj);   // frees the object
-		const std::vector<ZNGameObject*>& GetGameObjects() const { return gameObjects; }
+		// Ownership enumeration (all live objects of this category), rebuilt on call from
+		// objectSlots. NOT the render path — passes iterate the slots directly (see .cpp).
+		const std::vector<ZNGameObject*>& GetGameObjects() const;
 
 		// Forward objects (rendered after deferred lighting)
 		ZNObjectHandle AddForwardGameObject(ZNGameObject* obj);
 		void           RemoveForwardGameObject(ZNGameObject* obj);  // frees the object
-		const std::vector<ZNGameObject*>& GetForwardGameObjects() const { return forwardGameObjects; }
+		const std::vector<ZNGameObject*>& GetForwardGameObjects() const;
 
 		// Resolve returns null for a stale/null handle instead of a dangling pointer. Destroy
 		// frees the object + its child subtree, detaches from parent, drops from render list.
@@ -128,10 +130,12 @@ namespace ZNFramework
 		void ApplySkybox();
 
 	protected:
-		// non-owning render-list views (owned by objectSlots below). record which pass each
-		// object participates in.
-		std::vector<ZNGameObject*> gameObjects;
-		std::vector<ZNGameObject*> forwardGameObjects;  // Objects rendered in forward pass
+		// Enumeration caches (ownership per category), rebuilt on demand by the getters from
+		// objectSlots — the single source of truth. The render passes DON'T read these; they
+		// iterate objectSlots directly (ForEachLiveObject), so "what's drawn" is always derived
+		// from "what exists" and can't desync (no manually-maintained render list -> no ghosts).
+		mutable std::vector<ZNGameObject*> gameObjects;
+		mutable std::vector<ZNGameObject*> forwardGameObjects;
 		std::vector<ZNSpotLight*> spotLights;
 		std::vector<ZNPointLight*> pointLights;
 		std::vector<DiscoSource> sceneDiscoSources;
@@ -152,7 +156,18 @@ namespace ZNFramework
 
 		ZNObjectHandle AdoptObject(ZNGameObject* obj, bool forward);
 		void           DestroyObjectInternal(ZNGameObject* obj);
-		void           RemoveFromRenderList(ZNGameObject* obj, bool forward);
+
+		// Single live-object traversal (one category). Both the render passes and the enumeration
+		// caches derive from this, keeping objectSlots the one source of truth. Rebuilt every frame
+		// with no dirty-flag caching — cheap at this scale; add caching later only if profiling says.
+		template<typename F>
+		void ForEachLiveObject(bool forward, F&& action) const
+		{
+			for (const auto& slot : objectSlots)
+				if (slot.obj && slot.forward == forward)
+					action(slot.obj.get());
+		}
+		void RebuildEnumeration(std::vector<ZNGameObject*>& out, bool forward) const;
 
 		// Pushes camera + lights + disco sources to the global GraphicsContext. Called once per
 		// frame from Render() (see .cpp) — previously duplicated in Render() and RenderForward().
