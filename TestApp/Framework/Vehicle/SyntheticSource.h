@@ -20,6 +20,11 @@ namespace Vehicle
         float GetEgoSpeed() const { return egoSpeed; }
         float GetSensorHz() const { return sensorHz; }
 
+        // Ego occupies a real right-hand lane (not the centre line). The scene places the ego box +
+        // chase camera here, and the overlap solver treats the ego as a fixed obstacle in this lane.
+        static constexpr float kEgoLaneX = 2.0f;
+        static constexpr float kEgoLen   = 4.4f;  // shared by the scene (box length) + overlap solver
+
     private:
         struct Agent
         {
@@ -34,6 +39,10 @@ namespace Vehicle
 
         // (Re)assign class/lane/speed; drop it at the end it travels INTO so it doesn't re-exit at once.
         void Respawn(Agent& a);
+
+        // Per-lane spacing: cars can change speed but never pass through each other (or the ego).
+        // A light relaxation pass pushes any overlapping pair apart to a minimum following gap.
+        void ResolveOverlaps();
 
         std::vector<Agent> agents;
         FrameData          frame;

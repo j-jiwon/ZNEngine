@@ -36,7 +36,7 @@ void VehicleScene::Initialize()
     // Chase camera: behind + above the ego, looking down +Z. (Projection is overwritten each frame
     // by ApplicationContext — far plane 100 covers the road.)
     ZNCamera* cam = new ZNCamera();
-    cam->SetPosition(ZNVector3(0.0f, 5.5f, -12.0f));
+    cam->SetPosition(ZNVector3(Vehicle::SyntheticSource::kEgoLaneX, 5.5f, -12.0f)); // behind the ego lane
     cam->SetRotation(-15.0f, 0.0f);     // pitch down 15deg, looking straight ahead
     cam->SetMoveSpeed(8.0f);
     SetCamera(cam);
@@ -111,8 +111,8 @@ void VehicleScene::BuildStaticStage()
     ego->SetMaterial(egoMat);
     ego->SetName("EGO");
     ego->SetTag("Ego");
-    ego->GetTransform().scale    = ZNVector3(1.9f, 1.5f, 4.4f);
-    ego->GetTransform().position = ZNVector3(0.0f, 0.75f, 0.0f);
+    ego->GetTransform().scale    = ZNVector3(1.9f, 1.5f, Vehicle::SyntheticSource::kEgoLen);
+    ego->GetTransform().position = ZNVector3(Vehicle::SyntheticSource::kEgoLaneX, 0.75f, 0.0f); // right lane
     AddGameObject(ego);
 
     // --- Scrolling lane dashes (shared mesh + bright material) ---
