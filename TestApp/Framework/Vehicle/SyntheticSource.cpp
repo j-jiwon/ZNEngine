@@ -63,10 +63,7 @@ namespace Vehicle
 
     void SyntheticSource::Update(float dt)
     {
-        if (paused)
-            return;
-
-        dt *= speed;
+        // Pure "advance by dt" generator; speed/pause are applied by the clock driver (FrameInterpolator).
         frame.timestamp += dt;
 
         for (auto& a : agents)

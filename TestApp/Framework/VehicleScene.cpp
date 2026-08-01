@@ -55,6 +55,7 @@ void VehicleScene::Initialize()
     BuildStaticStage();
 
     dataSource = std::make_unique<Vehicle::SyntheticSource>(/*agentCount*/ 14);
+    interpolator.Init(*dataSource, dataSource->GetSensorHz());
 }
 
 void VehicleScene::BuildClassResources()
@@ -156,8 +157,9 @@ void VehicleScene::Update(float deltaTime)
 
     if (dataSource)
     {
-        dataSource->Update(deltaTime);
-        binding.Apply(dataSource->GetCurrentFrame(), *this);
+        // Interpolator ticks the source at fixed sensor cadence, then resamples to this render frame.
+        interpolator.Update(deltaTime);
+        binding.Apply(interpolator.Sample(), *this);
 
         // Lane dashes flow toward the ego at the ego's forward speed (unless paused).
         const float egoSpeed = dataSource->GetEgoSpeed();
@@ -259,8 +261,40 @@ void VehicleScene::RenderDataSourcePanel()
                 dataSource->GetEgoSpeed(), dataSource->GetEgoSpeed() * 3.6f);
     ImGui::Text("Tracked   : %d", binding.LiveTrackCount());
     ImGui::Text("Draw calls: %d", ZNGameObject::GetLastFrameDrawCalls());
-    ImGui::Text("Latency   : %.0f ms (sensor %.0f Hz)",
-                1000.0f / dataSource->GetSensorHz(), dataSource->GetSensorHz());
+
+    // --- Temporal resample: discrete sensor -> render fps (stage 3) ---
+    ImGui::Separator();
+    ImGui::TextUnformatted("Temporal resample");
+
+    using Mode = Vehicle::FrameInterpolator::Mode;
+    int m = static_cast<int>(interpolator.GetMode());
+    const char* modes[] = { "Off (raw sensor rate)", "Interpolate", "Extrapolate" };
+    if (ImGui::Combo("Mode", &m, modes, IM_ARRAYSIZE(modes)))
+        interpolator.SetMode(static_cast<Mode>(m));
+
+    if (interpolator.GetMode() == Mode::Interpolate)
+    {
+        float d = interpolator.GetInterpDelayPeriods();
+        if (ImGui::SliderFloat("Interp delay", &d, 0.5f, 2.0f, "%.2f periods"))
+            interpolator.SetInterpDelayPeriods(d);
+    }
+
+    // Sensor cadence + imperfections (lower Hz / raise dropout/jitter to make the modes diverge).
+    float hz = interpolator.GetSensorHz();
+    if (ImGui::SliderFloat("Sensor Hz", &hz, 4.0f, 60.0f, "%.0f Hz"))
+        interpolator.SetSensorHz(hz);
+    float dropPct = interpolator.GetDropoutProb() * 100.0f;
+    if (ImGui::SliderFloat("Dropout", &dropPct, 0.0f, 60.0f, "%.0f%%"))
+        interpolator.SetDropoutProb(dropPct * 0.01f);
+    float jit = interpolator.GetJitterFrac();
+    if (ImGui::SliderFloat("Jitter", &jit, 0.0f, 0.9f, "%.2f period"))
+        interpolator.SetJitterFrac(jit);
+
+    ImGui::Text("Sensor    : %.0f Hz (%.1f ms/tick)",
+                interpolator.GetSensorHz(), 1000.0f / interpolator.GetSensorHz());
+    ImGui::Text("Buffered  : %d snapshots", interpolator.BufferedFrames());
+    ImGui::Text("Added lat.: %.1f ms", interpolator.EffectiveLatencyMs());
+    ImGui::Text("Stale     : %.0f ms (age of newest sample)", interpolator.StaleMs());
 
     ImGui::End();
 }

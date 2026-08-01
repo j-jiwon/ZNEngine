@@ -36,6 +36,9 @@
 *.VC.opendb
 **/.vs/
 
+# VS per-user project settings (debugger paths, local args — not shared)
+*.vcxproj.user
+
 # VS Code settings
 .vscode/
 

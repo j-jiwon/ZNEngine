@@ -1,6 +1,7 @@
 #pragma once
 #include <ZNFramework.h>
 #include "Vehicle/SyntheticSource.h"
+#include "Vehicle/FrameInterpolator.h"
 #include "Vehicle/SceneBinding.h"
 #include <vector>
 #include <memory>
@@ -49,5 +50,6 @@ private:
     std::vector<ZNFramework::ZNMaterial*> ownedMaterials;
 
     std::unique_ptr<Vehicle::SyntheticSource> dataSource;
+    Vehicle::FrameInterpolator                interpolator;   // resamples 30Hz source -> render fps
     Vehicle::SceneBinding                     binding;
 };
