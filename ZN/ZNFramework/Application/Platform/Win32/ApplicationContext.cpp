@@ -312,6 +312,7 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
 void ApplicationContext::SetScene(ZNScene* scene)
 {
     currentScene = scene;
+    ZNScene::SetActiveScene(scene); // inactive scenes' offscreen passes skip their geometry work
 
     // Re-apply (or clear) this scene's own env cubemap / skybox — every scene is eagerly
     // Initialize()'d up front (see App.cpp), so without this the single global

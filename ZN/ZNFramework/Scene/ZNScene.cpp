@@ -17,6 +17,8 @@
 
 using namespace ZNFramework;
 
+ZNScene* ZNScene::s_activeScene = nullptr;
+
 // out-of-line: unique_ptr<ZNGameObject> needs the complete type here. frees every gameobject.
 ZNScene::~ZNScene() = default;
 
@@ -258,6 +260,11 @@ void ZNScene::AddOffscreenCamera(ZNCamera* cam, RenderTexture* rt,
 	CommandQueue* cmdQ = GraphicsContext::GetInstance().GetAs<CommandQueue>();
 	cmdQ->AddOffscreenCamera(cam, rt, resourceName, [this, idx]()
 	{
+		// Every scene's offscreen passes stay registered (eager init); skip the geometry work
+		// unless this scene is the active one. The RT keeps its last frame, which is never shown
+		// while the scene is inactive (each scene draws only its own thumbnails).
+		if (!IsActiveScene()) return;
+
 		OffscreenCamEntry& entry = offscreenCamEntries[idx];
 
 		ForEachLiveObject(false, [&](ZNGameObject* obj)

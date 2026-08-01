@@ -70,6 +70,14 @@ namespace ZNFramework
 		void SetCamera(ZNCamera* cam);
 		ZNCamera* GetCamera() const { return camera; }
 
+		// Active scene. All scenes are eagerly initialised, so every scene's offscreen cameras stay
+		// registered in the shared CommandQueue and their passes run every frame. Each offscreen
+		// render callback early-outs when its scene isn't active, skipping the geometry work for
+		// inactive scenes. Set by ApplicationContext::SetScene().
+		static void     SetActiveScene(ZNScene* s) { s_activeScene = s; }
+		static ZNScene* GetActiveScene()           { return s_activeScene; }
+		bool            IsActiveScene() const      { return s_activeScene == this; }
+
 		// Lighting
 		void AddSpotLight(ZNSpotLight* light);
 		void RemoveSpotLight(ZNSpotLight* light);
@@ -153,6 +161,8 @@ namespace ZNFramework
 		};
 		std::vector<ObjectSlot> objectSlots;
 		std::vector<uint32>     freeSlots;            // reusable slot indices
+
+		static ZNScene* s_activeScene;                // see SetActiveScene()
 
 		ZNObjectHandle AdoptObject(ZNGameObject* obj, bool forward);
 		void           DestroyObjectInternal(ZNGameObject* obj);
