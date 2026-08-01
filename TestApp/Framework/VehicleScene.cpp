@@ -1,5 +1,9 @@
 #include "VehicleScene.h"
 #include "SceneDebugUI.h"
+#include "ZNFramework/Graphics/Platform/Direct3D12/RenderTexture.h"
+#include "ZNFramework/Graphics/Platform/Direct3D12/CommandQueue.h"
+#include "ZNFramework/Graphics/Platform/Direct3D12/GraphicsDevice.h"
+#include "ZNFramework/UI/Platform/Win32_DX12/ImGuiLayer.h"
 #include <imgui.h>
 #include <string>
 #include <cmath>
@@ -14,6 +18,7 @@ VehicleScene::~VehicleScene()
     // ~ZNScene frees the game objects; the meshes/materials are ours (~ZNGameObject won't touch them).
     for (auto* mat  : ownedMaterials) delete mat;
     for (auto* mesh : ownedMeshes)    delete mesh;
+    for (auto& sv   : surroundViews) { delete sv.rt; delete sv.cam; }
 }
 
 ZNMesh* VehicleScene::GetClassMesh(ObjectClass c) const
@@ -32,6 +37,10 @@ void VehicleScene::Initialize()
 {
     mainShader = Platform::CreateShader();
     mainShader->Load(GetResourcePath() / L"Shaders" / L"deferred_lighting.hlsli");
+
+    // Forward shader for the offscreen surround/top-down RTs (same approach as CCTVScene).
+    offscreenShader = Platform::CreateShader();
+    offscreenShader->Load(GetResourcePath() / L"Shaders" / L"forward_pbr.hlsli");
 
     // Chase camera: behind + above the ego, looking down +Z. (Projection is overwritten each frame
     // by ApplicationContext — far plane 100 covers the road.)
@@ -53,6 +62,7 @@ void VehicleScene::Initialize()
 
     BuildClassResources();
     BuildStaticStage();
+    BuildSurroundViews();
 
     dataSource = std::make_unique<Vehicle::SyntheticSource>(/*agentCount*/ 14);
     interpolator.Init(*dataSource, dataSource->GetSensorHz());
@@ -149,6 +159,51 @@ void VehicleScene::BuildStaticStage()
     }
 }
 
+// Multi-camera surround view (stage 4). The ego is fixed at the origin, so these cameras are
+// static — no per-frame update. Each renders the whole scene into its own RT via the shared
+// OffscreenCameraPass; the engine shows the active scene's flagged RTs as "Surround View" thumbnails.
+void VehicleScene::BuildSurroundViews()
+{
+    const float egoX = Vehicle::SyntheticSource::kEgoLaneX;
+    const float eyeY = 1.3f;
+
+    // One perspective surround camera + square RT, looking outward from the ego edge.
+    auto addSurround = [&](const char* name, ZNVector3 pos, float pitchDeg, float yawDeg)
+    {
+        auto* rt = new RenderTexture();
+        rt->Init(256, 256);
+
+        auto* cam = new ZNCamera();
+        cam->SetPosition(pos);
+        cam->SetRotation(pitchDeg, yawDeg);
+        cam->SetPerspective(3.14159265f / 2.0f, 1.0f, 0.1f, 140.0f); // 90deg, square RT
+
+        surroundViews.push_back({ name, cam, rt });
+        AddOffscreenCamera(cam, rt, name, offscreenShader);
+    };
+
+    addSurround("Front", ZNVector3(egoX,        eyeY,  2.8f), -10.0f,   0.0f); // +Z
+    addSurround("Rear",  ZNVector3(egoX,        eyeY, -2.8f), -10.0f, 180.0f); // -Z
+    addSurround("Left",  ZNVector3(egoX - 1.3f, eyeY,  0.0f), -12.0f, -90.0f); // -X
+    addSurround("Right", ZNVector3(egoX + 1.3f, eyeY,  0.0f), -12.0f,  90.0f); // +X
+
+    // Bird's-eye: orthographic, straight down. SetView (explicit up) sidesteps the pitch=-90
+    // gimbal in the pitch/yaw path; image "up" = +Z = ego forward.
+    {
+        auto* rt = new RenderTexture();
+        rt->Init(320, 320);
+
+        auto* cam = new ZNCamera();
+        cam->SetOrthographic(48.0f, 48.0f, 0.1f, 120.0f);
+        cam->SetView(ZNVector3(egoX, 45.0f, 14.0f),  // eye high above the road ahead of ego
+                     ZNVector3(egoX,  0.0f, 14.0f),  // look straight down
+                     ZNVector3(0.0f,  0.0f, 1.0f));  // +Z up in the image
+
+        surroundViews.push_back({ "Top-Down", cam, rt });
+        AddOffscreenCamera(cam, rt, "Top-Down", offscreenShader);
+    }
+}
+
 // ---- per-frame -------------------------------------------------------------------------------
 
 void VehicleScene::Update(float deltaTime)
@@ -240,9 +295,50 @@ void VehicleScene::RenderDataSourcePanel()
 {
     if (!dataSource) return;
 
-    const Vehicle::FrameData& frame = dataSource->GetCurrentFrame();
+    // One merged panel (Surround View + DataSource), same "sections in one window" style as the
+    // Outliner/Inspector panel. Starts top-right; movable.
+    ImGuiViewport* vp = ImGui::GetMainViewport();
+    ImGui::SetNextWindowPos(ImVec2(vp->WorkPos.x + vp->WorkSize.x - 340.0f, vp->WorkPos.y + 10.0f),
+                            ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(330.0f, 0.0f), ImGuiCond_FirstUseEver);
+    ImGui::Begin("Vehicle");
 
-    ImGui::Begin("DataSource");
+    // --- Surround View section (multi-camera, stage 4) ---
+    // Turn each surround RT into an ImGui thumbnail via the shared ImGui layer (same machinery as
+    // the engine's GBuffer preview). Slots 1-6 are the GBuffer channels, so start at 7.
+    if (!surroundViews.empty() &&
+        ImGui::CollapsingHeader("Surround View", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        auto* cq  = GraphicsContext::GetInstance().GetAs<CommandQueue>();
+        auto* gui = cq ? cq->GetImGuiLayer() : nullptr;
+        auto* dev = static_cast<GraphicsDevice*>(GraphicsContext::GetInstance().GetDevice());
+        if (gui && dev)
+        {
+            const float cell = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) * 0.5f;
+            int slot = 7;
+            for (size_t i = 0; i < surroundViews.size(); ++i)
+            {
+                const SurroundView& sv = surroundViews[i];
+                ImTextureID tex = gui->SetTexture(dev->Device().Get(), sv.rt->GetSRVCpuHandle(), slot++);
+                ImGui::BeginGroup();
+                ImGui::TextUnformatted(sv.name.c_str());
+                ImGui::Image(tex, ImVec2(cell, cell));
+                ImGui::EndGroup();
+                const bool secondInRow = (i % 2 == 1);
+                const bool lastItem    = (i + 1 == surroundViews.size());
+                if (!secondInRow && !lastItem) ImGui::SameLine();
+            }
+        }
+    }
+
+    // --- DataSource section ---
+    if (!ImGui::CollapsingHeader("DataSource", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        ImGui::End();
+        return;
+    }
+
+    const Vehicle::FrameData& frame = dataSource->GetCurrentFrame();
 
     ImGui::Text("Source: %s", dataSource->GetName());
     ImGui::SameLine();
