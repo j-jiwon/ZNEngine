@@ -4,13 +4,16 @@
 #include "ZNFramework/Graphics/Platform/Direct3D12/CommandQueue.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/GraphicsDevice.h"
 #include "ZNFramework/UI/Platform/Win32_DX12/ImGuiLayer.h"
+#include "ZNFramework/ZNLog.h"
 #include <imgui.h>
 #include <string>
 #include <cstdio>
 #include <cmath>
+#include <algorithm>
 
 using namespace ZNFramework;
 using Vehicle::ObjectClass;
+
 
 // ---- construction / teardown -----------------------------------------------------------------
 
@@ -148,6 +151,120 @@ void VehicleScene::BuildClassResources()
     }
 }
 
+// Load a low-poly car glb into shared meshes/materials + a fit transform. Vertices are pre-baked
+// into model space by the loader (aiProcess_PreTransformVertices), so children render at identity
+// under a scaled root. targetLen is the desired real-world length (metres).
+bool VehicleScene::LoadCarModel(const std::filesystem::path& path, float targetLen, CarModel& out)
+{
+    if (!std::filesystem::exists(path))
+    {
+        ZNLOG_WARN(LogChannel::Scene, "car model not found: %s", path.string().c_str());
+        return false;
+    }
+
+    ZNModelLoader* loader = Platform::CreateModelLoader();
+    ModelData modelData;
+    const bool ok = loader->Load(path, modelData);
+    delete loader;
+    if (!ok || modelData.meshes.empty()) return false;
+
+    // Materials: flat baseColor per glTF material (these cars carry colour, not textures).
+    for (const auto& matData : modelData.materials)
+    {
+        ZNMaterial* m = ZNMaterialFactory::CreatePBRFromData(mainShader, matData);
+        out.mats.push_back(m);
+        ownedMaterials.push_back(m);
+    }
+    if (out.mats.empty())
+    {
+        ZNMaterial* m = ZNMaterialFactory::CreatePBR(mainShader, ZNVector4(0.8f, 0.8f, 0.8f, 1.0f), 0.1f, 0.5f);
+        out.mats.push_back(m);
+        ownedMaterials.push_back(m);
+    }
+
+    // Meshes + model-space bounds (for a uniform fit scale + ground offset).
+    float minX = 1e9f, minY = 1e9f, minZ = 1e9f, maxX = -1e9f, maxY = -1e9f, maxZ = -1e9f;
+    for (const auto& md : modelData.meshes)
+    {
+        ZNMesh* mesh = Platform::CreateMesh();
+        mesh->Init(md.vertices, md.indices);
+        const size_t mi = (md.materialIndex < out.mats.size()) ? md.materialIndex : 0;
+        mesh->SetMaterial(out.mats[mi]);
+        out.meshes.push_back(mesh);
+        out.meshMat.push_back(static_cast<int>(mi));
+        ownedMeshes.push_back(mesh);
+
+        for (const auto& v : md.vertices)
+        {
+            minX = (std::min)(minX, v.pos.x); maxX = (std::max)(maxX, v.pos.x);
+            minY = (std::min)(minY, v.pos.y); maxY = (std::max)(maxY, v.pos.y);
+            minZ = (std::min)(minZ, v.pos.z); maxZ = (std::max)(maxZ, v.pos.z);
+        }
+    }
+
+    const float lenX = maxX - minX, lenZ = maxZ - minZ;
+    const float horiz = (std::max)(lenX, lenZ);
+    out.fitScale        = (horiz > 1e-4f) ? targetLen / horiz : 1.0f;
+    out.groundLift      = -minY * out.fitScale;
+    // Longest horizontal axis = the car's front-back axis; align it to world +Z. glTF's convention
+    // puts an asset's local forward on -Z, so an extra 180 flips the nose to point down +Z (tune if
+    // a future asset doesn't follow the convention).
+    out.modelForwardYaw = (lenX > lenZ) ? -90.0f : 180.0f;
+    out.valid           = true;
+
+    ZNLOG_INFO(LogChannel::Scene, "car '%s': %zu meshes, fitScale %.3f, lenX %.2f lenZ %.2f, yaw %.0f",
+               path.filename().string().c_str(), out.meshes.size(), out.fitScale, lenX, lenZ, out.modelForwardYaw);
+    return true;
+}
+
+// Spawn a shared-mesh car instance: a scaled root + one child per model mesh (sharing meshes/mats).
+// Caller sets root position/rotation. Children tagged "CarPart" so they don't count as tracks.
+// Returns the ROOT's handle, not a raw pointer -- track instances need it to Resolve/Destroy safely
+// later (AddModelRoot doesn't hand the handle back).
+ZNObjectHandle VehicleScene::SpawnCarInstance(const CarModel& car, const std::string& name, const std::string& tag)
+{
+    ZNGameObject* root = new ZNGameObject();
+    root->SetName(name);
+    root->GetTransform().scale = ZNVector3(car.fitScale, car.fitScale, car.fitScale);
+    root->SetTag(tag);
+    ZNObjectHandle rootHandle = AddGameObject(root);
+
+    for (size_t i = 0; i < car.meshes.size(); ++i)
+    {
+        ZNGameObject* part = new ZNGameObject();
+        part->SetMesh(car.meshes[i]);
+        part->SetMaterial(car.mats[car.meshMat[i]]);
+        part->SetName(name + "_part" + std::to_string(i));
+        part->SetTag("CarPart");
+        part->SetCastShadow(true);
+        root->AddChild(part);
+        AddGameObject(part);
+    }
+    return rootHandle;
+}
+
+// Car-class track: shared model, default (white) materials. SceneBinding calls this instead of
+// spawning a plain cube once a car model is loaded.
+ZNObjectHandle VehicleScene::SpawnCarTrack(const std::string& name)
+{
+    return SpawnCarInstance(carModel, name, "Track");
+}
+
+void VehicleScene::ApplyEgoPaint(int matIndex)
+{
+    if (!egoCarModel.valid) return;
+    matIndex = (std::max)(0, (std::min)(matIndex, static_cast<int>(egoCarModel.mats.size()) - 1));
+    egoPaintMatIndex = matIndex;
+
+    static const ZNVector4 kEgoPaint(0.75f, 0.06f, 0.05f, 1.0f);
+    for (size_t i = 0; i < egoCarModel.mats.size(); ++i)
+    {
+        MaterialParams p = egoBaseMatParams[i];
+        if (static_cast<int>(i) == matIndex) p.albedoColor = kEgoPaint;
+        egoCarModel.mats[i]->SetParams(p);
+    }
+}
+
 void VehicleScene::BuildStaticStage()
 {
     // --- Ground (asphalt) ---
@@ -166,22 +283,39 @@ void VehicleScene::BuildStaticStage()
     ground->SetCastShadow(false);
     AddGameObject(ground);
 
-    // --- Ego (blue box, fixed at origin) ---
-    ZNMaterial* egoMat = ZNMaterialFactory::CreatePBR(
-        mainShader, ZNVector4(0.16f, 0.38f, 0.92f, 1.0f), 0.15f, 0.40f); // blue
-    ZNMesh* egoMesh = ZNMeshFactory::CreateCube(0.5f);
-    egoMesh->SetMaterial(egoMat);
-    ownedMaterials.push_back(egoMat);
-    ownedMeshes.push_back(egoMesh);
+    // --- Car model (car_white): plain copy for Car-class tracks, a second copy for the ego (its
+    // body-shell material gets painted red -- see ApplyEgoPaint / the "Ego Paint" debug panel) ---
+    LoadCarModel(GetResourcePath() / L"Models" / L"car_white.glb", Vehicle::SyntheticSource::kEgoLen, carModel);
+    LoadCarModel(GetResourcePath() / L"Models" / L"car_white.glb", Vehicle::SyntheticSource::kEgoLen, egoCarModel);
+    if (egoCarModel.valid)
+    {
+        for (ZNMaterial* m : egoCarModel.mats)
+            egoBaseMatParams.push_back(m->GetParams());
 
-    ego = new ZNGameObject();
-    ego->SetMesh(egoMesh);
-    ego->SetMaterial(egoMat);
-    ego->SetName("EGO");
-    ego->SetTag("Ego");
-    ego->GetTransform().scale    = ZNVector3(1.9f, 1.5f, Vehicle::SyntheticSource::kEgoLen);
-    ego->GetTransform().position = ZNVector3(Vehicle::SyntheticSource::kEgoLaneX, 0.75f, 0.0f); // right lane
-    AddGameObject(ego);
+        ego = Resolve(SpawnCarInstance(egoCarModel, "EGO", "Ego"));
+        ego->GetTransform().position = ZNVector3(Vehicle::SyntheticSource::kEgoLaneX, egoCarModel.groundLift, 0.0f);
+        ego->GetTransform().rotation = ZNVector3(0.0f, egoCarModel.modelForwardYaw, 0.0f); // face +Z (forward)
+        ApplyEgoPaint(egoPaintMatIndex);
+    }
+    else
+    {
+        // Fallback: red box if the model is missing.
+        ZNMaterial* egoMat = ZNMaterialFactory::CreatePBR(
+            mainShader, ZNVector4(0.75f, 0.06f, 0.05f, 1.0f), 0.15f, 0.40f);
+        ZNMesh* egoMesh = ZNMeshFactory::CreateCube(0.5f);
+        egoMesh->SetMaterial(egoMat);
+        ownedMaterials.push_back(egoMat);
+        ownedMeshes.push_back(egoMesh);
+
+        ego = new ZNGameObject();
+        ego->SetMesh(egoMesh);
+        ego->SetMaterial(egoMat);
+        ego->SetName("EGO");
+        ego->SetTag("Ego");
+        ego->GetTransform().scale    = ZNVector3(1.9f, 1.5f, Vehicle::SyntheticSource::kEgoLen);
+        ego->GetTransform().position = ZNVector3(Vehicle::SyntheticSource::kEgoLaneX, 0.75f, 0.0f);
+        AddGameObject(ego);
+    }
 
     // --- Scrolling lane dashes (shared mesh + bright material) ---
     ZNMaterial* laneMat = ZNMaterialFactory::CreatePBR(
@@ -400,6 +534,22 @@ void VehicleScene::RenderDataSourcePanel()
                 if (!secondInRow && !lastItem) ImGui::SameLine();
             }
         }
+    }
+
+    // --- Ego Paint (debug): click a swatch to find which material index is the body shell ---
+    if (!egoBaseMatParams.empty() && ImGui::CollapsingHeader("Ego Paint", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        for (int i = 0; i < static_cast<int>(egoBaseMatParams.size()); ++i)
+        {
+            const auto& c = egoBaseMatParams[i].albedoColor;
+            ImGui::PushID(i);
+            if (ImGui::ColorButton("##swatch", ImVec4(c.x, c.y, c.z, 1.0f), 0, ImVec2(22.0f, 22.0f)))
+                ApplyEgoPaint(i);
+            ImGui::PopID();
+            const bool lastItem = (i + 1 == static_cast<int>(egoBaseMatParams.size()));
+            if (!lastItem) ImGui::SameLine();
+        }
+        ImGui::Text("Painted: mat[%d]", egoPaintMatIndex);
     }
 
     // --- DataSource section ---

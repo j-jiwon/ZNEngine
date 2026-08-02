@@ -7,12 +7,14 @@
 #include <vector>
 #include <memory>
 #include <string>
+#include <filesystem>
 
 namespace ZNFramework { class RenderTexture; }
 
 // Automotive 3D-viz demo. Ego fixed at the origin; a data source emits ego-relative FrameData each
-// tick, SceneBinding maps it onto pool objects. Engine primitives, colour-coded by class
-// (ego=blue, car=teal, ped=coral). See .claude/zn_automative3d.md.
+// tick, SceneBinding maps it onto pool objects. Cars (ego + Car-class tracks) share one low-poly
+// model, ego reskinned red; pedestrians/cyclists stay engine-primitive cubes (coral/amber).
+// See .claude/zn_automative3d.md.
 class VehicleScene : public ZNFramework::ZNScene
 {
 public:
@@ -29,10 +31,38 @@ public:
     ZNFramework::ZNMesh*     GetClassMesh(Vehicle::ObjectClass c) const;
     ZNFramework::ZNMaterial* GetClassMaterial(Vehicle::ObjectClass c) const;
 
+    // Car model (shared by ego + Car-class tracks) -- SceneBinding uses these to spawn/place tracks
+    // when the model loaded, and falls back to a plain cube (GetClassMesh/Material) when it didn't.
+    bool  HasCarModel()      const { return carModel.valid; }
+    float GetCarFitScale()   const { return carModel.fitScale; }
+    float GetCarGroundLift() const { return carModel.groundLift; }
+    float GetCarForwardYaw() const { return carModel.modelForwardYaw; }
+    ZNFramework::ZNObjectHandle SpawnCarTrack(const std::string& name);
+
 private:
     void BuildClassResources();
-    void BuildStaticStage();     // ground plane, ego box, scrolling lane dashes
+    void BuildStaticStage();     // ground plane, ego car, scrolling lane dashes
     void BuildSurroundViews();   // top-down + 4-way surround offscreen cameras (stage 4)
+
+    // A loaded low-poly car (multi-mesh, colour-per-material, no textures): shared meshes/materials
+    // + a fit transform mapping model units -> metres. Instances share these and only differ by root.
+    struct CarModel {
+        std::vector<ZNFramework::ZNMesh*>     meshes;
+        std::vector<ZNFramework::ZNMaterial*> mats;
+        std::vector<int>                      meshMat;         // material index per mesh
+        float fitScale        = 1.0f;   // uniform scale so the longest horizontal extent == targetLen
+        float groundLift      = 0.0f;   // world Y that puts the model's underside on the ground
+        float modelForwardYaw = 0.0f;   // deg added so the model faces +Z (travel direction)
+        bool  valid           = false;
+    };
+    bool LoadCarModel(const std::filesystem::path& path, float targetLen, CarModel& out);
+    // Spawns a shared-mesh car instance (root + child meshes); caller sets root position/rotation.
+    ZNFramework::ZNObjectHandle SpawnCarInstance(const CarModel& car, const std::string& name, const std::string& tag);
+    // Repaints egoCarModel.mats[matIndex] red and restores every other material to its loaded colour
+    // (from egoBaseMatParams). Material is mesh-bound (ZNGameObject::Render), so this is how a single
+    // shared mesh gets a different colour -- the "Ego Paint" debug panel drives this while the right
+    // body-shell material index is still unknown (asset material order isn't documented anywhere).
+    void ApplyEgoPaint(int matIndex);
     void UpdateLaneDashes(float scrollDelta);
     void RenderDataSourcePanel(); // mockup: bottom DataSource bar + tracked/latency stats
     void UseSource(Vehicle::IDataSource* src); // swap active source + re-init the interpolator
@@ -46,6 +76,10 @@ private:
     ZNFramework::ZNShader* offscreenShader = nullptr; // forward_pbr for the surround/top-down RTs
 
     ZNFramework::ZNGameObject* ego = nullptr;
+    CarModel carModel;      // car_white, plain — shared by Car-class tracks
+    CarModel egoCarModel;   // car_white, separate bake — one material gets painted red (ApplyEgoPaint)
+    std::vector<ZNFramework::MaterialParams> egoBaseMatParams;  // egoCarModel.mats[i]'s loaded colour
+    int egoPaintMatIndex = 0;   // which material index is currently painted (debug picker, see .cpp)
 
     struct ClassRes { ZNFramework::ZNMesh* mesh = nullptr; ZNFramework::ZNMaterial* mat = nullptr; };
     ClassRes classRes[3];   // indexed by static_cast<int>(ObjectClass)
