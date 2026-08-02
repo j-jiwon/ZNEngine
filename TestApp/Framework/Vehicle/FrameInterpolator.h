@@ -26,6 +26,11 @@ namespace Vehicle
         // Advance real time by dt; ticks the source at the sensor cadence, buffering snapshots.
         void Update(float dtReal);
 
+        // Drop buffered history + reset the clock (keeps mode/hz/dropout/jitter). Call when the
+        // source's timeline jumps — a source swap or a log-playback seek — so we never interpolate
+        // across the discontinuity.
+        void Reset();
+
         // The resampled frame at the current render time (per current mode). Valid until next Update/Sample.
         const FrameData& Sample();
 

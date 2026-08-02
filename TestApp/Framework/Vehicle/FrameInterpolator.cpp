@@ -1,5 +1,6 @@
 #include "FrameInterpolator.h"
 #include "IDataSource.h"
+#include "FrameLerp.h"
 #include <algorithm>
 
 namespace Vehicle
@@ -9,28 +10,17 @@ namespace Vehicle
         constexpr int   kMaxHistory = 4;    // enough to bracket ~1 period back with slack
         constexpr int   kTickGuard  = 8;    // cap sensor ticks per render frame (big dt / speed jump)
         constexpr float kMaxLead    = 2.0f; // extrapolate at most this many periods ahead (overshoot guard)
-
-        inline float Lerp(float a, float b, float t) { return a + (b - a) * t; }
-
-        const TrackedObject* Find(const FrameData& f, int id)
-        {
-            for (const auto& o : f.objects)
-                if (o.id == id) return &o;
-            return nullptr;
-        }
-
-        EgoState LerpEgo(const EgoState& a, const EgoState& b, float t)
-        {
-            return EgoState{ Lerp(a.speed,    b.speed,    t),
-                             Lerp(a.steering, b.steering, t),
-                             Lerp(a.yawRate,  b.yawRate,  t) };
-        }
     }
 
     void FrameInterpolator::Init(IDataSource& src, float hz)
     {
         source = &src;
         SetSensorHz(hz);
+        Reset();
+    }
+
+    void FrameInterpolator::Reset()
+    {
         history.clear();
         simClock       = 0.f;
         lastSampleSim  = 0.f;
@@ -131,24 +121,9 @@ namespace Vehicle
         const float span = b.timestamp - a.timestamp;
         const float t    = (span > 1e-6f) ? std::clamp((renderTime - a.timestamp) / span, 0.f, 1.f) : 0.f;
 
-        // Presence follows the newer frame b; matched ids lerp, freshly-spawned ids take b as-is.
+        // Presence follows the newer frame b; matched ids lerp (shared LerpFrame). Stamp with render time.
+        output = LerpFrame(a, b, t);
         output.timestamp = renderTime;
-        output.ego       = LerpEgo(a.ego, b.ego, t);
-        output.objects.clear();
-        output.objects.reserve(b.objects.size());
-        for (const TrackedObject& ob : b.objects)
-        {
-            TrackedObject o = ob;
-            if (const TrackedObject* oa = Find(a, ob.id))
-            {
-                o.relX     = Lerp(oa->relX,     ob.relX,     t);
-                o.relZ     = Lerp(oa->relZ,     ob.relZ,     t);
-                o.relSpeed = Lerp(oa->relSpeed, ob.relSpeed, t);
-                o.bboxW    = Lerp(oa->bboxW,    ob.bboxW,    t);
-                o.bboxL    = Lerp(oa->bboxL,    ob.bboxL,    t);
-            }
-            output.objects.push_back(o);
-        }
     }
 
     void FrameInterpolator::BuildExtrapolated(float renderTime)

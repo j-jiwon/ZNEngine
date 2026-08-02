@@ -96,7 +96,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>./Libs/googletest/include/;$(SolutionDir)ZN;$(SolutionDir)\ZN;$(SolutionDir)ZN\ZNFramework\ThirdParty\imgui;$(SolutionDir)ZN\ZNFramework;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./Libs/googletest/include/;$(SolutionDir)ZN;$(SolutionDir)\ZN;$(SolutionDir)ZN\ZNFramework\ThirdParty;$(SolutionDir)ZN\ZNFramework\ThirdParty\imgui;$(SolutionDir)ZN\ZNFramework;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <ObjectFileName>$(IntDir)%(RelativeDir)</ObjectFileName>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -129,7 +129,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>./Libs/googletest/include/;$(SolutionDir)ZN;$(SolutionDir)\ZN;$(SolutionDir)ZN\ZNFramework\ThirdParty\imgui;$(SolutionDir)ZN\ZNFramework;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./Libs/googletest/include/;$(SolutionDir)ZN;$(SolutionDir)\ZN;$(SolutionDir)ZN\ZNFramework\ThirdParty;$(SolutionDir)ZN\ZNFramework\ThirdParty\imgui;$(SolutionDir)ZN\ZNFramework;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <ObjectFileName>$(IntDir)%(RelativeDir)</ObjectFileName>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -161,7 +161,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)Library\Include\;./Libs/googletest/include/;$(SolutionDir)ZN;$(SolutionDir)ZN;$(ProjectDir)Libs\googletest\include;$(SolutionDir)ZN\ZNFramework\ThirdParty\imgui;$(SolutionDir)ZN\ZNFramework;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Library\Include\;./Libs/googletest/include/;$(SolutionDir)ZN;$(SolutionDir)ZN;$(ProjectDir)Libs\googletest\include;$(SolutionDir)ZN\ZNFramework\ThirdParty;$(SolutionDir)ZN\ZNFramework\ThirdParty\imgui;$(SolutionDir)ZN\ZNFramework;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <ObjectFileName>$(IntDir)%(RelativeDir)</ObjectFileName>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -194,7 +194,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)Library\Include\;./Libs/googletest/include/;$(SolutionDir)ZN;$(SolutionDir)\ZN;$(SolutionDir)ZN\ZNFramework\ThirdParty\imgui;$(SolutionDir)ZN\ZNFramework;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Library\Include\;./Libs/googletest/include/;$(SolutionDir)ZN;$(SolutionDir)\ZN;$(SolutionDir)ZN\ZNFramework\ThirdParty;$(SolutionDir)ZN\ZNFramework\ThirdParty\imgui;$(SolutionDir)ZN\ZNFramework;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <ObjectFileName>$(IntDir)%(RelativeDir)</ObjectFileName>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -229,6 +229,8 @@
     <ClCompile Include="Framework\VehicleScene.cpp" />
     <ClCompile Include="Framework\Vehicle\SyntheticSource.cpp" />
     <ClCompile Include="Framework\Vehicle\FrameInterpolator.cpp" />
+    <ClCompile Include="Framework\Vehicle\LogFormat.cpp" />
+    <ClCompile Include="Framework\Vehicle\LogPlaybackSource.cpp" />
     <ClCompile Include="Framework\Vehicle\SceneBinding.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -249,6 +251,9 @@
     <ClInclude Include="Framework\Vehicle\IDataSource.h" />
     <ClInclude Include="Framework\Vehicle\SyntheticSource.h" />
     <ClInclude Include="Framework\Vehicle\FrameInterpolator.h" />
+    <ClInclude Include="Framework\Vehicle\FrameLerp.h" />
+    <ClInclude Include="Framework\Vehicle\LogFormat.h" />
+    <ClInclude Include="Framework\Vehicle\LogPlaybackSource.h" />
     <ClInclude Include="Framework\Vehicle\SceneBinding.h" />
     <ClInclude Include="Libs\googletest\include\gmock\gmock-actions.h" />
     <ClInclude Include="Libs\googletest\include\gmock\gmock-cardinalities.h" />

@@ -16,9 +16,7 @@ namespace Vehicle
         void             Update(float dt) override;
         const FrameData& GetCurrentFrame() const override { return frame; }
         const char*      GetName() const override { return "Synthetic"; }
-
-        float GetEgoSpeed() const { return egoSpeed; }
-        float GetSensorHz() const { return sensorHz; }
+        float            GetSensorHz() const override { return sensorHz; }
 
         // Ego occupies a real right-hand lane (not the centre line). The scene places the ego box +
         // chase camera here, and the overlap solver treats the ego as a fixed obstacle in this lane.

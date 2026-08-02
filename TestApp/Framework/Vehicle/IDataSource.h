@@ -20,6 +20,10 @@ namespace Vehicle
         // Short display name for the DataSource UI panel.
         virtual const char* GetName() const = 0;
 
+        // Discrete sensor tick rate this source emits at. The scene uses it to (re)initialise the
+        // FrameInterpolator when the active source changes (synthetic <-> log playback).
+        virtual float GetSensorHz() const = 0;
+
         // Shared playback controls (LogPlayback adds SetPlayhead later).
         void  SetPaused(bool p) { paused = p; }
         bool  IsPaused() const  { return paused; }

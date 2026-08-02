@@ -6,6 +6,7 @@
 #include "ZNFramework/UI/Platform/Win32_DX12/ImGuiLayer.h"
 #include <imgui.h>
 #include <string>
+#include <cstdio>
 #include <cmath>
 
 using namespace ZNFramework;
@@ -64,8 +65,64 @@ void VehicleScene::Initialize()
     BuildStaticStage();
     BuildSurroundViews();
 
-    dataSource = std::make_unique<Vehicle::SyntheticSource>(/*agentCount*/ 14);
+    synthetic = std::make_unique<Vehicle::SyntheticSource>(/*agentCount*/ 14);
+    UseSource(synthetic.get());
+}
+
+// Swap the active data source (Live synthetic <-> Log playback) and re-prime the interpolator with
+// its sensor rate. The rest of the pipeline (binding, scene, panel) is source-agnostic.
+void VehicleScene::UseSource(Vehicle::IDataSource* src)
+{
+    if (!src) return;
+    dataSource = src;
     interpolator.Init(*dataSource, dataSource->GetSensorHz());
+    scrubbing = false;
+}
+
+// ---- live recording (capture the synthetic sensor stream forward from "now") ------------------
+
+void VehicleScene::StartRecording()
+{
+    recording     = true;
+    recordFirstTs = 0.0f;
+    recordLastTs  = -1.0f;
+    recordBuffer.clear();
+    recordStatus.clear();
+}
+
+void VehicleScene::TickRecording()
+{
+    // Only the live synthetic stream is recordable; grab each NEW sensor frame (dedup by timestamp,
+    // since Update() runs far faster than the sensor rate). Paused -> no new frames -> capture waits.
+    if (!recording || dataSource != synthetic.get()) return;
+
+    const Vehicle::FrameData& f = synthetic->GetCurrentFrame();
+    if (f.timestamp <= recordLastTs + 1e-4f) return;
+
+    if (recordBuffer.empty()) recordFirstTs = f.timestamp;
+    Vehicle::FrameData copy = f;
+    copy.timestamp = f.timestamp - recordFirstTs;   // re-base so the log starts at t=0
+    const float elapsed = copy.timestamp;
+    recordBuffer.push_back(std::move(copy));
+    recordLastTs = f.timestamp;
+
+    if (elapsed >= recordTarget) FinishRecording();
+}
+
+void VehicleScene::FinishRecording()
+{
+    recording = false;
+    if (recordBuffer.empty()) { recordStatus = "no frames captured"; return; }
+
+    Vehicle::LogData log;
+    log.sensorHz = interpolator.GetSensorHz();
+    log.frames   = std::move(recordBuffer);
+    recordBuffer.clear();
+
+    const auto path = GetResourcePath() / L"Logs" / L"scenario.json";
+    recordStatus = Vehicle::WriteLog(path, log)
+        ? "saved " + std::to_string(log.frames.size()) + " frames -> scenario.json"
+        : "save FAILED";
 }
 
 void VehicleScene::BuildClassResources()
@@ -212,16 +269,30 @@ void VehicleScene::Update(float deltaTime)
 
     if (dataSource)
     {
-        // Interpolator ticks the source at fixed sensor cadence, then resamples to this render frame.
-        interpolator.Update(deltaTime);
-        binding.Apply(interpolator.Sample(), *this);
+        const Vehicle::FrameData* shown = nullptr;
+        if (scrubbing)
+        {
+            // Timeline was dragged: show the exact log frame at the seek position, and drop the
+            // interpolator's buffer so playback resumes cleanly (no interp across the discontinuity).
+            interpolator.Reset();
+            shown = &dataSource->GetCurrentFrame();
+            scrubbing = false;
+        }
+        else
+        {
+            // Interpolator ticks the source at the sensor cadence, then resamples to this render frame.
+            interpolator.Update(deltaTime);
+            shown = &interpolator.Sample();
+        }
+        binding.Apply(*shown, *this);
 
-        // Lane dashes flow toward the ego at the ego's forward speed (unless paused).
-        const float egoSpeed = dataSource->GetEgoSpeed();
+        // Lane dashes flow toward the ego at its forward speed (from the shown frame; unless paused).
         const float scroll = dataSource->IsPaused()
             ? 0.0f
-            : egoSpeed * deltaTime * dataSource->GetSpeed();
+            : shown->ego.speed * deltaTime * dataSource->GetSpeed();
         UpdateLaneDashes(scroll);
+
+        TickRecording();   // capture new sensor frames if a live recording is running
     }
 }
 
@@ -340,21 +411,76 @@ void VehicleScene::RenderDataSourcePanel()
 
     const Vehicle::FrameData& frame = dataSource->GetCurrentFrame();
 
+    // Source switch: Live synthetic vs recorded log — same seam, scene/binding unchanged (stage 5).
     ImGui::Text("Source: %s", dataSource->GetName());
     ImGui::SameLine();
+
+    const bool isLive = (dataSource == synthetic.get());
+
+    // Lock the source switches while recording so the capture isn't cut off mid-stream.
+    ImGui::BeginDisabled(recording);
+    if (ImGui::SmallButton("Live"))
+        UseSource(synthetic.get());
+    ImGui::SameLine();
+    if (ImGui::SmallButton("Load Log"))
+    {
+        if (!logSource) logSource = std::make_unique<Vehicle::LogPlaybackSource>();
+        if (logSource->Load(GetResourcePath() / L"Logs" / L"scenario.json"))
+            UseSource(logSource.get());
+    }
+    ImGui::EndDisabled();
+
+    // Record captures the LIVE stream forward from now (only meaningful on the synthetic source).
+    ImGui::SameLine();
+    if (recording)
+    {
+        const float elapsed = recordBuffer.empty() ? 0.0f : (recordLastTs - recordFirstTs);
+        char lbl[48];
+        std::snprintf(lbl, sizeof(lbl), "Stop %.1f/%.0fs###rec", elapsed, recordTarget);
+        if (ImGui::SmallButton(lbl))
+            FinishRecording();
+    }
+    else
+    {
+        ImGui::BeginDisabled(!isLive);
+        if (ImGui::SmallButton("Record 20s###rec"))
+            StartRecording();
+        ImGui::EndDisabled();
+    }
+    if (!recordStatus.empty())
+        ImGui::TextDisabled("%s", recordStatus.c_str());
+
     bool paused = dataSource->IsPaused();
     if (ImGui::Button(paused ? "Play" : "Pause"))
         dataSource->SetPaused(!paused);
-
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(130.0f);
     float spd = dataSource->GetSpeed();
     if (ImGui::SliderFloat("Speed", &spd, 0.25f, 4.0f, "%.2fx"))
         dataSource->SetSpeed(spd);
 
-    ImGui::Text("t = %.1f s", frame.timestamp);
+    // Log timeline (seek) — deterministic scrubbing a procedural source can't give (mockup timeline).
+    if (dataSource == logSource.get() && logSource && logSource->IsLoaded())
+    {
+        float ph = logSource->GetPlayhead();
+        ImGui::SetNextItemWidth(-1.0f);
+        if (ImGui::SliderFloat("##timeline", &ph, 0.0f, logSource->GetDuration(), "t = %.2f s"))
+        {
+            logSource->SetPlayhead(ph);
+            scrubbing = true;   // Update() shows this exact frame and resets the interpolator
+        }
+        bool lp = logSource->IsLoop();
+        if (ImGui::Checkbox("Loop", &lp)) logSource->SetLoop(lp);
+        ImGui::SameLine();
+        ImGui::Text("%d frames @ %.0f Hz", logSource->FrameCount(), logSource->GetSensorHz());
+    }
+    else
+    {
+        ImGui::Text("t = %.1f s", frame.timestamp);
+    }
 
     ImGui::Separator();
-    ImGui::Text("Ego speed : %.1f m/s (%.0f km/h)",
-                dataSource->GetEgoSpeed(), dataSource->GetEgoSpeed() * 3.6f);
+    ImGui::Text("Ego speed : %.1f m/s (%.0f km/h)", frame.ego.speed, frame.ego.speed * 3.6f);
     ImGui::Text("Tracked   : %d", binding.LiveTrackCount());
     ImGui::Text("Draw calls: %d", ZNGameObject::GetLastFrameDrawCalls());
 

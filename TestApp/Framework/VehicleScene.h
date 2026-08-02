@@ -1,6 +1,7 @@
 #pragma once
 #include <ZNFramework.h>
 #include "Vehicle/SyntheticSource.h"
+#include "Vehicle/LogPlaybackSource.h"
 #include "Vehicle/FrameInterpolator.h"
 #include "Vehicle/SceneBinding.h"
 #include <vector>
@@ -34,6 +35,12 @@ private:
     void BuildSurroundViews();   // top-down + 4-way surround offscreen cameras (stage 4)
     void UpdateLaneDashes(float scrollDelta);
     void RenderDataSourcePanel(); // mockup: bottom DataSource bar + tracked/latency stats
+    void UseSource(Vehicle::IDataSource* src); // swap active source + re-init the interpolator
+
+    // Live recording: capture the synthetic sensor stream to JSON, starting now (stage 5).
+    void StartRecording();
+    void FinishRecording();       // writes scenario.json, sets recordStatus
+    void TickRecording();         // called each Update while recording: grab new sensor frames
 
     ZNFramework::ZNShader* mainShader      = nullptr;
     ZNFramework::ZNShader* offscreenShader = nullptr; // forward_pbr for the surround/top-down RTs
@@ -63,7 +70,20 @@ private:
     };
     std::vector<SurroundView> surroundViews;
 
-    std::unique_ptr<Vehicle::SyntheticSource> dataSource;
-    Vehicle::FrameInterpolator                interpolator;   // resamples 30Hz source -> render fps
-    Vehicle::SceneBinding                     binding;
+    // Two owned sources behind one seam; `dataSource` points at the active one (Live vs Log).
+    std::unique_ptr<Vehicle::SyntheticSource>   synthetic;
+    std::unique_ptr<Vehicle::LogPlaybackSource> logSource;
+    Vehicle::IDataSource*                       dataSource = nullptr; // active (non-owning)
+
+    Vehicle::FrameInterpolator                  interpolator;   // resamples sensor Hz -> render fps
+    Vehicle::SceneBinding                       binding;
+    bool scrubbing = false;   // timeline was dragged this frame (show exact log frame, skip interp)
+
+    // Live recording state (Record button captures the live synthetic stream forward from "now").
+    bool  recording      = false;
+    float recordTarget   = 20.0f;   // seconds of sensor time to capture
+    float recordFirstTs  = 0.0f;    // synthetic timestamp at capture start (re-base to 0)
+    float recordLastTs   = -1.0f;   // last captured frame timestamp (dedup across render frames)
+    std::vector<Vehicle::FrameData> recordBuffer;
+    std::string recordStatus;       // last-write feedback shown in the panel
 };
