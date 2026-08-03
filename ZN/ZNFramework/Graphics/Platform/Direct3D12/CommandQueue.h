@@ -20,6 +20,7 @@ class BloomChain;
 class IBLBaker;
 class SkyboxRenderer;
 class ZNCamera;
+namespace Platform::Direct3D { class ImGuiLayer; }
 
 class CommandQueue : public ZNCommandQueue
 {
@@ -90,6 +91,11 @@ public:
         offscreenCameras.push_back({ cam, rt, resourceName, std::move(cb) });
     }
 
+    // The ImGui layer, so content (scenes) can turn an RT SRV into an ImGui thumbnail via its
+    // SetTexture() — same machinery the engine uses for the GBuffer preview.
+    void        SetImGuiLayer(Platform::Direct3D::ImGuiLayer* layer) { imguiLayer = layer; }
+    Platform::Direct3D::ImGuiLayer* GetImGuiLayer() const { return imguiLayer; }
+
     // One-shot cubemap capture: renders into all 6 faces on the first frame only, then
     // the CubeRenderTexture is a stable static environment map. Must be called before the
     // first frame (before BuildRenderGraph runs). cb receives the face index (0-5) being
@@ -158,6 +164,8 @@ private:
         std::string                 resourceName;
         std::function<void(uint32)> renderCb;
     };
+
+    Platform::Direct3D::ImGuiLayer* imguiLayer = nullptr;
 
     std::function<void()> shadowRenderCallback;
     std::function<void()> gbufferRenderCallback;

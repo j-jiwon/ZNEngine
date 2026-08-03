@@ -39,8 +39,7 @@ public:
         D3D12_CPU_DESCRIPTOR_HANDLE rtv = output->GetRTV();
         D3D12_CPU_DESCRIPTOR_HANDLE dsv = output->GetDSV();
 
-        float black[4] = { 0.f, 0.f, 0.f, 1.f };
-        cmd->ClearRenderTargetView(rtv, black, 0, nullptr);
+        cmd->ClearRenderTargetView(rtv, output->GetClearColor(), 0, nullptr);
         cmd->ClearDepthStencilView(dsv, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
         cmd->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
 

@@ -1,5 +1,6 @@
 #pragma once
 #include <imgui.h>
+#include <imgui_internal.h>   // FindWindowByName, for GetWindowHeightByName below
 
 namespace ZNFramework
 {
@@ -35,5 +36,14 @@ namespace ZNFramework
 		ImGui::SetNextWindowPos(pos, ImGuiCond_Always, pivot);
 		if (size.x != 0.f || size.y != 0.f)
 			ImGui::SetNextWindowSize(size, ImGuiCond_FirstUseEver);
+	}
+
+	// Last known height (px) of a window by title, so a second panel can stack directly beneath it
+	// regardless of collapse state / content size. 0 if that window hasn't been drawn yet this run.
+	inline float GetWindowHeightByName(const char* name)
+	{
+		if (ImGuiWindow* w = ImGui::FindWindowByName(name))
+			return w->Size.y;
+		return 0.0f;
 	}
 }

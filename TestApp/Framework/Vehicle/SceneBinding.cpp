@@ -21,14 +21,25 @@ namespace Vehicle
             return 1.0f;
         }
 
-        void ApplyTransform(ZNGameObject* obj, const TrackedObject& o)
+        void ApplyTransform(ZNGameObject* obj, const TrackedObject& o, VehicleScene& scene)
         {
-            const float h = ClassHeight(o.cls);
             Transform& t = obj->GetTransform();
+            // Face travel direction: left-hand lanes head the other way.
+            const float faceYaw = (o.relX < -1.0f) ? 180.f : 0.f;
+
+            if (o.cls == ObjectClass::Car && scene.HasCarModel())
+            {
+                const float s = scene.GetCarFitScale();
+                t.scale    = ZNVector3(s, s, s);
+                t.position = ZNVector3(o.relX, scene.GetCarGroundLift(), o.relZ);
+                t.rotation = ZNVector3(0.f, faceYaw + scene.GetCarForwardYaw(), 0.f);
+                return;
+            }
+
+            const float h = ClassHeight(o.cls);
             t.scale    = ZNVector3(o.bboxW, h, o.bboxL);
             t.position = ZNVector3(o.relX, h * 0.5f, o.relZ);   // sit on the ground plane
-            // Face travel direction: left-hand lanes head the other way.
-            t.rotation = ZNVector3(0.f, (o.relX < -1.0f) ? 180.f : 0.f, 0.f);
+            t.rotation = ZNVector3(0.f, faceYaw, 0.f);
         }
     }
 
@@ -44,22 +55,31 @@ namespace Vehicle
             auto it = trackToHandle.find(o.id);
             ZNGameObject* obj = (it != trackToHandle.end()) ? scene.Resolve(it->second) : nullptr;
 
-            if (!obj)   // new track -> pull a fresh object from the pool
+            if (!obj)   // new id -> new object (pool recycles the slot, not the object)
             {
-                obj = new ZNGameObject();
-                obj->SetMesh(scene.GetClassMesh(o.cls));
-                obj->SetMaterial(scene.GetClassMaterial(o.cls));
-                obj->SetTag("Track");
-                obj->SetCastShadow(true);
-                ZNObjectHandle h = scene.AddGameObject(obj);
+                ZNObjectHandle h;
+                if (o.cls == ObjectClass::Car && scene.HasCarModel())
+                {
+                    h = scene.SpawnCarTrack(std::string(ToString(o.cls)) + " #" + std::to_string(o.id));
+                }
+                else
+                {
+                    obj = new ZNGameObject();
+                    obj->SetMesh(scene.GetClassMesh(o.cls));
+                    obj->SetMaterial(scene.GetClassMaterial(o.cls));
+                    obj->SetTag("Track");
+                    obj->SetCastShadow(true);
+                    h = scene.AddGameObject(obj);
+                }
                 trackToHandle[o.id] = h;
+                obj = scene.Resolve(h);
             }
 
             obj->SetName(std::string(ToString(o.cls)) + " #" + std::to_string(o.id));
-            ApplyTransform(obj, o);
+            ApplyTransform(obj, o, scene);
         }
 
-        // Sweep: any track absent from this frame has left the sensor range -> return to the pool.
+        // absent this frame = left the sensor range -> destroy (frees object + releases the slot).
         for (auto it = trackToHandle.begin(); it != trackToHandle.end(); )
         {
             if (present.find(it->first) == present.end())

@@ -17,35 +17,24 @@
 
 using namespace ZNFramework;
 
+ZNScene* ZNScene::s_activeScene = nullptr;
+
 // out-of-line: unique_ptr<ZNGameObject> needs the complete type here. frees every gameobject.
 ZNScene::~ZNScene() = default;
 
 void ZNScene::Update(float deltaTime)
 {
-	// Update all game objects
-	for (auto* obj : gameObjects)
+	// Update every live object (both categories), straight from the source of truth.
+	for (const auto& slot : objectSlots)
 	{
-		if (obj)
-			obj->Update(deltaTime);
+		if (slot.obj)
+			slot.obj->Update(deltaTime);
 	}
 
 	// Update camera if exists
 	if (camera)
 	{
 		camera->UpdateViewMatrix();
-	}
-}
-
-namespace {
-	// Single object-traversal shared by every pass — each pass supplies the per-object action
-	// (its "filter"), so the null-check + loop live in one place instead of being copy-pasted
-	// across Render / RenderShadow / RenderForward.
-	template<typename F>
-	void ForEachObject(const std::vector<ZNGameObject*>& list, F&& action)
-	{
-		for (auto* obj : list)
-			if (obj)
-				action(obj);
 	}
 }
 
@@ -63,21 +52,21 @@ void ZNScene::Render()
 {
 	// Runs inside GBufferPass, before DeferredLightingPass/ForwardRenderPass read the context.
 	SyncGraphicsContext();
-	ForEachObject(gameObjects, [](ZNGameObject* obj) { obj->Render(); });  // deferred (opaque)
+	ForEachLiveObject(false, [](ZNGameObject* obj) { obj->Render(); });  // deferred (opaque)
 }
 
 void ZNScene::RenderShadow(const ZNMatrix4& lightViewProj, ZNShader* shadowShader)
 {
 	// Shadow casters come from the deferred (opaque) list; each object self-filters on
 	// castShadow. Forward/transparent objects (glass, windows) intentionally cast no shadow.
-	ForEachObject(gameObjects, [&](ZNGameObject* obj) { obj->RenderShadow(lightViewProj, shadowShader); });
+	ForEachLiveObject(false, [&](ZNGameObject* obj) { obj->RenderShadow(lightViewProj, shadowShader); });
 }
 
 void ZNScene::RenderForward()
 {
 	// GraphicsContext was already synced by Render() earlier this frame (GBufferPass precedes
 	// ForwardRenderPass, and nothing in between rebinds camera/lights), so no re-push here.
-	ForEachObject(forwardGameObjects, [](ZNGameObject* obj) { obj->Render(); });
+	ForEachLiveObject(true, [](ZNGameObject* obj) { obj->Render(); });
 }
 
 void ZNScene::RegisterDebugCamera(ZNCamera* cam, const std::string& name)
@@ -135,16 +124,12 @@ ZNGameObject* ZNScene::Resolve(ZNObjectHandle h) const
 	return slot.obj.get();
 }
 
-void ZNScene::RemoveFromRenderList(ZNGameObject* obj, bool forward)
+void ZNScene::RebuildEnumeration(std::vector<ZNGameObject*>& out, bool forward) const
 {
-	// swap-and-pop: O(1), render-list order doesn't matter here.
-	std::vector<ZNGameObject*>& list = forward ? forwardGameObjects : gameObjects;
-	auto it = std::find(list.begin(), list.end(), obj);
-	if (it != list.end())
-	{
-		*it = list.back();
-		list.pop_back();
-	}
+	// Ownership enumeration, derived on demand from objectSlots (the source of truth). Called a
+	// handful of times per frame by the UI (Stats/Outliner) — O(pool capacity), negligible here.
+	out.clear();
+	ForEachLiveObject(forward, [&](ZNGameObject* obj) { out.push_back(obj); });
 }
 
 void ZNScene::DestroyObjectInternal(ZNGameObject* obj)
@@ -159,9 +144,7 @@ void ZNScene::DestroyObjectInternal(ZNGameObject* obj)
 
 	const ZNObjectHandle h = obj->GetHandle();
 	ObjectSlot& slot = objectSlots[h.index];
-	RemoveFromRenderList(obj, slot.forward);
-
-	slot.obj.reset();          // free; outstanding handles now resolve to null
+	slot.obj.reset();          // free; render passes derive from slots, so it drops out immediately
 	freeSlots.push_back(h.index);
 }
 
@@ -182,9 +165,8 @@ ZNObjectHandle ZNScene::AddGameObject(ZNGameObject* obj)
 {
 	if (!obj)
 		return {};
-	ZNObjectHandle h = AdoptObject(obj, /*forward*/ false);
-	gameObjects.push_back(obj);
-	return h;
+	// Adopt into the slot pool only; the render list is derived from slots, not maintained here.
+	return AdoptObject(obj, /*forward*/ false);
 }
 
 void ZNScene::RemoveGameObject(ZNGameObject* obj)
@@ -196,14 +178,24 @@ ZNObjectHandle ZNScene::AddForwardGameObject(ZNGameObject* obj)
 {
 	if (!obj)
 		return {};
-	ZNObjectHandle h = AdoptObject(obj, /*forward*/ true);
-	forwardGameObjects.push_back(obj);
-	return h;
+	return AdoptObject(obj, /*forward*/ true);
 }
 
 void ZNScene::RemoveForwardGameObject(ZNGameObject* obj)
 {
 	Destroy(obj);
+}
+
+const std::vector<ZNGameObject*>& ZNScene::GetGameObjects() const
+{
+	RebuildEnumeration(gameObjects, /*forward*/ false);
+	return gameObjects;
+}
+
+const std::vector<ZNGameObject*>& ZNScene::GetForwardGameObjects() const
+{
+	RebuildEnumeration(forwardGameObjects, /*forward*/ true);
+	return forwardGameObjects;
 }
 
 void ZNScene::SetCamera(ZNCamera* cam)
@@ -244,21 +236,18 @@ void ZNScene::RemovePointLight(ZNPointLight* light)
 
 ZNGameObject* ZNScene::FindGameObjectWithTag(const std::string& tag)
 {
-	for (auto* obj : gameObjects)
-	{
-		if (obj && obj->GetTag() == tag)
-			return obj;
-	}
+	// Search all owned objects (both categories), straight from the source of truth.
+	for (const auto& slot : objectSlots)
+		if (slot.obj && slot.obj->GetTag() == tag)
+			return slot.obj.get();
 	return nullptr;
 }
 
 ZNGameObject* ZNScene::FindGameObjectWithName(const std::string& name)
 {
-	for (auto* obj : gameObjects)
-	{
-		if (obj && obj->GetName() == name)
-			return obj;
-	}
+	for (const auto& slot : objectSlots)
+		if (slot.obj && slot.obj->GetName() == name)
+			return slot.obj.get();
 	return nullptr;
 }
 
@@ -271,14 +260,19 @@ void ZNScene::AddOffscreenCamera(ZNCamera* cam, RenderTexture* rt,
 	CommandQueue* cmdQ = GraphicsContext::GetInstance().GetAs<CommandQueue>();
 	cmdQ->AddOffscreenCamera(cam, rt, resourceName, [this, idx]()
 	{
+		// Every scene's offscreen passes stay registered (eager init); skip the geometry work
+		// unless this scene is the active one. The RT keeps its last frame, which is never shown
+		// while the scene is inactive (each scene draws only its own thumbnails).
+		if (!IsActiveScene()) return;
+
 		OffscreenCamEntry& entry = offscreenCamEntries[idx];
 
-		for (auto* obj : gameObjects)
+		ForEachLiveObject(false, [&](ZNGameObject* obj)
 		{
-			if (!obj || !obj->IsVisible() || !obj->GetMesh()) continue;
+			if (!obj->IsVisible() || !obj->GetMesh()) return;
 
 			ZNMaterial* mainMat = obj->GetMaterial();
-			if (!mainMat) continue;
+			if (!mainMat) return;
 
 			// Lookup or lazily create the forward material for this source material.
 			ZNMaterial* fwdMat = nullptr;
@@ -304,7 +298,7 @@ void ZNScene::AddOffscreenCamera(ZNCamera* cam, RenderTexture* rt,
 			obj->GetMesh()->SetMaterial(fwdMat);
 			obj->Render();
 			obj->GetMesh()->SetMaterial(origMat);
-		}
+		});
 	});
 }
 
@@ -344,15 +338,18 @@ void ZNScene::AddCubemapCapture(const ZNVector3& position, float nearZ, float fa
 	{
 		CubemapCaptureEntry& entry = cubemapCaptureEntries[idx];
 
-		// Fill the whole face with the active skybox first (if any), so directions with
-		// no scene geometry show sky instead of the render target's black clear color.
-		// Real geometry rendered below naturally overwrites it via depth test.
+		// Fill the whole face with THIS scene's own skybox first (if any), so directions with no
+		// scene geometry show sky instead of the render target's black clear color. Use the scene's
+		// own skybox — not the globally-active one — because this one-shot capture runs on the first
+		// frame regardless of which scene is currently active, so the global skybox may belong to a
+		// different scene (that leak is what made MirrorBall's reflection pick up another scene's
+		// background). Real geometry rendered below naturally overwrites it via depth test.
 		CommandQueue* cmdQ2 = GraphicsContext::GetInstance().GetAs<CommandQueue>();
 		SkyboxRenderer* skyboxRenderer = cmdQ2->GetSkyboxRenderer();
 		if (skyboxRenderer)
 		{
 			ID3D12GraphicsCommandList* cmd = cmdQ2->CommandList();
-			skyboxRenderer->DrawBackground(cmd, face, cmdQ2->HasSkybox(), cmdQ2->GetSkyboxSRV(),
+			skyboxRenderer->DrawBackground(cmd, face, hasOwnedSkybox, ownedSkyboxSRV,
 			                               cubeRT->GetRTV(face), resolution);
 		}
 
@@ -375,14 +372,14 @@ void ZNScene::AddCubemapCapture(const ZNVector3& position, float nearZ, float fa
 		ctx.SetPointLights(pointLights);
 		ctx.SetDirectionalLight(directionalLight);
 
-		for (auto* obj : gameObjects)
+		ForEachLiveObject(false, [&](ZNGameObject* obj)
 		{
-			if (!obj || !obj->IsVisible() || !obj->GetMesh()) continue;
+			if (!obj->IsVisible() || !obj->GetMesh()) return;
 			if (std::find(entry.excludeObjects.begin(), entry.excludeObjects.end(), obj) != entry.excludeObjects.end())
-				continue;
+				return;
 
 			ZNMaterial* mainMat = obj->GetMaterial();
-			if (!mainMat) continue;
+			if (!mainMat) return;
 
 			ZNMaterial* fwdMat = nullptr;
 			auto it = entry.matCache.find(mainMat);
@@ -404,7 +401,7 @@ void ZNScene::AddCubemapCapture(const ZNVector3& position, float nearZ, float fa
 			obj->GetMesh()->SetMaterial(fwdMat);
 			obj->Render();
 			obj->GetMesh()->SetMaterial(origMat);
-		}
+		});
 	});
 
 	ownedEnvCubemapSRV = cubeRT->GetSRVCpuHandle();

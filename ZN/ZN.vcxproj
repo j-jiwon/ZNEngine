@@ -106,7 +106,7 @@
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <ObjectFileName>$(IntDir)%(RelativeDir)</ObjectFileName>
       <AdditionalOptions>/Qpar /utf-8 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(SolutionDir)Library\Include;$(ProjectDir)ZNFramework;$(ProjectDir);$(ProjectDir)ZNFramework\ThirdParty\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Library\Include;$(ProjectDir)ZNFramework;$(ProjectDir);$(ProjectDir)ZNFramework\ThirdParty;$(ProjectDir)ZNFramework\ThirdParty\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
@@ -136,7 +136,7 @@
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <ObjectFileName>$(IntDir)%(RelativeDir)</ObjectFileName>
       <AdditionalOptions>/Qpar /utf-8 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(SolutionDir)Library\Include;$(ProjectDir)ZNFramework;$(ProjectDir);$(ProjectDir)ZNFramework\ThirdParty\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Library\Include;$(ProjectDir)ZNFramework;$(ProjectDir);$(ProjectDir)ZNFramework\ThirdParty;$(ProjectDir)ZNFramework\ThirdParty\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
@@ -166,7 +166,7 @@
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <ObjectFileName>$(IntDir)%(RelativeDir)</ObjectFileName>
       <AdditionalOptions>/Qpar /utf-8 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(SolutionDir)Library\Include;$(ProjectDir)ZNFramework;$(ProjectDir);$(ProjectDir)ZNFramework\ThirdParty\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Library\Include;$(ProjectDir)ZNFramework;$(ProjectDir);$(ProjectDir)ZNFramework\ThirdParty;$(ProjectDir)ZNFramework\ThirdParty\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
@@ -197,7 +197,7 @@
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <ObjectFileName>$(IntDir)%(RelativeDir)</ObjectFileName>
       <AdditionalOptions>/Qpar /utf-8 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(SolutionDir)Library\Include;$(ProjectDir)ZNFramework;$(ProjectDir);$(ProjectDir)ZNFramework\ThirdParty\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Library\Include;$(ProjectDir)ZNFramework;$(ProjectDir);$(ProjectDir)ZNFramework\ThirdParty;$(ProjectDir)ZNFramework\ThirdParty\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
@@ -279,6 +279,7 @@
     <ClInclude Include="ZNFramework\Graphics\ZNTexture.h" />
     <ClInclude Include="ZNFramework\Math\ZNMath.h" />
     <ClInclude Include="ZNFramework\Scene\ZNGameObject.h" />
+    <ClInclude Include="ZNFramework\Scene\ZNObjectHandle.h" />
     <ClInclude Include="ZNFramework\Scene\ZNScene.h" />
     <ClInclude Include="ZNFramework\ThirdParty\imgui\imconfig.h" />
     <ClInclude Include="ZNFramework\ThirdParty\imgui\imgui.h" />
@@ -379,6 +380,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="claude.md" />
+    <None Include="ZNFramework\Scene\ZNGameObject.h.bak" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

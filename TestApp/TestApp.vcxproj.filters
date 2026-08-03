@@ -24,6 +24,15 @@
     <ClCompile Include="Framework\Vehicle\SyntheticSource.cpp">
       <Filter>Vehicle</Filter>
     </ClCompile>
+    <ClCompile Include="Framework\Vehicle\FrameInterpolator.cpp">
+      <Filter>Vehicle</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Vehicle\LogFormat.cpp">
+      <Filter>Vehicle</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Vehicle\LogPlaybackSource.cpp">
+      <Filter>Vehicle</Filter>
+    </ClCompile>
     <ClCompile Include="Framework\Vehicle\SceneBinding.cpp">
       <Filter>Vehicle</Filter>
     </ClCompile>
@@ -37,6 +46,18 @@
       <Filter>Vehicle</Filter>
     </ClInclude>
     <ClInclude Include="Framework\Vehicle\SyntheticSource.h">
+      <Filter>Vehicle</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Vehicle\FrameInterpolator.h">
+      <Filter>Vehicle</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Vehicle\FrameLerp.h">
+      <Filter>Vehicle</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Vehicle\LogFormat.h">
+      <Filter>Vehicle</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Vehicle\LogPlaybackSource.h">
       <Filter>Vehicle</Filter>
     </ClInclude>
     <ClInclude Include="Framework\Vehicle\SceneBinding.h">

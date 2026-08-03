@@ -48,5 +48,11 @@ namespace ZNFramework
 		HWND hwnd;
 		uint32 width;
 		uint32 height;
+
+		// Tearing support: uncaps the framerate in windowed mode (bypasses the DWM vsync
+		// half-rate cap). Set at creation when the adapter/OS supports it; must be echoed on
+		// ResizeBuffers and on Present. 0 when unsupported (falls back to plain vsync present).
+		UINT swapChainFlags = 0; // DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING
+		UINT presentFlags   = 0; // DXGI_PRESENT_ALLOW_TEARING
 	};
 }

@@ -257,6 +257,7 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
         imguiLayer = guiLayer;
 
         commandQueue->SetImGuiDescriptorHeap(guiLayer->GetSrvHeap());
+        d3dCmdQueue->SetImGuiLayer(guiLayer); // let scenes turn RT SRVs into ImGui thumbnails
 
         // Register GBuffer SRVs as ImGui textures for debug windows
         GBufferManager* gbufferMgr = d3dCmdQueue->GetGBufferManager();
@@ -311,6 +312,7 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
 void ApplicationContext::SetScene(ZNScene* scene)
 {
     currentScene = scene;
+    ZNScene::SetActiveScene(scene); // inactive scenes' offscreen passes skip their geometry work
 
     // Re-apply (or clear) this scene's own env cubemap / skybox — every scene is eagerly
     // Initialize()'d up front (see App.cpp), so without this the single global

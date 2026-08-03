@@ -3,6 +3,7 @@
 #include "ZNFramework.h"
 #include "CommandQueue.h"
 #include "GraphicsDevice.h"
+#include <dxgi1_5.h> // IDXGIFactory5 + DXGI_FEATURE_PRESENT_ALLOW_TEARING
 
 using namespace ZNFramework;
 
@@ -49,7 +50,7 @@ void SwapChain::Resize(uint32 inWidth, uint32 inHeight)
         width,
         height,
         DXGI_FORMAT_R8G8B8A8_UNORM,
-        0 // flags must match creation (no ALLOW_MODE_SWITCH)
+        swapChainFlags // must match creation (ALLOW_TEARING when supported)
     ));
 
     for (int i = 0; i < SWAP_CHAIN_BUFFER_COUNT; i++)
@@ -62,7 +63,8 @@ void SwapChain::Resize(uint32 inWidth, uint32 inHeight)
 
 void SwapChain::Present()
 {
-    HRESULT hr = swapChain->Present(0, 0);
+    // Sync interval 0 + ALLOW_TEARING (when supported) = uncapped present, no DWM vsync cap.
+    HRESULT hr = swapChain->Present(0, presentFlags);
 
     // Window fully occluded (covered/minimized): DXGI didn't present. Not an error — just skip
     // and retry next frame.
@@ -84,6 +86,21 @@ void SwapChain::CreateSwapChainInternal()
 {
     swapChain.Reset();
 
+    // Detect tearing support (uncapped windowed present). Falls back to plain vsync present when
+    // the adapter/OS doesn't support it, so both flags stay 0.
+    {
+        BOOL allowTearing = FALSE;
+        ComPtr<IDXGIFactory5> factory5;
+        if (SUCCEEDED(device->Factory().As(&factory5)) &&
+            SUCCEEDED(factory5->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING,
+                                                    &allowTearing, sizeof(allowTearing))) &&
+            allowTearing)
+        {
+            swapChainFlags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+            presentFlags   = DXGI_PRESENT_ALLOW_TEARING;
+        }
+    }
+
     // Flip-model swap chain via CreateSwapChainForHwnd (the modern path; the legacy
     // CreateSwapChain + DXGI_SWAP_CHAIN_DESC is discouraged for flip effects).
     DXGI_SWAP_CHAIN_DESC1 sd = {};
@@ -98,7 +115,8 @@ void SwapChain::CreateSwapChainInternal()
     sd.Scaling     = DXGI_SCALING_STRETCH;
     sd.SwapEffect  = DXGI_SWAP_EFFECT_FLIP_DISCARD;
     sd.AlphaMode   = DXGI_ALPHA_MODE_UNSPECIFIED;
-    sd.Flags       = 0; // no ALLOW_MODE_SWITCH — app owns all sizing (see MakeWindowAssociation)
+    // ALLOW_TEARING when supported; no ALLOW_MODE_SWITCH — app owns all sizing (see MakeWindowAssociation).
+    sd.Flags       = swapChainFlags;
 
     ComPtr<IDXGISwapChain1> swapChain1;
     ThrowIfFailed(device->Factory()->CreateSwapChainForHwnd(
