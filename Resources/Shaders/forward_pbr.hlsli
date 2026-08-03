@@ -45,9 +45,10 @@ cbuffer cbForwardLight : register(b2)
     // Total: 256 bytes
 };
 
-Texture2D        albedoTex    : register(t0);
-Texture2D<float> fwdShadowMap : register(t3);
-SamplerState     sampler0     : register(s0);
+Texture2D        albedoTex     : register(t0);
+Texture2D<float> fwdShadowMap  : register(t3);
+TextureCube      fwdIrradiance : register(t4);   // IBL diffuse irradiance (same source as deferred)
+SamplerState     sampler0      : register(s0);
 
 struct VS_IN
 {
@@ -155,7 +156,10 @@ float4 PS_Main(VS_OUT input) : SV_Target
     float3 N = normalize(input.worldNormal);
     float3 V = normalize(fwdViewPosition - input.worldPos);
 
-    float3 ambient = float3(0.03f, 0.03f, 0.03f) * albedo * aoVal * fwdDirAmbientIntensity;
+    // Ambient from the IBL irradiance cube (bound at t4 by Mesh::Render) -- the same source the
+    // deferred pass uses, so offscreen/forward views share the main view's environment (grey studio,
+    // night sky, etc.) instead of a flat guess. Black fallback until the environment is baked.
+    float3 ambient = fwdIrradiance.Sample(sampler0, N).rgb * albedo * aoVal * fwdDirAmbientIntensity;
     float3 Lo      = float3(0.f, 0.f, 0.f);
 
     // Directional light (with shadow)

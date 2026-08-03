@@ -338,15 +338,18 @@ void ZNScene::AddCubemapCapture(const ZNVector3& position, float nearZ, float fa
 	{
 		CubemapCaptureEntry& entry = cubemapCaptureEntries[idx];
 
-		// Fill the whole face with the active skybox first (if any), so directions with
-		// no scene geometry show sky instead of the render target's black clear color.
-		// Real geometry rendered below naturally overwrites it via depth test.
+		// Fill the whole face with THIS scene's own skybox first (if any), so directions with no
+		// scene geometry show sky instead of the render target's black clear color. Use the scene's
+		// own skybox — not the globally-active one — because this one-shot capture runs on the first
+		// frame regardless of which scene is currently active, so the global skybox may belong to a
+		// different scene (that leak is what made MirrorBall's reflection pick up another scene's
+		// background). Real geometry rendered below naturally overwrites it via depth test.
 		CommandQueue* cmdQ2 = GraphicsContext::GetInstance().GetAs<CommandQueue>();
 		SkyboxRenderer* skyboxRenderer = cmdQ2->GetSkyboxRenderer();
 		if (skyboxRenderer)
 		{
 			ID3D12GraphicsCommandList* cmd = cmdQ2->CommandList();
-			skyboxRenderer->DrawBackground(cmd, face, cmdQ2->HasSkybox(), cmdQ2->GetSkyboxSRV(),
+			skyboxRenderer->DrawBackground(cmd, face, hasOwnedSkybox, ownedSkyboxSRV,
 			                               cubeRT->GetRTV(face), resolution);
 		}
 

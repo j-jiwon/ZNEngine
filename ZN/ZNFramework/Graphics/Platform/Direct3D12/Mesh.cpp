@@ -7,6 +7,7 @@
 #include "Material.h"
 #include "Shader.h"
 #include "ShadowMap.h"
+#include "IBLBaker.h"
 #include "DirectionalLight.h"
 
 using namespace ZNFramework;
@@ -115,6 +116,12 @@ void Mesh::Render()
 			s.attQuad = sp->GetQuadraticAttenuation();
 		}
 		fwdLight.numSpots = ns;
+
+		// Bind the IBL irradiance cube at t4 so forward_pbr's ambient matches the deferred (main)
+		// pass per-scene: bright for VehicleScene's grey studio, dark/moody for MirrorBall's night
+		// env, etc. Black fallback until baked; t4 is otherwise unused by forward geometry.
+		if (IBLBaker* ibl = queue->GetIBLBaker())
+			tableDescHeap->SetSRV(ibl->GetIrradianceSRV(), SRV_REGISTER::t4);
 
 		ShadowMap* sm = queue->GetShadowMap();
 		if (sm)

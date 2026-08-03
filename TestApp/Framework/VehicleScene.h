@@ -55,7 +55,7 @@ private:
         float modelForwardYaw = 0.0f;   // deg added so the model faces +Z (travel direction)
         bool  valid           = false;
     };
-    bool LoadCarModel(const std::filesystem::path& path, float targetLen, CarModel& out);
+    bool LoadCarModel(const std::filesystem::path& path, float targetLen, CarModel& out, bool isEgo = false);
     // Spawns a shared-mesh car instance (root + child meshes); caller sets root position/rotation.
     ZNFramework::ZNObjectHandle SpawnCarInstance(const CarModel& car, const std::string& name, const std::string& tag);
     // Repaints egoCarModel.mats[matIndex] red and restores every other material to its loaded colour

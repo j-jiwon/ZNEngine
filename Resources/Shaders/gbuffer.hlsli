@@ -36,7 +36,6 @@ struct VS_OUT
     float4 color : COLOR;
     float2 uv : TEXCOORD;
     float3 normal : NORMAL;
-    float depth : DEPTH;
 };
 
 struct PS_MRT_OUTPUT
@@ -65,9 +64,6 @@ VS_OUT VS_Main(VS_IN input)
 
     output.color = input.color;
     output.uv = input.uv;
-
-    // Calculate linear depth (0 = near, 1 = far)
-    output.depth = output.pos.z / output.pos.w;
 
     return output;
 }
@@ -122,8 +118,12 @@ PS_MRT_OUTPUT PS_Main(VS_OUT input)
         output.arm = float4(armSample.r, armSample.g, armSample.b, 1.0);
     }
     
-    // Depth (R32_FLOAT only uses .r channel)
-    output.depth = float4(input.depth, 0.0, 0.0, 1.0);
+    // Depth (R32_FLOAT only uses .r channel). Use the rasterizer's screen-space depth (SV_Position.z,
+    // already [0,1] and perspective-correct) rather than interpolating a VS-computed z/w varying —
+    // the latter is garbage for primitives spanning a large depth range (e.g. a 120 m lane line from
+    // behind the camera to past the far plane), which made such geometry read as background and get
+    // overwritten by the skybox resolve.
+    output.depth = float4(input.pos.z, 0.0, 0.0, 1.0);
 
     // World Position
     output.worldPos = float4(input.worldPos, 1.0f);
