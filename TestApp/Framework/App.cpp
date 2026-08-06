@@ -49,14 +49,14 @@ void TestApp::OnInitialize()
     // Eagerly initialise ALL scenes before the first frame so every scene's
     // AddOffscreenCamera() is registered before BuildRenderGraph() runs.
     {
-        auto* s = new VehicleScene();
-        s->Initialize();
-        slots.push_back({ "Vehicle Scene", s });
-    }
-    {
         auto* s = new MirrorBallScene();
         s->Initialize();
         slots.push_back({ "MirrorBall Scene", s });
+    }
+    {
+        auto* s = new VehicleScene();
+        s->Initialize();
+        slots.push_back({ "Vehicle Scene", s });
     }
     {
         auto* s = new TestGameScene();
