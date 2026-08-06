@@ -38,6 +38,16 @@ namespace ZNFramework
 			sLastFrameTriangles = sTriangles; sTriangles = 0;
 			sLastFrameVertices  = sVertices;  sVertices  = 0;
 		}
+
+		// For batched instanced draws (see ZNScene::Render()), which issue one DrawIndexedInstanced
+		// for N objects instead of N calls to Render() — the stats it would have recorded still
+		// need to land somewhere so Stats panel numbers (draw calls, triangles) stay meaningful.
+		static void RecordDrawCall(int triangleCount, int vertexCount)
+		{
+			++sDrawCalls;
+			sTriangles += triangleCount;
+			sVertices  += vertexCount;
+		}
 		static int GetLastFrameDrawCalls() { return sLastFrameDrawCalls; }
 		static int GetLastFrameTriangles()  { return sLastFrameTriangles; }
 		static int GetLastFrameVertices()   { return sLastFrameVertices; }

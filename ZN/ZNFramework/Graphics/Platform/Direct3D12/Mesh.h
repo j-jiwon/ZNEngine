@@ -13,6 +13,7 @@ namespace ZNFramework
 	public:
 		void Init(const vector<Vertex>& vertrexBuffer, const vector<uint32>& indexBuffer) override;
 		void Render() override;
+		void RenderInstanced(const vector<ZNMatrix4>& worldMatrices) override;
 		void RenderShadow(const ZNMatrix4& lightViewProj, ZNShader* shadowShader) override;
 		void SetTransform(const Transform& t) override { worldMatrix = t.GetWorldMatrix(); }
 		void SetWorldMatrix(const ZNMatrix4& world) override { worldMatrix = world; }

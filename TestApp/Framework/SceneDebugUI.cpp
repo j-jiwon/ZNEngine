@@ -432,6 +432,16 @@ void SceneDebugUI::Render(ZNScene* scene)
     ImGui::Text("CPU        %.2f ms", cpuMs);
     ImGui::Text("CPU Use    %.1f%%", cpuUsage);
     ImGui::Text("GPU        %.2f ms", gpuMs);
+    if (ImGui::TreeNode("GPU Passes"))
+    {
+        ZNCommandQueue* cmdQueue = GraphicsContext::GetInstance().GetCommandQueue();
+        if (cmdQueue)
+        {
+            for (const GpuPassTiming& pass : cmdQueue->GetGpuPassTimings())
+                ImGui::Text("%-22s %.3f ms", pass.name.c_str(), pass.ms);
+        }
+        ImGui::TreePop();
+    }
     ImGui::Separator();
     ImGui::Text("Draw Calls %d",    ZNGameObject::GetLastFrameDrawCalls());
     ImGui::Text("Objects    %d / %d", visibleObjs, totalObjs);

@@ -14,12 +14,12 @@ class GraphicsDevice;
 class SwapChain;
 class GBufferManager;
 class DeferredLightingPass;
-class DebugViewportRenderer;
 class ShadowMap;
 class BloomChain;
 class IBLBaker;
 class SkyboxRenderer;
 class ZNCamera;
+class ZNMatrix4;
 namespace Platform::Direct3D { class ImGuiLayer; }
 
 class CommandQueue : public ZNCommandQueue
@@ -39,9 +39,9 @@ public:
     ID3D12GraphicsCommandList* ResourceCommandList()       { return resourceCommandList.Get(); }
 
     float GetGpuFrameTimeMs() const override { return gpuFrameTimeMs; }
+    const std::vector<GpuPassTiming>& GetGpuPassTimings() const override { return passGpuTimings; }
 
     GBufferManager*       GetGBufferManager()    { return gbufferManager; }
-    DebugViewportRenderer* GetDebugViewportRenderer() { return debugViewportRenderer; }
     ShadowMap*            GetShadowMap()         { return shadowMap; }
     RenderTexture*        GetSceneColorRT()      { return sceneColorRT; }
     BloomChain*           GetBloomChain()        { return bloomChain; }
@@ -50,7 +50,6 @@ public:
 
     void SetGBufferManager(GBufferManager* manager)            { gbufferManager = manager; }
     void SetDeferredLightingPass(DeferredLightingPass* pass)   { deferredLightingPass = pass; }
-    void SetDebugViewportRenderer(DebugViewportRenderer* r)    { debugViewportRenderer = r; }
     void SetShadowMap(ShadowMap* shadow)                       { shadowMap = shadow; }
     void SetSceneColorRT(RenderTexture* rt)                    { sceneColorRT = rt; }
     void SetBloomChain(BloomChain* chain)                      { bloomChain = chain; }
@@ -70,6 +69,15 @@ public:
     // Dedicated per-frame upload buffer for forward-pass point lights.
     // Called from Material::Bind() during forward pass rendering.
     D3D12_CPU_DESCRIPTOR_HANDLE UpdateFwdPointLightBuffer(const void* data, uint32 size);
+
+    // Per-frame ring buffer for GBuffer instanced-draw world matrices (see Mesh::RenderInstanced).
+    // Writes `count` row-major float4x4s at the next free offset and returns an SRV over just that
+    // range; offsets never overlap within a frame since the whole command list is recorded before
+    // any of it executes (no frame pipelining), so an earlier batch's region must stay untouched
+    // until the GPU actually reads it.
+    D3D12_CPU_DESCRIPTOR_HANDLE PushInstanceWorlds(const ZNMatrix4* worlds, uint32 count);
+    static constexpr uint32 kInstanceWorldCapacity        = 4096; // total instances/frame, all batches
+    static constexpr uint32 kMaxInstanceBatchesPerFrame    = 32;  // distinct (mesh) batches/frame
 
     // Re-import GBuffer resource pointers after a resize (resources are recreated)
     void RefreshGBufferResources();
@@ -144,7 +152,6 @@ private:
 
     GBufferManager*        gbufferManager       = nullptr;
     DeferredLightingPass*  deferredLightingPass  = nullptr;
-    DebugViewportRenderer* debugViewportRenderer = nullptr;
     ShadowMap*             shadowMap             = nullptr;
     RenderTexture*         sceneColorRT          = nullptr;
     BloomChain*            bloomChain            = nullptr;
@@ -190,11 +197,24 @@ private:
 
     RenderGraph renderGraph;
 
-    // GPU timestamp query
+    // GPU timestamp query (whole frame)
     ComPtr<ID3D12QueryHeap> timestampQueryHeap;
     ComPtr<ID3D12Resource>  timestampReadbackBuffer;
     UINT64 timestampFrequency = 0;
     float  gpuFrameTimeMs     = 0.0f;
+
+    // GPU timestamp query (per RenderGraph pass). Sized once passes are known — right after
+    // BuildRenderGraph() on the first frame — since pass count/order is fixed after that.
+    ComPtr<ID3D12QueryHeap>    passTimestampQueryHeap;
+    ComPtr<ID3D12Resource>     passTimestampReadbackBuffer;
+    std::vector<GpuPassTiming> passGpuTimings;
+
+    // GBuffer instanced-draw world matrix ring buffer (see PushInstanceWorlds).
+    ComPtr<ID3D12Resource>       instanceWorldBuffer;
+    void*                        instanceWorldMapped   = nullptr;
+    ComPtr<ID3D12DescriptorHeap> instanceWorldSrvHeap;  // non-shader-visible; copied via TableDescriptorHeap::SetSRV
+    uint32                       instanceWorldCursor    = 0;
+    uint32                       instanceWorldSrvIndex  = 0;
 };
 
 } // namespace ZNFramework

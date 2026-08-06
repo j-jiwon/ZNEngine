@@ -152,6 +152,48 @@ void Mesh::Render()
 	queue->CommandList()->DrawIndexedInstanced(indexCount, 1, 0, 0, 0);
 }
 
+void Mesh::RenderInstanced(const vector<ZNMatrix4>& worldMatrices)
+{
+    if (worldMatrices.empty())
+        return;
+
+    CommandQueue* queue = GraphicsContext::GetInstance().GetAs<CommandQueue>();
+    queue->CommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    queue->CommandList()->IASetVertexBuffers(0, 1, &vertexBufferView);
+    queue->CommandList()->IASetIndexBuffer(&indexBufferView);
+
+    ZNCamera* camera = GraphicsContext::GetInstance().GetCamera();
+
+    // Matches cbViewProj in gbuffer_instanced.hlsli (no per-draw world — that comes from the
+    // per-instance StructuredBuffer bound at t3 below).
+    struct InstancedTransformCB
+    {
+        ZNMatrix4 view;
+        ZNMatrix4 projection;
+    } xf;
+    xf.view       = camera ? camera->ViewMatrix() : ZNMatrix4();
+    xf.projection = camera ? camera->ProjectionMatrix() : ZNMatrix4();
+
+    ConstantBuffer* constantBuffer = GraphicsContext::GetInstance().GetAs<ConstantBuffer>();
+    TableDescriptorHeap* tableDescHeap = GraphicsContext::GetInstance().GetAs<TableDescriptorHeap>();
+
+    D3D12_CPU_DESCRIPTOR_HANDLE cbHandle = constantBuffer->PushData(0, &xf, sizeof(xf));
+    tableDescHeap->SetCBV(cbHandle, CBV_REGISTER::b0);
+
+    D3D12_CPU_DESCRIPTOR_HANDLE instHandle =
+        queue->PushInstanceWorlds(worldMatrices.data(), static_cast<uint32>(worldMatrices.size()));
+    tableDescHeap->SetSRV(instHandle, SRV_REGISTER::t3);
+
+    // Same material bind as Render() (b1 + t0~t2); GBuffer-mode Material::Bind() skips the shader
+    // bind since the instanced PSO is already bound by the caller (see ZNScene::Render()).
+    if (material)
+        material->Bind();
+
+    tableDescHeap->CommitTable();
+
+    queue->CommandList()->DrawIndexedInstanced(indexCount, static_cast<uint32>(worldMatrices.size()), 0, 0, 0);
+}
+
 void Mesh::SetTexture(ZNTexture* inTexture)
 {
 	texture = dynamic_cast<Texture*>(inTexture);

@@ -51,8 +51,13 @@ public:
     void        AddPass(std::unique_ptr<RenderPass> pass);
     RenderPass* GetPass(const std::string& name);
 
-    // Execute all enabled passes in registration order
-    void Execute(ID3D12GraphicsCommandList* cmd);
+    size_t             GetPassCount() const { return passes.size(); }
+    const std::string& GetPassName(size_t index) const { return passes[index]->GetName(); }
+
+    // Execute all enabled passes in registration order. When queryHeap is non-null, wraps each
+    // pass with a begin/end GPU timestamp query pair at slots [baseQueryIndex + i*2, +i*2+1].
+    void Execute(ID3D12GraphicsCommandList* cmd,
+                 ID3D12QueryHeap* queryHeap = nullptr, UINT baseQueryIndex = 0);
 
 private:
     std::unordered_map<std::string, RGResource> resources;
