@@ -39,6 +39,11 @@ public:
     float GetCarForwardYaw() const { return carModel.modelForwardYaw; }
     ZNFramework::ZNObjectHandle SpawnCarTrack(const std::string& name);
 
+    // Spawns a pedestrian/cyclist as root + body + head (+ frame bar for cyclist) children sharing
+    // classRes' meshes — same "shared mesh, N instances" pattern as SpawnCarInstance. Called by
+    // SceneBinding for every new Pedestrian/Cyclist track.
+    ZNFramework::ZNObjectHandle SpawnHumanoidInstance(Vehicle::ObjectClass cls, const std::string& name, const std::string& tag);
+
 private:
     void BuildClassResources();
     void BuildStaticStage();     // ground plane, ego car, scrolling lane dashes
@@ -58,11 +63,10 @@ private:
     bool LoadCarModel(const std::filesystem::path& path, float targetLen, CarModel& out, bool isEgo = false);
     // Spawns a shared-mesh car instance (root + child meshes); caller sets root position/rotation.
     ZNFramework::ZNObjectHandle SpawnCarInstance(const CarModel& car, const std::string& name, const std::string& tag);
-    // Repaints egoCarModel.mats[matIndex] red and restores every other material to its loaded colour
-    // (from egoBaseMatParams). Material is mesh-bound (ZNGameObject::Render), so this is how a single
-    // shared mesh gets a different colour -- the "Ego Paint" debug panel drives this while the right
-    // body-shell material index is still unknown (asset material order isn't documented anywhere).
-    void ApplyEgoPaint(int matIndex);
+    // Repaints egoCarModel.mats[0] (the body shell) red, restoring every other material to its loaded
+    // colour (from egoBaseMatParams). Material is mesh-bound (ZNGameObject::Render), so this is how a
+    // single shared mesh gets a different colour.
+    void ApplyEgoPaint();
     void UpdateLaneDashes(float scrollDelta);
     void RenderDataSourcePanel(); // mockup: bottom DataSource bar + tracked/latency stats
     void UseSource(Vehicle::IDataSource* src); // swap active source + re-init the interpolator
@@ -79,9 +83,16 @@ private:
     CarModel carModel;      // car_white, plain — shared by Car-class tracks
     CarModel egoCarModel;   // car_white, separate bake — one material gets painted red (ApplyEgoPaint)
     std::vector<ZNFramework::MaterialParams> egoBaseMatParams;  // egoCarModel.mats[i]'s loaded colour
-    int egoPaintMatIndex = 0;   // which material index is currently painted (debug picker, see .cpp)
 
-    struct ClassRes { ZNFramework::ZNMesh* mesh = nullptr; ZNFramework::ZNMaterial* mat = nullptr; };
+    // Car: `mesh` is the plain-cube fallback used when no car model loaded. Pedestrian/Cyclist:
+    // `mesh` is the body (a unit box, also reused for the cyclist's bike-frame bar child — same
+    // material, just a different child transform) and `headMesh` the head — spawned as root+children
+    // (SpawnHumanoidInstance) so they read as a person silhouette instead of a flat box.
+    struct ClassRes {
+        ZNFramework::ZNMesh* mesh     = nullptr;
+        ZNFramework::ZNMaterial* mat  = nullptr;
+        ZNFramework::ZNMesh* headMesh = nullptr;
+    };
     ClassRes classRes[3];   // indexed by static_cast<int>(ObjectClass)
 
     // Scrolling lane dashes (convey ego forward motion while the ego stays at the origin).
