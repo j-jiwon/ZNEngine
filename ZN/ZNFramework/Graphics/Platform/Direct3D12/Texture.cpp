@@ -107,6 +107,10 @@ void Texture::UploadToGPU()
         return;
     }
 
+    CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+        tex2d.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+    queue->ResourceCommandList()->ResourceBarrier(1, &barrier);
+
     queue->FlushResourceQueue();
 }
 
