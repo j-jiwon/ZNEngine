@@ -478,7 +478,7 @@ void ZNScene::AddCubemapCapture(const ZNVector3& position, float nearZ, float fa
 void ZNScene::SetEnvCubemapTexture(const std::wstring& panoramaPath, uint32 faceSize)
 {
 	auto* cubeTex = new EquirectCubeTexture();
-	cubeTex->Init(panoramaPath, faceSize);
+	cubeTex->Init(panoramaPath, faceSize, true);
 
 	ownedEnvCubemapSRV = cubeTex->GetSRVCpuHandle();
 	hasOwnedEnvCubemap = true;
@@ -496,7 +496,7 @@ void ZNScene::ApplyEnvCubemap()
 void ZNScene::SetSkyboxTexture(const std::wstring& panoramaPath, uint32 faceSize)
 {
 	auto* cubeTex = new EquirectCubeTexture();
-	cubeTex->Init(panoramaPath, faceSize);
+	cubeTex->Init(panoramaPath, faceSize, true);
 
 	ownedSkyboxSRV = cubeTex->GetSRVCpuHandle();
 	hasOwnedSkybox = true;

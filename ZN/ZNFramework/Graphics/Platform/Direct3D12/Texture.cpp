@@ -30,19 +30,19 @@ namespace ZNFramework::Platform::Direct3D
 	}
 }
 
-void Texture::Init(const std::wstring& path)
+void Texture::Init(const std::wstring& path, bool srgb)
 {
 	CreateTexture(path);
-    CreateView(std::filesystem::path(path).string());
+    CreateView(std::filesystem::path(path).string(), srgb);
 }
 
-void Texture::InitFromMemory(const void* data, size_t size)
+void Texture::InitFromMemory(const void* data, size_t size, bool srgb)
 {
 	const std::string source = "<embedded texture>";
 	const HRESULT hr = ::LoadFromWICMemory(reinterpret_cast<const uint8_t*>(data), size, WIC_FLAGS_NONE, nullptr, image);
 	if (FAILED(hr)) ThrowTextureFailure("decode", source, hr);
 	UploadToGPU(source);
-	CreateView(source);
+	CreateView(source, srgb);
 }
 
 void Texture::InitSolidColor(uint8 r, uint8 g, uint8 b, uint8 a)
@@ -52,7 +52,7 @@ void Texture::InitSolidColor(uint8 r, uint8 g, uint8 b, uint8 a)
 	uint8_t* pixels = image.GetPixels();
 	pixels[0] = r; pixels[1] = g; pixels[2] = b; pixels[3] = a;
 	UploadToGPU("<solid-color texture>");
-	CreateView("<solid-color texture>");
+	CreateView("<solid-color texture>", false);
 }
 
 void Texture::CreateTexture(const std::wstring& path)
@@ -127,7 +127,7 @@ void Texture::UploadToGPU(const std::string& source)
     queue->FlushResourceQueue();
 }
 
-void Texture::CreateView(const std::string& source)
+void Texture::CreateView(const std::string& source, bool srgb)
 {
 	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
 	srvHeapDesc.NumDescriptors = 1;
@@ -140,7 +140,7 @@ void Texture::CreateView(const std::string& source)
 	srvHandle = srvHeap->GetCPUDescriptorHandleForHeapStart();
 
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-	srvDesc.Format = image.GetMetadata().format;
+	srvDesc.Format = srgb ? DirectX::MakeSRGB(image.GetMetadata().format) : image.GetMetadata().format;
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.Texture2D.MipLevels = 1;

@@ -60,7 +60,7 @@ void SampleBilinear(const uint8_t* src, uint32 srcW, uint32 srcH, uint32 srcRowP
 
 } // namespace
 
-void EquirectCubeTexture::Init(const std::wstring& path, uint32 faceSize)
+void EquirectCubeTexture::Init(const std::wstring& path, uint32 faceSize, bool srgb)
 {
     ScratchImage srcLoaded;
     ThrowIfFailed(::LoadFromWICFile(path.c_str(), WIC_FLAGS_NONE, nullptr, srcLoaded));
@@ -160,7 +160,7 @@ void EquirectCubeTexture::Init(const std::wstring& path, uint32 faceSize)
     srvHandle = srvHeap->GetCPUDescriptorHandleForHeapStart();
 
     D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-    srvDesc.Format = cubeImage.GetMetadata().format;
+    srvDesc.Format = srgb ? DirectX::MakeSRGB(cubeImage.GetMetadata().format) : cubeImage.GetMetadata().format;
     srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
     srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
     srvDesc.TextureCube.MipLevels = 1;

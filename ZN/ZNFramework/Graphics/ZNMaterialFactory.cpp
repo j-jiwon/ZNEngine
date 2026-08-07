@@ -38,11 +38,12 @@ namespace ZNFramework
 		for (size_t i = 0; i < static_cast<size_t>(TextureType::Count); ++i)
 		{
 			std::unique_ptr<ZNTexture> tex;
+			const bool srgb = (static_cast<TextureType>(i) == TextureType::Albedo);
 
 			if (!matData.embeddedTextureData[i].empty())
 			{
 				tex.reset(Platform::CreateTexture());
-				tex->InitFromMemory(matData.embeddedTextureData[i].data(), matData.embeddedTextureData[i].size());
+				tex->InitFromMemory(matData.embeddedTextureData[i].data(), matData.embeddedTextureData[i].size(), srgb);
 			}
 			else if (!matData.texturePaths[i].empty())
 			{
@@ -52,7 +53,7 @@ namespace ZNFramework
 						std::filesystem::path(matData.texturePaths[i]).string());
 				}
 				tex.reset(Platform::CreateTexture());
-				tex->Init(matData.texturePaths[i]);
+				tex->Init(matData.texturePaths[i], srgb);
 			}
 
 			if (tex)

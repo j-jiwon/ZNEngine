@@ -7,15 +7,15 @@ namespace ZNFramework
 	class Texture : public ZNTexture
 	{
 	public:
-		void Init(const std::wstring& path) override;
-		void InitFromMemory(const void* data, size_t size) override;
+		void Init(const std::wstring& path, bool srgb) override;
+		void InitFromMemory(const void* data, size_t size, bool srgb) override;
 		void InitSolidColor(uint8 r, uint8 g, uint8 b, uint8 a) override;
 		D3D12_CPU_DESCRIPTOR_HANDLE GetCpuHandle() { return srvHandle; }
 
 	private:
 		void CreateTexture(const std::wstring& path);
 		void UploadToGPU(const std::string& source);
-		void CreateView(const std::string& source);
+		void CreateView(const std::string& source, bool srgb);
 
 	private:
 		DirectX::ScratchImage image;
