@@ -155,6 +155,13 @@ inline std::filesystem::path GetExecutablePath()
 
 inline std::filesystem::path GetResourcePath()
 {
-	std::filesystem::path ResourcePath = GetExecutablePath().parent_path().parent_path() / L"Resources";
-	return ResourcePath;
+	// Packaged layout: TestApp.exe and Resources/ sit side by side.
+	std::filesystem::path packagedPath = GetExecutablePath() / L"Resources";
+	if (std::filesystem::exists(packagedPath))
+	{
+		return packagedPath;
+	}
+
+	// Dev layout: exe lives under Build/$(Platform)_$(Configuration)/, Resources/ is at repo root.
+	return GetExecutablePath().parent_path().parent_path() / L"Resources";
 }

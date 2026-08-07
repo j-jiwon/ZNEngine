@@ -2,11 +2,20 @@
 #include "ZNSwapChain.h"
 #include "ViewMode.h"
 #include <functional>
+#include <string>
+#include <vector>
 
 struct ID3D12DescriptorHeap;
 
 namespace ZNFramework
 {
+	// Per-RenderGraph-pass GPU timing, one entry per registered pass (see RenderGraph).
+	struct GpuPassTiming
+	{
+		std::string name;
+		float       ms = 0.0f;
+	};
+
 	class ZNWindow;
 	class ZNSwapChain;
 	class ZNCommandQueue
@@ -22,6 +31,11 @@ namespace ZNFramework
 		virtual void WaitSync() = 0;
 
 		virtual float GetGpuFrameTimeMs() const { return 0.0f; }
+		virtual const std::vector<GpuPassTiming>& GetGpuPassTimings() const
+		{
+			static const std::vector<GpuPassTiming> empty;
+			return empty;
+		}
 
 		void SetForwardRenderCallback(std::function<void()> callback) { forwardRenderCallback = callback; }
 		void SetImGuiRenderCallback(std::function<void()> callback) { imguiRenderCallback = callback; }

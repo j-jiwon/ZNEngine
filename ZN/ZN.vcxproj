@@ -223,7 +223,6 @@
     <ClInclude Include="ZNFramework.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\DDSTextureLoader12.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\DepthStencilBuffer.h" />
-    <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\DebugViewportRenderer.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\DeferredLightingPass.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\BloomChain.h" />
     <ClInclude Include="ZNFramework\Graphics\Platform\Direct3D12\IBLBaker.h" />
@@ -325,7 +324,6 @@
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\ConstantBuffer.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\DDSTextureLoader12.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\DepthStencilBuffer.cpp" />
-    <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\DebugViewportRenderer.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\DeferredLightingPass.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\BloomChain.cpp" />
     <ClCompile Include="ZNFramework\Graphics\Platform\Direct3D12\IBLBaker.cpp" />

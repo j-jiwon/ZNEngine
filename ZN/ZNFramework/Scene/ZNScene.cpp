@@ -6,6 +6,8 @@
 #include "../Graphics/ZNMaterial.h"
 #include "../Graphics/ZNMaterialParams.h"
 #include "../Graphics/ZNMaterialFactory.h"
+#include "../Graphics/ZNMesh.h"
+#include "../Graphics/ZNShader.h"
 #include "../Graphics/Platform/Direct3D12/CommandQueue.h"
 #include "../Graphics/Platform/Direct3D12/RenderTexture.h"
 #include "../Graphics/Platform/Direct3D12/CubeRenderTexture.h"
@@ -52,7 +54,72 @@ void ZNScene::Render()
 {
 	// Runs inside GBufferPass, before DeferredLightingPass/ForwardRenderPass read the context.
 	SyncGraphicsContext();
-	ForEachLiveObject(false, [](ZNGameObject* obj) { obj->Render(); });  // deferred (opaque)
+
+	GraphicsContext& ctx = GraphicsContext::GetInstance();
+	ZNCommandQueue* cq = ctx.GetCommandQueue();
+	ZNShader* instancedShader = ctx.GetGBufferInstancedShader();
+
+	// Wireframe's per-object selection highlight can't be expressed by a shared instanced draw
+	// (one draw = one material/CB for every instance in it), so skip batching in that view mode.
+	if (!instancedShader || (cq && cq->GetViewMode() == ViewMode::Wireframe))
+	{
+		ForEachLiveObject(false, [](ZNGameObject* obj) { obj->Render(); });
+		return;
+	}
+
+	// Group opaque objects that share a Mesh (already 1:1 with Material in this codebase — see
+	// SceneBinding::Apply / VehicleScene::SpawnCarInstance, both hand every instance the SAME
+	// shared Mesh*) into a single instanced draw each; anything with a unique Mesh (Ground, EGO,
+	// other scenes' one-off objects) falls back to the normal per-object path unchanged.
+	std::unordered_map<ZNMesh*, std::vector<ZNGameObject*>> byMesh;
+	ForEachLiveObject(false, [&](ZNGameObject* obj) {
+		if (obj->IsVisible() && obj->GetMesh())
+			byMesh[obj->GetMesh()].push_back(obj);
+	});
+
+	std::vector<std::pair<ZNMesh*, std::vector<ZNGameObject*>>> batched;
+	std::vector<ZNGameObject*> singles;
+	for (auto& [meshPtr, objs] : byMesh)
+	{
+		if (objs.size() >= 2)
+			batched.emplace_back(meshPtr, std::move(objs));
+		else
+			for (ZNGameObject* obj : objs) singles.push_back(obj);
+	}
+
+	// Draw every batch first, all under one PSO bind...
+	if (!batched.empty())
+	{
+		instancedShader->Bind();
+
+		std::vector<ZNMatrix4> worldMatrices;
+		for (auto& [meshPtr, objs] : batched)
+		{
+			worldMatrices.clear();
+			worldMatrices.reserve(objs.size());
+			for (ZNGameObject* obj : objs)
+				worldMatrices.push_back(obj->GetWorldMatrix());
+
+			meshPtr->RenderInstanced(worldMatrices);
+
+			ZNGameObject::RecordDrawCall(
+				static_cast<int>(meshPtr->GetIndexCount() / 3) * static_cast<int>(objs.size()),
+				static_cast<int>(meshPtr->GetVertexCount()) * static_cast<int>(objs.size()));
+		}
+	}
+
+	// ...then restore the normal GBuffer PSO before the per-object path, which (via
+	// Material::Bind()) assumes it's already bound and never rebinds it itself in MRT mode.
+	if (!singles.empty())
+	{
+		if (!batched.empty())
+		{
+			ZNShader* normalShader = ctx.GetGBufferShader();
+			if (normalShader) normalShader->Bind();
+		}
+		for (ZNGameObject* obj : singles)
+			obj->Render();
+	}
 }
 
 void ZNScene::RenderShadow(const ZNMatrix4& lightViewProj, ZNShader* shadowShader)

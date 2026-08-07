@@ -138,6 +138,8 @@ void VehicleScene::FinishRecording()
 void VehicleScene::BuildClassResources()
 {
     // One unit cube (edge 1: CreateCube(0.5) spans -0.5..0.5) per class, its class material bound.
+    // Car's is the plain-cube fallback (no car model loaded); Pedestrian/Cyclist's is the body box,
+    // scaled/positioned per-instance in SpawnHumanoidInstance to read as a person, not a flat box.
     struct Def { ObjectClass cls; ZNVector4 color; float metallic; float roughness; } defs[] = {
         { ObjectClass::Car,        ZNVector4(0.10f, 0.68f, 0.60f, 1.0f), 0.1f, 0.45f }, // teal
         { ObjectClass::Pedestrian, ZNVector4(0.95f, 0.45f, 0.35f, 1.0f), 0.0f, 0.75f }, // coral
@@ -155,7 +157,60 @@ void VehicleScene::BuildClassResources()
         r.mesh = mesh;
         ownedMaterials.push_back(mat);
         ownedMeshes.push_back(mesh);
+
+        if (d.cls == ObjectClass::Pedestrian || d.cls == ObjectClass::Cyclist)
+        {
+            ZNMesh* head = ZNMeshFactory::CreateSphere(0.5f);
+            head->SetMaterial(mat);
+            r.headMesh = head;
+            ownedMeshes.push_back(head);
+        }
     }
+}
+
+// Spawns a pedestrian/cyclist as root + body + head (+ a bike-frame bar for cyclist, reusing the
+// body mesh/material) — same "shared mesh, N instances" pattern as SpawnCarInstance, so GBuffer
+// instancing batches every pedestrian/cyclist part the same way it batches car parts.
+ZNObjectHandle VehicleScene::SpawnHumanoidInstance(ObjectClass cls, const std::string& name, const std::string& tag)
+{
+    const ClassRes& r = classRes[static_cast<int>(cls)];
+    const bool isCyclist = (cls == ObjectClass::Cyclist);
+
+    ZNGameObject* root = new ZNGameObject();
+    root->SetName(name);
+    root->SetTag(tag);
+    ZNObjectHandle rootHandle = AddGameObject(root);
+
+    auto addPart = [&](ZNMesh* mesh, ZNVector3 pos, ZNVector3 rot, ZNVector3 scale, const char* partName)
+    {
+        ZNGameObject* part = new ZNGameObject();
+        part->SetMesh(mesh);
+        part->SetMaterial(r.mat);
+        part->SetName(name + partName);
+        part->SetTag("HumanoidPart");
+        part->SetCastShadow(true);
+        part->GetTransform().position = pos;
+        part->GetTransform().rotation = rot;
+        part->GetTransform().scale    = scale;
+        root->AddChild(part);
+        AddGameObject(part);
+    };
+
+    if (isCyclist)
+    {
+        // Leaning-forward rider: tilted torso + head carried forward with it, plus a low horizontal
+        // bar standing in for the bike frame/wheels so the silhouette doesn't read as just a person.
+        addPart(r.mesh,     ZNVector3(0.0f, 0.85f, 0.05f), ZNVector3(-20.0f, 0.0f, 0.0f), ZNVector3(0.35f, 1.0f, 0.3f),  "_body");
+        addPart(r.headMesh, ZNVector3(0.0f, 1.48f, 0.28f), ZNVector3(0.0f, 0.0f, 0.0f),             ZNVector3(0.4f,  0.4f, 0.4f),  "_head");
+        addPart(r.mesh,     ZNVector3(0.0f, 0.42f, 0.0f),  ZNVector3(0.0f, 0.0f, 0.0f),             ZNVector3(0.18f, 0.18f, 1.3f), "_frame");
+    }
+    else
+    {
+        addPart(r.mesh,     ZNVector3(0.0f, 0.65f, 0.0f), ZNVector3(0.0f, 0.0f, 0.0f), ZNVector3(0.4f,  1.3f, 0.35f), "_body");
+        addPart(r.headMesh, ZNVector3(0.0f, 1.52f, 0.0f), ZNVector3(0.0f, 0.0f, 0.0f), ZNVector3(0.44f, 0.44f, 0.44f), "_head");
+    }
+
+    return rootHandle;
 }
 
 // Load a low-poly car glb into shared meshes/materials + a fit transform. Vertices are pre-baked
@@ -260,17 +315,15 @@ ZNObjectHandle VehicleScene::SpawnCarTrack(const std::string& name)
     return SpawnCarInstance(carModel, name, "Track");
 }
 
-void VehicleScene::ApplyEgoPaint(int matIndex)
+void VehicleScene::ApplyEgoPaint()
 {
     if (!egoCarModel.valid) return;
-    matIndex = (std::max)(0, (std::min)(matIndex, static_cast<int>(egoCarModel.mats.size()) - 1));
-    egoPaintMatIndex = matIndex;
 
     static const ZNVector4 kEgoPaint(0.75f, 0.06f, 0.05f, 1.0f);
     for (size_t i = 0; i < egoCarModel.mats.size(); ++i)
     {
         MaterialParams p = egoBaseMatParams[i];
-        if (static_cast<int>(i) == matIndex) p.albedoColor = kEgoPaint;
+        if (i == 0) p.albedoColor = kEgoPaint;   // mat[0] is the body shell
         egoCarModel.mats[i]->SetParams(p);
     }
 }
@@ -294,7 +347,7 @@ void VehicleScene::BuildStaticStage()
     AddGameObject(ground);
 
     // --- Car model (car_white): plain copy for Car-class tracks, a second copy for the ego (its
-    // body-shell material gets painted red -- see ApplyEgoPaint / the "Ego Paint" debug panel) ---
+    // body-shell material gets painted red -- see ApplyEgoPaint) ---
     LoadCarModel(GetResourcePath() / L"Models" / L"car_white.glb", Vehicle::SyntheticSource::kEgoLen, carModel);
     LoadCarModel(GetResourcePath() / L"Models" / L"car_white.glb", Vehicle::SyntheticSource::kEgoLen, egoCarModel, true);
     if (egoCarModel.valid)
@@ -305,7 +358,7 @@ void VehicleScene::BuildStaticStage()
         ego = Resolve(SpawnCarInstance(egoCarModel, "EGO", "Ego"));
         ego->GetTransform().position = ZNVector3(Vehicle::SyntheticSource::kEgoLaneX, egoCarModel.groundLift, 0.0f);
         ego->GetTransform().rotation = ZNVector3(0.0f, egoCarModel.modelForwardYaw, 0.0f); // face +Z (forward)
-        ApplyEgoPaint(egoPaintMatIndex);
+        ApplyEgoPaint();
     }
     else
     {
@@ -422,8 +475,11 @@ void VehicleScene::BuildSurroundViews()
 
     addSurround("Front", ZNVector3(egoX,        eyeY,  2.8f), -10.0f,   0.0f); // +Z
     addSurround("Rear",  ZNVector3(egoX,        eyeY, -2.8f), -10.0f, 180.0f); // -Z
-    addSurround("Left",  ZNVector3(egoX - 1.3f, eyeY,  0.0f), -12.0f, -90.0f); // -X
-    addSurround("Right", ZNVector3(egoX + 1.3f, eyeY,  0.0f), -12.0f,  90.0f); // +X
+    // Steeper pitch than Front/Rear: looking near-side-on with a shallow tilt put most of the frame
+    // in the flat grey background (no skybox in this scene) with only a thin strip of road at the
+    // bottom. Tilting further down fills the frame with pavement/lane markings instead.
+    addSurround("Left",  ZNVector3(egoX - 1.3f, eyeY,  0.0f), -35.0f, -90.0f); // -X
+    addSurround("Right", ZNVector3(egoX + 1.3f, eyeY,  0.0f), -35.0f,  90.0f); // +X
 
     // Bird's-eye: orthographic, straight down. SetView (explicit up) sidesteps the pitch=-90
     // gimbal in the pitch/yaw path; image "up" = +Z = ego forward.
@@ -559,6 +615,22 @@ void VehicleScene::RenderDataSourcePanel()
     ImGui::SetNextWindowSize(ImVec2(330.0f, 0.0f), ImGuiCond_FirstUseEver);
     ImGui::Begin("Vehicle");
 
+    // --- Class legend: color -> class, so a first-time viewer doesn't have to guess the code. ---
+    if (ImGui::CollapsingHeader("Legend", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        auto swatch = [](const char* label, ZNVector4 color)
+        {
+            ImGui::ColorButton((std::string("##") + label).c_str(), ImVec4(color.x, color.y, color.z, 1.0f),
+                                ImGuiColorEditFlags_NoTooltip, ImVec2(14.0f, 14.0f));
+            ImGui::SameLine();
+            ImGui::TextUnformatted(label);
+        };
+        swatch("Ego",        ZNVector4(0.75f, 0.06f, 0.05f, 1.0f)); ImGui::SameLine(0.0f, 20.0f);
+        swatch("Car",        ZNVector4(0.10f, 0.68f, 0.60f, 1.0f)); ImGui::SameLine(0.0f, 20.0f);
+        swatch("Pedestrian", ZNVector4(0.95f, 0.45f, 0.35f, 1.0f));
+        swatch("Cyclist",    ZNVector4(0.95f, 0.62f, 0.15f, 1.0f));
+    }
+
     // --- Surround View section (multi-camera, stage 4) ---
     // Turn each surround RT into an ImGui thumbnail via the shared ImGui layer (same machinery as
     // the engine's GBuffer preview). Slots 1-6 are the GBuffer channels, so start at 7.
@@ -585,22 +657,6 @@ void VehicleScene::RenderDataSourcePanel()
                 if (!secondInRow && !lastItem) ImGui::SameLine();
             }
         }
-    }
-
-    // --- Ego Paint (debug): click a swatch to find which material index is the body shell ---
-    if (!egoBaseMatParams.empty() && ImGui::CollapsingHeader("Ego Paint", ImGuiTreeNodeFlags_DefaultOpen))
-    {
-        for (int i = 0; i < static_cast<int>(egoBaseMatParams.size()); ++i)
-        {
-            const auto& c = egoBaseMatParams[i].albedoColor;
-            ImGui::PushID(i);
-            if (ImGui::ColorButton("##swatch", ImVec4(c.x, c.y, c.z, 1.0f), 0, ImVec2(22.0f, 22.0f)))
-                ApplyEgoPaint(i);
-            ImGui::PopID();
-            const bool lastItem = (i + 1 == static_cast<int>(egoBaseMatParams.size()));
-            if (!lastItem) ImGui::SameLine();
-        }
-        ImGui::Text("Painted: mat[%d]", egoPaintMatIndex);
     }
 
     // --- DataSource section ---

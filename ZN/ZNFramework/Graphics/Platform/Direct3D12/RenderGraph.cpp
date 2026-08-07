@@ -40,10 +40,19 @@ RenderPass* RenderGraph::GetPass(const std::string& name) {
     return nullptr;
 }
 
-void RenderGraph::Execute(ID3D12GraphicsCommandList* cmd) {
-    for (auto& pass : passes)
-        if (pass->IsEnabled())
-            pass->Execute(cmd, *this);
+void RenderGraph::Execute(ID3D12GraphicsCommandList* cmd, ID3D12QueryHeap* queryHeap, UINT baseQueryIndex) {
+    for (size_t i = 0; i < passes.size(); ++i) {
+        auto& pass = passes[i];
+        if (!pass->IsEnabled()) continue;
+
+        if (queryHeap)
+            cmd->EndQuery(queryHeap, D3D12_QUERY_TYPE_TIMESTAMP, baseQueryIndex + static_cast<UINT>(i) * 2);
+
+        pass->Execute(cmd, *this);
+
+        if (queryHeap)
+            cmd->EndQuery(queryHeap, D3D12_QUERY_TYPE_TIMESTAMP, baseQueryIndex + static_cast<UINT>(i) * 2 + 1);
+    }
 }
 
 } // namespace ZNFramework

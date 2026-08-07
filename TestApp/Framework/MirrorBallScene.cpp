@@ -50,7 +50,9 @@ void MirrorBallScene::Initialize()
         spotLights[i]->SetColor(kLights[i].color);
         spotLights[i]->SetIntensity(kLights[i].intensity);
         spotLights[i]->SetAmbientIntensity(0.5f);
-        spotLights[i]->SetCutoffAngle(5.f, 10.f);
+        // Wide enough to cover both the mirror ball and Monster, so both register a nonzero
+        // coneFactor in ComputeDiscoCaustics.
+        spotLights[i]->SetCutoffAngle(12.f, 24.f);
         spotLights[i]->SetAttenuation(1.f, 0.045f, 0.0075f);
         AddSpotLight(spotLights[i]);
     }
@@ -143,6 +145,12 @@ void MirrorBallScene::Initialize()
                         if (lum < 0.05f)
                             albedo = ZNVector4(0.8f, 0.75f, 0.70f, 1.0f); // fallback warm-white
                     }
+
+                    // Disco-ball skin: metallic/roughness close to MirrorBall's so Monster's own
+                    // surface reflects the shared env cubemap too, not just the glints it scatters
+                    // onto the room via ComputeDiscoCaustics.
+                    patched.params.metallic  = 0.9f;
+                    patched.params.roughness = 0.3f;
 
                     monster.materials.push_back(ZNMaterialFactory::CreatePBRFromData(defaultShader, patched));
                 }
@@ -340,6 +348,11 @@ void MirrorBallScene::Update(float deltaTime)
     for (auto* obj : glassBall.objects)
         obj->GetTransform().rotation.y -= 20.f * deltaTime;
 
+    // Rotates the whole model (children inherit root's world transform) and is the same value the
+    // Outliner/Inspector shows for "Monster" and that the DiscoSource below scatters light with.
+    if (monster.root)
+        monster.root->GetTransform().rotation.y += 20.f * deltaTime;
+
     // Register the two reflecting bodies as disco sources each frame (their live center +
     // rotation). The deferred lighting pass (ComputeDiscoCaustics) scatters every spotlight
     // off them onto the room per-pixel, so color/intensity/spin-speed changes track live.
@@ -348,20 +361,20 @@ void MirrorBallScene::Update(float deltaTime)
     if (!mirrorBall.objects.empty())
     {
         DiscoSource ball;
-        ball.center       = mirrorBall.objects[0]->GetTransform().position;
-        ball.rotationYDeg = mirrorBall.objects[0]->GetTransform().rotation.y;
-        ball.facetGridN   = 22.f; // many small facets -> fine sweeping speckle
-        ball.brightness   = 1.0f;
+        ball.center      = mirrorBall.objects[0]->GetTransform().position;
+        ball.rotationDeg = mirrorBall.objects[0]->GetTransform().rotation;
+        ball.facetGridN  = 22.f; // many small facets -> fine sweeping speckle
+        ball.brightness  = 1.0f;
         discoSources.push_back(ball);
     }
-    if (!monster.objects.empty())
+    if (monster.root)
     {
         // Monster's mirror tiles cluster up near its head, above the model's pivot.
         DiscoSource mon;
-        mon.center       = monster.objects[0]->GetTransform().position + ZNVector3(0.f, 0.3f, 0.f);
-        mon.rotationYDeg = monster.objects[0]->GetTransform().rotation.y; // static (monster doesn't spin)
-        mon.facetGridN   = 10.f; // fewer, larger tiles than the ball
-        mon.brightness   = 0.6f;
+        mon.center      = monster.root->GetTransform().position + ZNVector3(0.f, 0.3f, 0.f);
+        mon.rotationDeg = monster.root->GetTransform().rotation;
+        mon.facetGridN  = 10.f; // fewer, larger tiles than the ball
+        mon.brightness  = 0.6f;
         discoSources.push_back(mon);
     }
 

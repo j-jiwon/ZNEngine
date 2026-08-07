@@ -9,10 +9,10 @@
 struct DiscoSourceData
 {
     float3 center;        // world-space center of the reflecting body
-    float  rotationYDeg;  // current Y-rotation (deg); drives the glint sweep
     float  facetGridN;    // facet grid resolution (cells per lat/long axis)
+    float3 rotationDeg;   // current X/Y/Z rotation (deg); must match Transform::rotation's
+                           // Rx*Ry*Rz composition order (ZNTransform.h)
     float  brightness;    // overall intensity multiplier
-    float2 _pad;
 };
 
 struct SpotLightData
@@ -261,6 +261,22 @@ float DiscoHash(float2 c)
     return frac(sin(dot(c, float2(127.1f, 311.7f))) * 43758.5453f);
 }
 
+// Builds the same Rx*Ry*Rz rotation matrix as Transform::GetWorldMatrix() (ZNTransform.h). Callers
+// use mul(M, v) to apply its inverse (world->local) without an explicit transpose: for a rotation
+// matrix, mul(M,v) with v as a column vector equals v * transpose(M).
+float3x3 EulerXYZToMatrix3(float3 rotDeg)
+{
+    float cx = cos(radians(rotDeg.x)), sx = sin(radians(rotDeg.x));
+    float cy = cos(radians(rotDeg.y)), sy = sin(radians(rotDeg.y));
+    float cz = cos(radians(rotDeg.z)), sz = sin(radians(rotDeg.z));
+
+    float3x3 Rx = float3x3(1, 0, 0,     0, cx, -sx,   0, sx, cx);
+    float3x3 Ry = float3x3(cy, 0, -sy,  0, 1, 0,      sy, 0, cy);
+    float3x3 Rz = float3x3(cz, -sz, 0,  sz, cz, 0,    0, 0, 1);
+
+    return mul(mul(Rx, Ry), Rz);
+}
+
 float3 ComputeDiscoCaustics(float3 worldPos, float3 N)
 {
     float3 result = float3(0.0f, 0.0f, 0.0f);
@@ -284,10 +300,8 @@ float3 ComputeDiscoCaustics(float3 worldPos, float3 N)
         // Beam distance falloff (keeps far glints from over-brightening).
         float atten = 1.0f / (1.0f + 2.0f * pixelDist * pixelDist);
 
-        // Undo the body's Y spin so facets are evaluated in its local frame.
-        float ang = -radians(disco.rotationYDeg);
-        float ca = cos(ang);
-        float sa = sin(ang);
+        // Undo the body's full XYZ spin so facets are evaluated in its local frame.
+        float3x3 discoRotInv = EulerXYZToMatrix3(disco.rotationDeg); // see mul(M,v) note above
 
         for (int i = 0; i < numSpotLights; ++i)
         {
@@ -300,8 +314,8 @@ float3 ComputeDiscoCaustics(float3 worldPos, float3 N)
             if (dot(h, dirToLight) <= 0.0f || dot(h, d) <= 0.0f)
                 continue;
 
-            // Rotate the required normal into the body's local frame (Y-axis spin).
-            float3 hLocal = float3(h.x * ca + h.z * sa, h.y, -h.x * sa + h.z * ca);
+            // Rotate the required normal into the body's local frame (full X/Y/Z spin).
+            float3 hLocal = mul(discoRotInv, h);
 
             // Snap to a lat/long facet grid; distance to the nearest facet center = glint.
             float phi   = atan2(hLocal.z, hLocal.x);              // [-PI, PI]

@@ -17,7 +17,6 @@
 #include "ZNFramework/Graphics/Platform/Direct3D12/IBLBaker.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/SkyboxRenderer.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/DeferredLightingPass.h"
-#include "ZNFramework/Graphics/Platform/Direct3D12/DebugViewportRenderer.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/ShadowMap.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/DirectionalLight.h"
 #include "ZNFramework/Scene/ZNScene.h"
@@ -184,6 +183,30 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
         GraphicsContext::GetInstance().SetGBufferShader(gbufferShader);
     }
 
+    // Load instanced G-Buffer shader (world matrix from a per-instance StructuredBuffer instead of
+    // cbTransform — see ZNScene::Render() batching). Same MRT layout as the regular GBuffer shader.
+    {
+        gbufferInstancedShader = ZNFramework::Platform::CreateShader();
+        std::filesystem::path shaderPath = GetResourcePath() / L"Shaders" / L"gbuffer_instanced.hlsli";
+        gbufferInstancedShader->Load(shaderPath);
+
+        DXGI_FORMAT mrtFormats[5] = {
+            DXGI_FORMAT_R8G8B8A8_UNORM,      // 0 Base Color
+            DXGI_FORMAT_R16G16B16A16_FLOAT,  // 1 World Normal
+            DXGI_FORMAT_R32_FLOAT,           // 2 Depth copy
+            DXGI_FORMAT_R16G16B16A16_FLOAT,  // 3 World Position
+            DXGI_FORMAT_R8G8B8A8_UNORM       // 4 ARM (AO / Roughness / Metallic)
+        };
+
+        Shader* d3dShader = dynamic_cast<Shader*>(gbufferInstancedShader);
+        if (d3dShader)
+        {
+            d3dShader->SetRenderTargetFormats(5, mrtFormats);
+        }
+
+        GraphicsContext::GetInstance().SetGBufferInstancedShader(gbufferInstancedShader);
+    }
+
     // Load tone mapping shader (HDR SceneColor -> LDR BackBuffer: ACES + gamma)
     {
         ZNShader* toneMapShader = ZNFramework::Platform::CreateShader();
@@ -194,7 +217,7 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
         GraphicsContext::GetInstance().SetToneMapShader(toneMapShader);
     }
 
-    // Initialize G-Buffer and Debug Viewport Renderer after SwapChain is ready
+    // Initialize G-Buffer after SwapChain is ready
     // This must be done after OnResize to ensure proper dimensions
     CommandQueue* cmdQueue = dynamic_cast<CommandQueue*>(commandQueue);
     if (cmdQueue)
@@ -208,12 +231,6 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
         DeferredLightingPass* lightingPass = new DeferredLightingPass();
         lightingPass->Init();
         cmdQueue->SetDeferredLightingPass(lightingPass);
-
-        // Initialize Debug Viewport Renderer (disabled — replaced by ImGui GBuffer Preview)
-        DebugViewportRenderer* debugViewport = new DebugViewportRenderer();
-        debugViewport->Init();
-        debugViewport->SetEnabled(false);
-        cmdQueue->SetDebugViewportRenderer(debugViewport);
 
         // Initialize Shadow Map (2048x2048)
         ShadowMap* shadowMap = new ShadowMap();
@@ -262,7 +279,6 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
         // Register GBuffer SRVs as ImGui textures for debug windows
         GBufferManager* gbufferMgr = d3dCmdQueue->GetGBufferManager();
         ShadowMap* shadowMapPtr    = d3dCmdQueue->GetShadowMap();
-        DebugViewportRenderer* debugRenderer = d3dCmdQueue->GetDebugViewportRenderer();
 
         const bool hasShadow = (shadowMapPtr != nullptr);
 

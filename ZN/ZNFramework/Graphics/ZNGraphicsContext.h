@@ -23,7 +23,7 @@ namespace ZNFramework
     struct DiscoSource
     {
         ZNVector3 center;               // world-space center of the reflecting body
-        float     rotationYDeg = 0.f;   // current Y-rotation (deg); drives the glint sweep
+        ZNVector3 rotationDeg;          // current X/Y/Z rotation (deg); drives the glint sweep
         float     facetGridN   = 16.f;  // facet grid resolution (cells per lat/long axis)
         float     brightness   = 1.f;   // overall intensity multiplier
     };
@@ -119,6 +119,11 @@ namespace ZNFramework
         void SetGBufferShader(ZNShader* inShader) { gbufferShader = inShader; }
         ZNShader* GetGBufferShader() const { return gbufferShader; }
 
+        // Instanced GBuffer variant (world matrix comes from a per-instance StructuredBuffer
+        // instead of cbTransform) — used by ZNScene::Render() to batch objects that share a Mesh.
+        void SetGBufferInstancedShader(ZNShader* inShader) { gbufferInstancedShader = inShader; }
+        ZNShader* GetGBufferInstancedShader() const { return gbufferInstancedShader; }
+
         void SetToneMapShader(ZNShader* inShader) { toneMapShader = inShader; }
         ZNShader* GetToneMapShader() const { return toneMapShader; }
 
@@ -136,6 +141,7 @@ namespace ZNFramework
         ZNDepthStencilBuffer* depthStencilBuffer = nullptr;
         ZNTableDescriptorHeap* descHeap = nullptr;
         ZNShader* gbufferShader = nullptr;
+        ZNShader* gbufferInstancedShader = nullptr;
         ZNShader* toneMapShader = nullptr;
         ZNCamera* camera = nullptr;
         std::vector<ZNSpotLight*> spotLights;

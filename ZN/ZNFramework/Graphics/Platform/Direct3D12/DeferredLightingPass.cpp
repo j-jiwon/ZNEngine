@@ -30,10 +30,9 @@ struct LightingVertex
 struct DiscoSourceData
 {
     float center[3];
-    float rotationYDeg;
     float facetGridN;
+    float rotationDeg[3];  // X/Y/Z, same order/convention as Transform::rotation
     float brightness;
-    float _pad[2];
 };
 
 struct SpotLightData
@@ -298,12 +297,14 @@ void DeferredLightingPass::Render(GBufferManager* gbufferManager, ShadowMap* sha
     {
         const DiscoSource& src = discoCtx[i];
         DiscoSourceData& dd = lightData.discoSources[numDisco];
-        dd.center[0]    = src.center.x;
-        dd.center[1]    = src.center.y;
-        dd.center[2]    = src.center.z;
-        dd.rotationYDeg = src.rotationYDeg;
-        dd.facetGridN   = src.facetGridN;
-        dd.brightness   = src.brightness;
+        dd.center[0]      = src.center.x;
+        dd.center[1]      = src.center.y;
+        dd.center[2]      = src.center.z;
+        dd.facetGridN     = src.facetGridN;
+        dd.rotationDeg[0] = src.rotationDeg.x;
+        dd.rotationDeg[1] = src.rotationDeg.y;
+        dd.rotationDeg[2] = src.rotationDeg.z;
+        dd.brightness     = src.brightness;
         ++numDisco;
     }
     lightData.numDiscoSources = numDisco;

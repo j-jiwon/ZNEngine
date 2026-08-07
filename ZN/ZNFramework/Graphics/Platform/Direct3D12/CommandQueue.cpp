@@ -7,7 +7,6 @@
 #include "DepthStencilBuffer.h"
 #include "GBufferManager.h"
 #include "DeferredLightingPass.h"
-#include "DebugViewportRenderer.h"
 #include "ShadowMap.h"
 #include "BloomChain.h"
 #include "IBLBaker.h"
@@ -24,6 +23,7 @@
 #include "Passes/IBLBakePass.h"
 #include "Passes/SkyboxPass.h"
 #include "ZNFramework.h"
+#include "ZNLog.h"
 
 using namespace ZNFramework;
 
@@ -86,6 +86,23 @@ void CommandQueue::Init(ZNSwapChain* inSwapChain)
         cbvDesc.SizeInBytes    = kFwdPLBufSize; // 512 is a multiple of 256 ✓
         fwdPointLightCBVHandle = fwdPointLightCBVHeap->GetCPUDescriptorHandleForHeapStart();
         device->Device()->CreateConstantBufferView(&cbvDesc, fwdPointLightCBVHandle);
+    }
+
+    // GBuffer instanced-draw world matrix ring buffer (see PushInstanceWorlds)
+    {
+        D3D12_HEAP_PROPERTIES heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+        D3D12_RESOURCE_DESC   bufDesc   = CD3DX12_RESOURCE_DESC::Buffer(kInstanceWorldCapacity * sizeof(ZNMatrix4));
+        device->Device()->CreateCommittedResource(
+            &heapProps, D3D12_HEAP_FLAG_NONE, &bufDesc,
+            D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
+            IID_PPV_ARGS(&instanceWorldBuffer));
+        instanceWorldBuffer->Map(0, nullptr, &instanceWorldMapped);
+
+        D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
+        heapDesc.Type           = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+        heapDesc.NumDescriptors = kMaxInstanceBatchesPerFrame;
+        heapDesc.Flags          = D3D12_DESCRIPTOR_HEAP_FLAG_NONE; // CPU-only, gets copied to table heap
+        device->Device()->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&instanceWorldSrvHeap));
     }
 }
 
@@ -217,6 +234,52 @@ D3D12_CPU_DESCRIPTOR_HANDLE CommandQueue::UpdateFwdPointLightBuffer(const void* 
     return fwdPointLightCBVHandle;
 }
 
+D3D12_CPU_DESCRIPTOR_HANDLE CommandQueue::PushInstanceWorlds(const ZNMatrix4* worlds, uint32 count)
+{
+    if (instanceWorldCursor >= kInstanceWorldCapacity)
+    {
+        static bool warned = false;
+        if (!warned)
+        {
+            ZNLOG_WARN(LogChannel::Render,
+                "Instance world buffer capacity (%u) reached - clamping. Increase kInstanceWorldCapacity.",
+                kInstanceWorldCapacity);
+            warned = true;
+        }
+        count = 0;
+    }
+    else if (instanceWorldCursor + count > kInstanceWorldCapacity)
+    {
+        count = kInstanceWorldCapacity - instanceWorldCursor;
+    }
+
+    const uint32 offset = instanceWorldCursor;
+    if (count > 0)
+    {
+        memcpy(static_cast<uint8_t*>(instanceWorldMapped) + offset * sizeof(ZNMatrix4),
+               worlds, count * sizeof(ZNMatrix4));
+        instanceWorldCursor += count;
+    }
+
+    const uint32 srvIndex = instanceWorldSrvIndex % kMaxInstanceBatchesPerFrame;
+    instanceWorldSrvIndex++;
+
+    const UINT incSize = device->Device()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    D3D12_CPU_DESCRIPTOR_HANDLE handle = instanceWorldSrvHeap->GetCPUDescriptorHandleForHeapStart();
+    handle.ptr += static_cast<SIZE_T>(srvIndex) * incSize;
+
+    D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+    srvDesc.Format                     = DXGI_FORMAT_UNKNOWN;
+    srvDesc.ViewDimension               = D3D12_SRV_DIMENSION_BUFFER;
+    srvDesc.Shader4ComponentMapping     = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    srvDesc.Buffer.FirstElement         = offset;
+    srvDesc.Buffer.NumElements          = count;
+    srvDesc.Buffer.StructureByteStride  = sizeof(ZNMatrix4);
+    device->Device()->CreateShaderResourceView(instanceWorldBuffer.Get(), &srvDesc, handle);
+
+    return handle;
+}
+
 void CommandQueue::RefreshGBufferResources()
 {
     if (!gbufferManager || !renderGraphBuilt) return;
@@ -252,6 +315,27 @@ void CommandQueue::RenderBegin()
     if (!renderGraphBuilt) {
         BuildRenderGraph();
         renderGraphBuilt = true;
+
+        // Pass count/order is fixed from here on, so size the per-pass timestamp query heap
+        // (2 timestamps per pass: begin/end) now that it's known.
+        const size_t passCount = renderGraph.GetPassCount();
+        if (passCount > 0) {
+            D3D12_QUERY_HEAP_DESC passQueryHeapDesc = {};
+            passQueryHeapDesc.Type  = D3D12_QUERY_HEAP_TYPE_TIMESTAMP;
+            passQueryHeapDesc.Count = static_cast<UINT>(passCount) * 2;
+            device->Device()->CreateQueryHeap(&passQueryHeapDesc, IID_PPV_ARGS(&passTimestampQueryHeap));
+
+            D3D12_HEAP_PROPERTIES passReadbackHeap = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_READBACK);
+            D3D12_RESOURCE_DESC   passReadbackDesc  = CD3DX12_RESOURCE_DESC::Buffer(passCount * 2 * sizeof(UINT64));
+            device->Device()->CreateCommittedResource(
+                &passReadbackHeap, D3D12_HEAP_FLAG_NONE, &passReadbackDesc,
+                D3D12_RESOURCE_STATE_COPY_DEST, nullptr,
+                IID_PPV_ARGS(&passTimestampReadbackBuffer));
+
+            passGpuTimings.resize(passCount);
+            for (size_t i = 0; i < passCount; ++i)
+                passGpuTimings[i].name = renderGraph.GetPassName(i);
+        }
     }
 
     commandAllocator->Reset();
@@ -272,11 +356,14 @@ void CommandQueue::RenderBegin()
     ID3D12DescriptorHeap* descHeap = tableDescHeap->GetDescriptorHeap().Get();
     commandList->SetDescriptorHeaps(1, &descHeap);
 
+    instanceWorldCursor   = 0;
+    instanceWorldSrvIndex = 0;
+
     // Update back buffer pointer — it changes every frame after SwapIndex()
     renderGraph.UpdateResource("BackBuffer", swapChain->GetBackRTVBuffer().Get());
 
     // Execute all render passes (shadow → gbuffer → deferred lighting → forward → imgui)
-    renderGraph.Execute(commandList.Get());
+    renderGraph.Execute(commandList.Get(), passTimestampQueryHeap.Get(), 0);
 }
 
 void CommandQueue::RenderEnd()
@@ -285,6 +372,12 @@ void CommandQueue::RenderEnd()
         commandList->EndQuery(timestampQueryHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 1);
         commandList->ResolveQueryData(timestampQueryHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP,
             0, 2, timestampReadbackBuffer.Get(), 0);
+    }
+
+    if (passTimestampQueryHeap) {
+        const UINT passQueryCount = static_cast<UINT>(passGpuTimings.size()) * 2;
+        commandList->ResolveQueryData(passTimestampQueryHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP,
+            0, passQueryCount, passTimestampReadbackBuffer.Get(), 0);
     }
 
     // Final transition: back buffer must be PRESENT before the swap
@@ -309,6 +402,18 @@ void CommandQueue::RenderEnd()
         gpuFrameTimeMs = static_cast<float>(ts[1] - ts[0]) / static_cast<float>(timestampFrequency) * 1000.0f;
         D3D12_RANGE writeRange = { 0, 0 };
         timestampReadbackBuffer->Unmap(0, &writeRange);
+    }
+
+    if (!isFirstFrame && passTimestampQueryHeap && timestampFrequency > 0) {
+        const size_t passCount = passGpuTimings.size();
+        void* pData = nullptr;
+        D3D12_RANGE readRange = { 0, passCount * 2 * sizeof(UINT64) };
+        passTimestampReadbackBuffer->Map(0, &readRange, &pData);
+        const UINT64* ts = reinterpret_cast<const UINT64*>(pData);
+        for (size_t i = 0; i < passCount; ++i)
+            passGpuTimings[i].ms = static_cast<float>(ts[i * 2 + 1] - ts[i * 2]) / static_cast<float>(timestampFrequency) * 1000.0f;
+        D3D12_RANGE writeRange = { 0, 0 };
+        passTimestampReadbackBuffer->Unmap(0, &writeRange);
     }
 
     if (isFirstFrame) isFirstFrame = false;
