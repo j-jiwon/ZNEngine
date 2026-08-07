@@ -14,8 +14,8 @@ namespace ZNFramework
 
 	private:
 		void CreateTexture(const std::wstring& path);
-		void UploadToGPU();
-		void CreateView();
+		void UploadToGPU(const std::string& source);
+		void CreateView(const std::string& source);
 
 	private:
 		DirectX::ScratchImage image;

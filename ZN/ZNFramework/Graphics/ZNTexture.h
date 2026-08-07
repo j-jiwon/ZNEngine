@@ -7,7 +7,7 @@ namespace ZNFramework
 	{
 	public:
 		ZNTexture() = default;
-		~ZNTexture() = default;
+		virtual ~ZNTexture() = default;
 
 		virtual void Init(const std::wstring& path) = 0;
 		// Decodes an in-memory compressed image (e.g. embedded glTF/GLB texture)

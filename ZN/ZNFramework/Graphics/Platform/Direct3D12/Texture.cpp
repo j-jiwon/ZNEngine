@@ -3,9 +3,24 @@
 #include "CommandQueue.h"
 #include "Graphics/ZNGraphicsContext.h"
 #include "DDSTextureLoader12.h"
+#include <filesystem>
+#include <iomanip>
+#include <sstream>
+#include <stdexcept>
 
 using namespace ZNFramework;
 using namespace DirectX;
+
+namespace
+{
+    [[noreturn]] void ThrowTextureFailure(const char* stage, const std::string& source, HRESULT hr)
+    {
+        std::ostringstream message;
+        message << "texture " << stage << " failed: path=" << source
+            << ", HRESULT=0x" << std::hex << std::uppercase << static_cast<unsigned long>(hr);
+        throw std::runtime_error(message.str());
+    }
+}
 
 namespace ZNFramework::Platform::Direct3D
 {
@@ -18,57 +33,61 @@ namespace ZNFramework::Platform::Direct3D
 void Texture::Init(const std::wstring& path)
 {
 	CreateTexture(path);
-    CreateView();
+    CreateView(std::filesystem::path(path).string());
 }
 
 void Texture::InitFromMemory(const void* data, size_t size)
 {
-	::LoadFromWICMemory(reinterpret_cast<const uint8_t*>(data), size, WIC_FLAGS_NONE, nullptr, image);
-	UploadToGPU();
-	CreateView();
+	const std::string source = "<embedded texture>";
+	const HRESULT hr = ::LoadFromWICMemory(reinterpret_cast<const uint8_t*>(data), size, WIC_FLAGS_NONE, nullptr, image);
+	if (FAILED(hr)) ThrowTextureFailure("decode", source, hr);
+	UploadToGPU(source);
+	CreateView(source);
 }
 
 void Texture::InitSolidColor(uint8 r, uint8 g, uint8 b, uint8 a)
 {
-	image.Initialize2D(DXGI_FORMAT_R8G8B8A8_UNORM, 1, 1, 1, 1);
+	const HRESULT hr = image.Initialize2D(DXGI_FORMAT_R8G8B8A8_UNORM, 1, 1, 1, 1);
+	if (FAILED(hr)) ThrowTextureFailure("solid-color initialization", "<solid-color texture>", hr);
 	uint8_t* pixels = image.GetPixels();
 	pixels[0] = r; pixels[1] = g; pixels[2] = b; pixels[3] = a;
-	UploadToGPU();
-	CreateView();
+	UploadToGPU("<solid-color texture>");
+	CreateView("<solid-color texture>");
 }
 
 void Texture::CreateTexture(const std::wstring& path)
 {
 	std::wstring extension = std::filesystem::path(path).extension();
+	HRESULT hr = E_FAIL;
 
 	if (extension == L".dds" || extension == L".DDS")
 	{
-		::LoadFromDDSFile(path.c_str(), DDS_FLAGS_NONE, nullptr, image);
+		hr = ::LoadFromDDSFile(path.c_str(), DDS_FLAGS_NONE, nullptr, image);
 	}
 	else if (extension == L".tga" || extension == L".TGA")
 	{
-		::LoadFromTGAFile(path.c_str(), nullptr, image);
+		hr = ::LoadFromTGAFile(path.c_str(), nullptr, image);
 	}
 	else // png, jpg, jpeg, bmp
 	{
-		::LoadFromWICFile(path.c_str(), WIC_FLAGS_NONE, nullptr, image);
+		hr = ::LoadFromWICFile(path.c_str(), WIC_FLAGS_NONE, nullptr, image);
 	}
 
-	UploadToGPU();
+	const std::string source = std::filesystem::path(path).string();
+	if (FAILED(hr)) ThrowTextureFailure("decode", source, hr);
+	UploadToGPU(source);
 }
 
-void Texture::UploadToGPU()
+void Texture::UploadToGPU(const std::string& source)
 {
 	GraphicsDevice* device = GraphicsContext::GetInstance().GetAs<GraphicsDevice>();
 
     HRESULT hr = ::CreateTexture(device->Device().Get(), image.GetMetadata(), &tex2d);
-    if (FAILED(hr))
-        assert(nullptr);
+    if (FAILED(hr)) ThrowTextureFailure("resource creation", source, hr);
 
     std::vector<D3D12_SUBRESOURCE_DATA> subResources;
     hr = ::PrepareUpload(device->Device().Get(), image.GetImages(), image.GetImageCount(), image.GetMetadata(), subResources);
-    if (FAILED(hr))
-        assert(nullptr);
+    if (FAILED(hr)) ThrowTextureFailure("upload preparation", source, hr);
 
     const uint64 bufferSize = ::GetRequiredIntermediateSize(tex2d.Get(), 0, static_cast<uint32>(subResources.size()));
 
@@ -85,10 +104,7 @@ void Texture::UploadToGPU()
         IID_PPV_ARGS(textureUploadHeap.GetAddressOf()));
 
     if (FAILED(hr))
-    {
-        assert(nullptr);
-        return;
-    }
+        ThrowTextureFailure("upload heap creation", source, hr);
 
     CommandQueue* queue = GraphicsContext::GetInstance().GetAs<CommandQueue>();
     // UpdateSubresources returns the number of bytes uploaded (UINT64), 0 on failure — NOT an
@@ -102,10 +118,7 @@ void Texture::UploadToGPU()
         subResources.data());
 
     if (uploadedBytes == 0)
-    {
-        assert(nullptr);
-        return;
-    }
+        ThrowTextureFailure("subresource upload", source, E_FAIL);
 
     CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
         tex2d.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
@@ -114,7 +127,7 @@ void Texture::UploadToGPU()
     queue->FlushResourceQueue();
 }
 
-void Texture::CreateView()
+void Texture::CreateView(const std::string& source)
 {
 	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
 	srvHeapDesc.NumDescriptors = 1;
@@ -122,7 +135,8 @@ void Texture::CreateView()
 	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 
 	GraphicsDevice* device = GraphicsContext::GetInstance().GetAs<GraphicsDevice>();
-	device->Device()->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&srvHeap));
+	const HRESULT hr = device->Device()->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&srvHeap));
+	if (FAILED(hr)) ThrowTextureFailure("SRV descriptor heap creation", source, hr);
 	srvHandle = srvHeap->GetCPUDescriptorHandleForHeapStart();
 
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};

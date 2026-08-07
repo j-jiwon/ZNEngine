@@ -4,6 +4,10 @@
 #include "CommandQueue.h"
 #include "DepthStencilBuffer.h"
 #include "ZNFramework.h"
+#include <filesystem>
+#include <iomanip>
+#include <sstream>
+#include <stdexcept>
 
 using namespace ZNFramework;
 
@@ -17,8 +21,14 @@ namespace ZNFramework::Platform::Direct3D
 
 void Shader::Load(const wstring& path)
 {
-	CreateVertexShader(path, "VS_Main", "vs_5_0");
-	CreatePixelShader(path, "PS_Main", "ps_5_0");
+	ComPtr<ID3DBlob> newVS = CompileShader(path, "VS_Main", "vs_5_0");
+	ComPtr<ID3DBlob> newPS = CompileShader(path, "PS_Main", "ps_5_0");
+
+	vsBlob = std::move(newVS);
+	psBlob = std::move(newPS);
+	sourcePath = std::filesystem::path(path).string();
+	pipelineDesc.VS = { vsBlob->GetBufferPointer(), vsBlob->GetBufferSize() };
+	pipelineDesc.PS = { psBlob->GetBufferPointer(), psBlob->GetBufferSize() };
 
 	// Store input layout descriptors as member variable to keep them valid
 	inputElementDescs = {
@@ -62,14 +72,13 @@ void Shader::Bind()
 	queue->CommandList()->SetPipelineState(pso);
 }
 
-void Shader::CreateWireframePSO()
+ComPtr<ID3D12PipelineState> Shader::CreateWireframePSO()
 {
 	// Depth-only pipelines (shadow maps) have 0 render targets and must not respond
 	// to wireframe mode — shadow geometry must remain filled to produce correct shadows.
 	if (pipelineDesc.NumRenderTargets == 0)
 	{
-		pipelineStateWireframe = nullptr;
-		return;
+		return {};
 	}
 
 	auto wireDesc = pipelineDesc;
@@ -77,52 +86,60 @@ void Shader::CreateWireframePSO()
 	wireDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
 
 	GraphicsDevice* device = GraphicsContext::GetInstance().GetAs<GraphicsDevice>();
-	pipelineStateWireframe.Reset();
-	ThrowIfFailed(device->Device()->CreateGraphicsPipelineState(&wireDesc, IID_PPV_ARGS(&pipelineStateWireframe)));
+	ComPtr<ID3D12PipelineState> wireframeState;
+	const HRESULT hr = device->Device()->CreateGraphicsPipelineState(&wireDesc, IID_PPV_ARGS(&wireframeState));
+	if (FAILED(hr))
+	{
+		std::ostringstream message;
+		message << "shader wireframe PSO creation failed: path=" << sourcePath
+			<< ", HRESULT=0x" << std::hex << std::uppercase << static_cast<unsigned long>(hr);
+		throw std::runtime_error(message.str());
+	}
+	return wireframeState;
 }
 
 void Shader::RebuildPSO()
 {
 	GraphicsDevice* device = GraphicsContext::GetInstance().GetAs<GraphicsDevice>();
-	pipelineState.Reset();
-	ThrowIfFailed(device->Device()->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&pipelineState)));
-	CreateWireframePSO();
+	ComPtr<ID3D12PipelineState> newPipelineState;
+	const HRESULT hr = device->Device()->CreateGraphicsPipelineState(
+		&pipelineDesc, IID_PPV_ARGS(&newPipelineState));
+	if (FAILED(hr))
+	{
+		std::ostringstream message;
+		message << "shader PSO creation failed: path=" << sourcePath
+			<< ", HRESULT=0x" << std::hex << std::uppercase << static_cast<unsigned long>(hr);
+		throw std::runtime_error(message.str());
+	}
+	ComPtr<ID3D12PipelineState> newWireframeState = CreateWireframePSO();
+
+	pipelineState = std::move(newPipelineState);
+	pipelineStateWireframe = std::move(newWireframeState);
 }
 
-void Shader::CreateShader(const wstring& path, const string& name, const string& version, ComPtr<ID3DBlob>& blob, D3D12_SHADER_BYTECODE& shaderByteCode)
+ComPtr<ID3DBlob> Shader::CompileShader(const wstring& path, const string& name, const string& version)
 {
 	uint32 compileFlag = 0;
 #ifdef _DEBUG
 	compileFlag = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
 #endif
 
-	if (FAILED(::D3DCompileFromFile(path.c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE
-		, name.c_str(), version.c_str(), compileFlag, 0, &blob, &errBlob)))
+	ComPtr<ID3DBlob> blob;
+	ComPtr<ID3DBlob> errorBlob;
+	const HRESULT hr = ::D3DCompileFromFile(path.c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
+		name.c_str(), version.c_str(), compileFlag, 0, &blob, &errorBlob);
+	if (FAILED(hr))
 	{
-		if (errBlob)
-		{
-			string errorMsg = "Shader Compile Failed!\n\n";
-			errorMsg += static_cast<const char*>(errBlob->GetBufferPointer());
-			::MessageBoxA(nullptr, errorMsg.c_str(), "Shader Error", MB_OK);
-		}
-		else
-		{
-			::MessageBoxA(nullptr, "Shader Create Failed !", nullptr, MB_OK);
-		}
-		return;
+		std::ostringstream message;
+		message << "shader compile failed: path=" << std::filesystem::path(path).string()
+			<< ", entry=" << name << ", target=" << version
+			<< ", HRESULT=0x" << std::hex << std::uppercase << static_cast<unsigned long>(hr);
+		if (errorBlob && errorBlob->GetBufferPointer())
+			message << "\n" << static_cast<const char*>(errorBlob->GetBufferPointer());
+		throw std::runtime_error(message.str());
 	}
 
-	shaderByteCode = { blob->GetBufferPointer(), blob->GetBufferSize() };
-}
-
-void Shader::CreateVertexShader(const wstring& path, const string& name, const string& version)
-{
-	CreateShader(path, name, version, vsBlob, pipelineDesc.VS);
-}
-
-void Shader::CreatePixelShader(const wstring& path, const string& name, const string& version)
-{
-	CreateShader(path, name, version, psBlob, pipelineDesc.PS);
+	return blob;
 }
 
 void Shader::SetRenderTargetFormats(uint32 numRenderTargets, const DXGI_FORMAT* formats)

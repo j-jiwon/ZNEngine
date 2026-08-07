@@ -35,7 +35,7 @@ private:
 int main()
 {
     TestApp app;
-    app.Run();
+    return app.Run();
 }
 
 void TestApp::OnInitialize()
@@ -46,28 +46,19 @@ void TestApp::OnInitialize()
     device = ZNFramework::Platform::CreateGraphicsDevice();
     context->Initialize(window, device);
 
+    // Register each scene before Initialize() so OnTerminate() also owns a scene whose
+    // initialization throws partway through.
+    const auto initializeScene = [this](const char* name, ZNScene* scene) {
+        slots.push_back({ name, scene });
+        scene->Initialize();
+    };
+
     // Eagerly initialise ALL scenes before the first frame so every scene's
     // AddOffscreenCamera() is registered before BuildRenderGraph() runs.
-    {
-        auto* s = new MirrorBallScene();
-        s->Initialize();
-        slots.push_back({ "MirrorBall Scene", s });
-    }
-    {
-        auto* s = new VehicleScene();
-        s->Initialize();
-        slots.push_back({ "Vehicle Scene", s });
-    }
-    {
-        auto* s = new TestGameScene();
-        s->Initialize();
-        slots.push_back({ "Test Scene", s });
-    }
-    {
-        auto* s = new CCTVScene();
-        s->Initialize();
-        slots.push_back({ "CCTV Scene", s });
-    }
+    initializeScene("MirrorBall Scene", new MirrorBallScene());
+    initializeScene("Vehicle Scene", new VehicleScene());
+    initializeScene("Test Scene", new TestGameScene());
+    initializeScene("CCTV Scene", new CCTVScene());
 
     // Wire up SceneManager so ImGui buttons can trigger switches
     std::vector<std::string> names;
