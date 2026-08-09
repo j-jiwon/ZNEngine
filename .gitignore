@@ -52,6 +52,8 @@ CLAUDE.md
 **/CLAUDE.md
 .claude/*.md
 .claude/*.html
+AGENTS.md
+**/AGENTS.md
 build.log
 *.log
 
