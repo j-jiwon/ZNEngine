@@ -3,6 +3,7 @@
 #include <imgui.h>
 #include <iostream>
 #include <filesystem>
+#include "ZNFramework/Graphics/Platform/Direct3D12/Shader.h"
 
 using namespace ZNFramework;
 
@@ -13,6 +14,8 @@ void MirrorBallScene::Initialize()
 
     glassShader = Platform::CreateShader();
     glassShader->Load(GetResourcePath() / L"Shaders" / L"forward_lit.hlsli");
+    DXGI_FORMAT hdrFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
+    dynamic_cast<Shader*>(glassShader)->SetRenderTargetFormats(1, &hdrFormat);
     glassShader->EnableAlphaBlend();
     glassShader->DisableDepthWrite();
 

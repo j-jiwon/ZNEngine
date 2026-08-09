@@ -7,6 +7,7 @@
 #include <imgui.h>
 #include "ZNFramework/Graphics/Platform/Direct3D12/RenderTexture.h"
 #include "ZNFramework/Graphics/Platform/Direct3D12/Material.h"
+#include "ZNFramework/Graphics/Platform/Direct3D12/Shader.h"
 
 using namespace ZNFramework;
 
@@ -18,6 +19,8 @@ void TestGameScene::Initialize()
 
     gridShader = Platform::CreateShader();
     gridShader->Load(GetResourcePath() / L"Shaders" / L"grid.hlsli");
+    DXGI_FORMAT hdrFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
+    dynamic_cast<Shader*>(gridShader)->SetRenderTargetFormats(1, &hdrFormat);
     gridShader->EnableAlphaBlend();
 
     // Camera — pulled back/up enough to frame the whole 8x5 sphere grid (see below)
