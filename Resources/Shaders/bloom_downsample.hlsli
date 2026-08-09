@@ -3,7 +3,7 @@
 // mip level at a time without aliasing as badly as a single point/bilinear tap would.
 
 Texture2D srcTexture : register(t0);
-SamplerState sampler0 : register(s0);
+SamplerState clampSampler : register(s2);
 
 struct VS_IN
 {
@@ -33,10 +33,10 @@ float4 PS_Main(VS_OUT input) : SV_Target
     srcTexture.GetDimensions(w, h);
     float2 texelSize = 1.0f / float2(w, h);
 
-    float3 a = srcTexture.Sample(sampler0, input.uv + texelSize * float2(-0.5f, -0.5f)).rgb;
-    float3 b = srcTexture.Sample(sampler0, input.uv + texelSize * float2( 0.5f, -0.5f)).rgb;
-    float3 c = srcTexture.Sample(sampler0, input.uv + texelSize * float2(-0.5f,  0.5f)).rgb;
-    float3 d = srcTexture.Sample(sampler0, input.uv + texelSize * float2( 0.5f,  0.5f)).rgb;
+    float3 a = srcTexture.Sample(clampSampler, input.uv + texelSize * float2(-0.5f, -0.5f)).rgb;
+    float3 b = srcTexture.Sample(clampSampler, input.uv + texelSize * float2( 0.5f, -0.5f)).rgb;
+    float3 c = srcTexture.Sample(clampSampler, input.uv + texelSize * float2(-0.5f,  0.5f)).rgb;
+    float3 d = srcTexture.Sample(clampSampler, input.uv + texelSize * float2( 0.5f,  0.5f)).rgb;
 
     return float4((a + b + c + d) * 0.25f, 1.0f);
 }

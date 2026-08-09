@@ -3,7 +3,7 @@
 // the next-larger mip, which already holds that level's own bright-pass data.
 
 Texture2D srcTexture : register(t0);
-SamplerState sampler0 : register(s0);
+SamplerState clampSampler : register(s2);
 
 struct VS_IN
 {
@@ -33,15 +33,15 @@ float4 PS_Main(VS_OUT input) : SV_Target
     srcTexture.GetDimensions(w, h);
     float2 texelSize = 1.0f / float2(w, h);
 
-    float3 sum = srcTexture.Sample(sampler0, input.uv).rgb * 4.0f;
-    sum += srcTexture.Sample(sampler0, input.uv + texelSize * float2(-1,  0)).rgb * 2.0f;
-    sum += srcTexture.Sample(sampler0, input.uv + texelSize * float2( 1,  0)).rgb * 2.0f;
-    sum += srcTexture.Sample(sampler0, input.uv + texelSize * float2( 0, -1)).rgb * 2.0f;
-    sum += srcTexture.Sample(sampler0, input.uv + texelSize * float2( 0,  1)).rgb * 2.0f;
-    sum += srcTexture.Sample(sampler0, input.uv + texelSize * float2(-1, -1)).rgb;
-    sum += srcTexture.Sample(sampler0, input.uv + texelSize * float2( 1, -1)).rgb;
-    sum += srcTexture.Sample(sampler0, input.uv + texelSize * float2(-1,  1)).rgb;
-    sum += srcTexture.Sample(sampler0, input.uv + texelSize * float2( 1,  1)).rgb;
+    float3 sum = srcTexture.Sample(clampSampler, input.uv).rgb * 4.0f;
+    sum += srcTexture.Sample(clampSampler, input.uv + texelSize * float2(-1,  0)).rgb * 2.0f;
+    sum += srcTexture.Sample(clampSampler, input.uv + texelSize * float2( 1,  0)).rgb * 2.0f;
+    sum += srcTexture.Sample(clampSampler, input.uv + texelSize * float2( 0, -1)).rgb * 2.0f;
+    sum += srcTexture.Sample(clampSampler, input.uv + texelSize * float2( 0,  1)).rgb * 2.0f;
+    sum += srcTexture.Sample(clampSampler, input.uv + texelSize * float2(-1, -1)).rgb;
+    sum += srcTexture.Sample(clampSampler, input.uv + texelSize * float2( 1, -1)).rgb;
+    sum += srcTexture.Sample(clampSampler, input.uv + texelSize * float2(-1,  1)).rgb;
+    sum += srcTexture.Sample(clampSampler, input.uv + texelSize * float2( 1,  1)).rgb;
 
     return float4(sum / 16.0f, 1.0f);
 }

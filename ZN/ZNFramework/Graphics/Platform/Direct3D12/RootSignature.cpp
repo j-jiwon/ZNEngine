@@ -30,7 +30,7 @@ void RootSignature::CreateRootSignature()
 
 	CD3DX12_ROOT_PARAMETER param[1];
 	param[0].InitAsDescriptorTable(_countof(ranges), ranges);
-	D3D12_ROOT_SIGNATURE_DESC signatureDesc = CD3DX12_ROOT_SIGNATURE_DESC(_countof(param), param, 2, samplerDesc);
+	D3D12_ROOT_SIGNATURE_DESC signatureDesc = CD3DX12_ROOT_SIGNATURE_DESC(_countof(param), param, 3, samplerDesc);
 	signatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 
 	ComPtr<ID3DBlob> blobSignature;
@@ -55,5 +55,15 @@ void RootSignature::CreateSamplerDesc()
 		16,    // maxAnisotropy
 		D3D12_COMPARISON_FUNC_LESS_EQUAL,
 		D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE  // Outside shadow map = fully lit
+	);
+
+	// s2: Clamp sampler for screen-space filters such as bloom. Prevents bright
+	// pixels on one edge from wrapping into the opposite edge.
+	samplerDesc[2] = CD3DX12_STATIC_SAMPLER_DESC(
+		2,
+		D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT,
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP
 	);
 }
