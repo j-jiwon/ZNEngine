@@ -324,6 +324,29 @@
     </FxCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Target Name="PackageReleaseX64" AfterTargets="Build" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <PropertyGroup>
+      <ReleasePackageDir>$(OutDir)Package\</ReleasePackageDir>
+    </PropertyGroup>
+    <Error Condition="!Exists('$(OutDir)assimp-vc143-mt.dll')"
+           Text="Release packaging requires $(OutDir)assimp-vc143-mt.dll." />
+    <ItemGroup>
+      <ReleaseShader Include="$(SolutionDir)Resources\Shaders\**\*" />
+      <ReleaseModel Include="$(SolutionDir)Resources\Models\**\*" />
+      <ReleaseTexture Include="$(SolutionDir)Resources\Textures\**\*" />
+    </ItemGroup>
+    <RemoveDir Directories="$(ReleasePackageDir)" />
+    <MakeDir Directories="$(ReleasePackageDir)" />
+    <Copy SourceFiles="$(TargetPath);$(OutDir)assimp-vc143-mt.dll"
+          DestinationFolder="$(ReleasePackageDir)" />
+    <Copy SourceFiles="@(ReleaseShader)"
+          DestinationFiles="@(ReleaseShader->'$(ReleasePackageDir)Resources\Shaders\%(RecursiveDir)%(Filename)%(Extension)')" />
+    <Copy SourceFiles="@(ReleaseModel)"
+          DestinationFiles="@(ReleaseModel->'$(ReleasePackageDir)Resources\Models\%(RecursiveDir)%(Filename)%(Extension)')" />
+    <Copy SourceFiles="@(ReleaseTexture)"
+          DestinationFiles="@(ReleaseTexture->'$(ReleasePackageDir)Resources\Textures\%(RecursiveDir)%(Filename)%(Extension)')" />
+    <Message Importance="High" Text="Release package created at $(ReleasePackageDir)" />
+  </Target>
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
 </Project>
