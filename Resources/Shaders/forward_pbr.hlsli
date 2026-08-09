@@ -1,6 +1,6 @@
 // Forward PBR shader for offscreen camera passes (CCTV, etc.)
 // Uses the scene's actual directional light and spotlights from cbForwardLight (b2).
-// Shadow map bound at t3; PCF 3x3 using sampler0.
+// Shadow map bound at t3; PCF 3x3 using the comparison sampler at s1.
 
 #define FWD_MAX_SPOTS 2
 
@@ -49,6 +49,7 @@ Texture2D        albedoTex     : register(t0);
 Texture2D<float> fwdShadowMap  : register(t3);
 TextureCube      fwdIrradiance : register(t4);   // IBL diffuse irradiance (same source as deferred)
 SamplerState     sampler0      : register(s0);
+SamplerComparisonState shadowSampler : register(s1);
 
 struct VS_IN
 {
@@ -77,7 +78,7 @@ VS_OUT VS_Main(VS_IN input)
     return output;
 }
 
-// ---- Shadow PCF (3×3, sampler0 point-sample + manual compare) ----------
+// ---- Shadow PCF (3×3, hardware depth comparison) -----------------------
 
 float FwdShadow(float3 worldPos, float3 N, float3 L)
 {
@@ -94,7 +95,8 @@ float FwdShadow(float3 worldPos, float3 N, float3 L)
     float  shadow = 0.f;
     [unroll] for (int xi = -1; xi <= 1; ++xi)
     [unroll] for (int yi = -1; yi <= 1; ++yi)
-        shadow += (depth < fwdShadowMap.SampleLevel(sampler0, uv + float2(xi, yi) * texel, 0).r) ? 1.f : 0.f;
+        shadow += fwdShadowMap.SampleCmpLevelZero(
+            shadowSampler, uv + float2(xi, yi) * texel, depth);
     return shadow / 9.f;
 }
 

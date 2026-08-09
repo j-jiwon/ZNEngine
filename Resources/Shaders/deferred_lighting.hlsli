@@ -149,8 +149,7 @@ float CalculateShadow(float3 worldPos, float3 normal, float3 lightDir)
         for (int y = -pcfRange; y <= pcfRange; ++y)
         {
             float2 sampleUV = projCoords.xy + float2(x, y) * texelSize;
-            float pcfDepth = shadowMap.SampleLevel(sampler0, sampleUV, 0).r;
-            shadow += (currentDepth < pcfDepth) ? 1.0f : 0.0f;
+            shadow += shadowMap.SampleCmpLevelZero(shadowSampler, sampleUV, currentDepth);
             sampleCount++;
         }
     }
