@@ -324,7 +324,17 @@
     </FxCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <Target Name="PackageReleaseX64" AfterTargets="Build" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+  <Target Name="CopyAssimpRuntime" AfterTargets="Build" Condition="'$(Platform)'=='x64'">
+    <PropertyGroup>
+      <AssimpRuntimePath>$(SolutionDir)Library\Bin\x64\assimp-vc143-mt.dll</AssimpRuntimePath>
+    </PropertyGroup>
+    <Error Condition="!Exists('$(AssimpRuntimePath)')"
+           Text="Assimp runtime dependency is missing: $(AssimpRuntimePath)" />
+    <Copy SourceFiles="$(AssimpRuntimePath)"
+          DestinationFolder="$(OutDir)"
+          SkipUnchangedFiles="true" />
+  </Target>
+  <Target Name="PackageReleaseX64" AfterTargets="Build" DependsOnTargets="CopyAssimpRuntime" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <PropertyGroup>
       <ReleasePackageDir>$(OutDir)Package\</ReleasePackageDir>
     </PropertyGroup>
