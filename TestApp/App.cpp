@@ -1,12 +1,12 @@
 #include "ZNFramework.h"
 #include "ZNFramework/Window/Platform/WindowPlatform.h"
 #include "ZNFramework/Graphics/Platform/GraphicsAPI.h"
-#include "TestGameScene.h"
-#include "CCTVScene.h"
-#include "MirrorBallScene.h"
-#include "VehicleScene.h"
-#include "SceneManager.h"
-#include "SceneDebugUI.h"
+#include "Framework/TestGameScene.h"
+#include "Framework/CCTVScene.h"
+#include "Framework/MirrorBallScene.h"
+#include "Framework/VehicleScene.h"
+#include "Framework/SceneManager.h"
+#include "Framework/SceneDebugUI.h"
 
 using namespace ZNFramework;
 

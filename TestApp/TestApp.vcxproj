@@ -221,7 +221,7 @@
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Framework\App.cpp" />
+    <ClCompile Include="App.cpp" />
     <ClCompile Include="Framework\CCTVScene.cpp" />
     <ClCompile Include="Framework\MirrorBallScene.cpp" />
     <ClCompile Include="Framework\SceneDebugUI.cpp" />
