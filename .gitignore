@@ -5,7 +5,6 @@
 *.slo
 *.lo
 *.o
-*.obj
 
 # Precompiled Headers
 *.gch
@@ -19,6 +18,7 @@
 *.so
 *.dylib
 *.dll
+!Library/Bin/x64/assimp-vc143-mt.dll
 
 # Fortran module files
 *.mod
@@ -29,6 +29,8 @@
 *.la
 *.a
 *.lib
+!Library/Lib/Debug/assimp-vc143-mt.lib
+!Library/Lib/Release/assimp-vc143-mt.lib
 
 # Executables
 *.exe

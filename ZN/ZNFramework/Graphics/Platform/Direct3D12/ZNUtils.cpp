@@ -69,7 +69,7 @@ namespace ZNUtils {
 			IID_PPV_ARGS(uploadBuffer.GetAddressOf())));
 
 		BYTE* dataBegin{ nullptr };
-		HRESULT hr = uploadBuffer.Get()->Map(0, nullptr, reinterpret_cast<void**>(&dataBegin));
+		ThrowIfFailed(uploadBuffer.Get()->Map(0, nullptr, reinterpret_cast<void**>(&dataBegin)));
 		memcpy(dataBegin, initData, byteSize);
 		uploadBuffer.Get()->Unmap(0, nullptr);
 

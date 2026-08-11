@@ -1,14 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="Debug|Win32">
-      <Configuration>Debug</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|Win32">
-      <Configuration>Release</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
     <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>
       <Platform>x64</Platform>
@@ -26,19 +18,6 @@
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
-    <CharacterSet>Unicode</CharacterSet>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>Unicode</CharacterSet>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
@@ -57,12 +36,6 @@
   </ImportGroup>
   <ImportGroup Label="Shared">
   </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
@@ -70,16 +43,6 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LinkIncremental>true</LinkIncremental>
-    <OutDir>$(SolutionDir)Build\$(Platform)_$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)Build\Intermediates\$(ProjectName)_$(Platform)_$(Configuration)\</IntDir>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <LinkIncremental>false</LinkIncremental>
-    <OutDir>$(SolutionDir)Build\$(Platform)_$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)Build\Intermediates\$(ProjectName)_$(Platform)_$(Configuration)\</IntDir>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)Build\$(Platform)_$(Configuration)\</OutDir>
@@ -90,87 +53,22 @@
     <OutDir>$(SolutionDir)Build\$(Platform)_$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)Build\Intermediates\$(ProjectName)_$(Platform)_$(Configuration)\</IntDir>
   </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>./Libs/googletest/include/;$(SolutionDir)ZN;$(SolutionDir)\ZN;$(SolutionDir)ZN\ZNFramework\ThirdParty;$(SolutionDir)ZN\ZNFramework\ThirdParty\imgui;$(SolutionDir)ZN\ZNFramework;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <ObjectFileName>$(IntDir)%(RelativeDir)</ObjectFileName>
-      <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
-    </ClCompile>
-    <Link>
-      <AdditionalOptions>/ignore:4006 %(AdditionalOptions)</AdditionalOptions>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(ProjectDir)Libs\googletest\bin\$(PlatformTarget)-$(Configuration)\;$(SolutionDir)Build\$(PlatformTarget)_$(Configuration)</AdditionalLibraryDirectories>
-    </Link>
-    <FxCompile />
-    <FxCompile />
-    <FxCompile>
-      <EntryPointName>PS</EntryPointName>
-    </FxCompile>
-    <FxCompile>
-      <ShaderType>Pixel</ShaderType>
-    </FxCompile>
-    <FxCompile>
-      <ShaderModel>5.0</ShaderModel>
-      <ObjectFileOutput>$(SolutionDir)Shaders\%$(Filename).cso</ObjectFileOutput>
-    </FxCompile>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>./Libs/googletest/include/;$(SolutionDir)ZN;$(SolutionDir)\ZN;$(SolutionDir)ZN\ZNFramework\ThirdParty;$(SolutionDir)ZN\ZNFramework\ThirdParty\imgui;$(SolutionDir)ZN\ZNFramework;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <ObjectFileName>$(IntDir)%(RelativeDir)</ObjectFileName>
-      <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
-    </ClCompile>
-    <Link>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(ProjectDir)Libs\googletest\bin\$(PlatformTarget)-$(Configuration)\;$(SolutionDir)Build\$(PlatformTarget)_$(Configuration)</AdditionalLibraryDirectories>
-    </Link>
-    <FxCompile />
-    <FxCompile />
-    <FxCompile>
-      <EntryPointName>PS</EntryPointName>
-    </FxCompile>
-    <FxCompile>
-      <ShaderType>Pixel</ShaderType>
-    </FxCompile>
-    <FxCompile>
-      <ShaderModel>5.0</ShaderModel>
-      <ObjectFileOutput>$(SolutionDir)Shaders\%$(Filename).cso</ObjectFileOutput>
-    </FxCompile>
-  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)Library\Include\;./Libs/googletest/include/;$(SolutionDir)ZN;$(SolutionDir)ZN;$(ProjectDir)Libs\googletest\include;$(SolutionDir)ZN\ZNFramework\ThirdParty;$(SolutionDir)ZN\ZNFramework\ThirdParty\imgui;$(SolutionDir)ZN\ZNFramework;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Library\Include\;$(SolutionDir)ZN;$(SolutionDir)ZN;$(SolutionDir)ZN\ZNFramework\ThirdParty;$(SolutionDir)ZN\ZNFramework\ThirdParty\imgui;$(SolutionDir)ZN\ZNFramework;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <ObjectFileName>$(IntDir)%(RelativeDir)</ObjectFileName>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <AdditionalOptions>/ignore:4006 %(AdditionalOptions)</AdditionalOptions>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(ProjectDir)Libs\googletest\bin\$(PlatformTarget)-$(Configuration)\;$(SolutionDir)Build\$(PlatformTarget)_$(Configuration)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)Build\$(PlatformTarget)_$(Configuration)</AdditionalLibraryDirectories>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <FxCompile />
@@ -194,10 +92,10 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)Library\Include\;./Libs/googletest/include/;$(SolutionDir)ZN;$(SolutionDir)\ZN;$(SolutionDir)ZN\ZNFramework\ThirdParty;$(SolutionDir)ZN\ZNFramework\ThirdParty\imgui;$(SolutionDir)ZN\ZNFramework;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Library\Include\;$(SolutionDir)ZN;$(SolutionDir)\ZN;$(SolutionDir)ZN\ZNFramework\ThirdParty;$(SolutionDir)ZN\ZNFramework\ThirdParty\imgui;$(SolutionDir)ZN\ZNFramework;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <ObjectFileName>$(IntDir)%(RelativeDir)</ObjectFileName>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -205,7 +103,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(ProjectDir)Libs\googletest\bin\$(PlatformTarget)-$(Configuration)\;$(SolutionDir)Build\$(PlatformTarget)_$(Configuration)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)Build\$(PlatformTarget)_$(Configuration)</AdditionalLibraryDirectories>
     </Link>
     <FxCompile />
     <FxCompile />
@@ -221,7 +119,7 @@
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Framework\App.cpp" />
+    <ClCompile Include="App.cpp" />
     <ClCompile Include="Framework\CCTVScene.cpp" />
     <ClCompile Include="Framework\MirrorBallScene.cpp" />
     <ClCompile Include="Framework\SceneDebugUI.cpp" />
@@ -255,76 +153,19 @@
     <ClInclude Include="Framework\Vehicle\LogFormat.h" />
     <ClInclude Include="Framework\Vehicle\LogPlaybackSource.h" />
     <ClInclude Include="Framework\Vehicle\SceneBinding.h" />
-    <ClInclude Include="Libs\googletest\include\gmock\gmock-actions.h" />
-    <ClInclude Include="Libs\googletest\include\gmock\gmock-cardinalities.h" />
-    <ClInclude Include="Libs\googletest\include\gmock\gmock-function-mocker.h" />
-    <ClInclude Include="Libs\googletest\include\gmock\gmock-matchers.h" />
-    <ClInclude Include="Libs\googletest\include\gmock\gmock-more-actions.h" />
-    <ClInclude Include="Libs\googletest\include\gmock\gmock-more-matchers.h" />
-    <ClInclude Include="Libs\googletest\include\gmock\gmock-nice-strict.h" />
-    <ClInclude Include="Libs\googletest\include\gmock\gmock-spec-builders.h" />
-    <ClInclude Include="Libs\googletest\include\gmock\gmock.h" />
-    <ClInclude Include="Libs\googletest\include\gmock\internal\custom\gmock-generated-actions.h" />
-    <ClInclude Include="Libs\googletest\include\gmock\internal\custom\gmock-matchers.h" />
-    <ClInclude Include="Libs\googletest\include\gmock\internal\custom\gmock-port.h" />
-    <ClInclude Include="Libs\googletest\include\gmock\internal\gmock-internal-utils.h" />
-    <ClInclude Include="Libs\googletest\include\gmock\internal\gmock-port.h" />
-    <ClInclude Include="Libs\googletest\include\gmock\internal\gmock-pp.h" />
-    <ClInclude Include="Libs\googletest\include\gtest\gtest-death-test.h" />
-    <ClInclude Include="Libs\googletest\include\gtest\gtest-matchers.h" />
-    <ClInclude Include="Libs\googletest\include\gtest\gtest-message.h" />
-    <ClInclude Include="Libs\googletest\include\gtest\gtest-param-test.h" />
-    <ClInclude Include="Libs\googletest\include\gtest\gtest-printers.h" />
-    <ClInclude Include="Libs\googletest\include\gtest\gtest-spi.h" />
-    <ClInclude Include="Libs\googletest\include\gtest\gtest-test-part.h" />
-    <ClInclude Include="Libs\googletest\include\gtest\gtest-typed-test.h" />
-    <ClInclude Include="Libs\googletest\include\gtest\gtest.h" />
-    <ClInclude Include="Libs\googletest\include\gtest\gtest_pred_impl.h" />
-    <ClInclude Include="Libs\googletest\include\gtest\gtest_prod.h" />
-    <ClInclude Include="Libs\googletest\include\gtest\internal\custom\gtest-port.h" />
-    <ClInclude Include="Libs\googletest\include\gtest\internal\custom\gtest-printers.h" />
-    <ClInclude Include="Libs\googletest\include\gtest\internal\custom\gtest.h" />
-    <ClInclude Include="Libs\googletest\include\gtest\internal\gtest-death-test-internal.h" />
-    <ClInclude Include="Libs\googletest\include\gtest\internal\gtest-filepath.h" />
-    <ClInclude Include="Libs\googletest\include\gtest\internal\gtest-internal.h" />
-    <ClInclude Include="Libs\googletest\include\gtest\internal\gtest-param-util.h" />
-    <ClInclude Include="Libs\googletest\include\gtest\internal\gtest-port-arch.h" />
-    <ClInclude Include="Libs\googletest\include\gtest\internal\gtest-port.h" />
-    <ClInclude Include="Libs\googletest\include\gtest\internal\gtest-string.h" />
-    <ClInclude Include="Libs\googletest\include\gtest\internal\gtest-type-util.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Libs\googletest\LICENSE" />
-  </ItemGroup>
-  <ItemGroup>
-    <FxCompile Include="Shaders\color.hlsl">
-      <FileType>Document</FileType>
-      <EnableDebuggingInformation Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</EnableDebuggingInformation>
-      <EnableDebuggingInformation Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</EnableDebuggingInformation>
-      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-      </ObjectFileOutput>
-      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-      </ObjectFileOutput>
-      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-      </ObjectFileOutput>
-      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-      </ObjectFileOutput>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">PS</EntryPointName>
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">PS</EntryPointName>
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">PS</EntryPointName>
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">PS</EntryPointName>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </FxCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <Target Name="PackageReleaseX64" AfterTargets="Build" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+  <Target Name="CopyAssimpRuntime" AfterTargets="Build" Condition="'$(Platform)'=='x64'">
+    <PropertyGroup>
+      <AssimpRuntimePath>$(SolutionDir)Library\Bin\x64\assimp-vc143-mt.dll</AssimpRuntimePath>
+    </PropertyGroup>
+    <Error Condition="!Exists('$(AssimpRuntimePath)')"
+           Text="Assimp runtime dependency is missing: $(AssimpRuntimePath)" />
+    <Copy SourceFiles="$(AssimpRuntimePath)"
+          DestinationFolder="$(OutDir)"
+          SkipUnchangedFiles="true" />
+  </Target>
+  <Target Name="PackageReleaseX64" AfterTargets="Build" DependsOnTargets="CopyAssimpRuntime" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <PropertyGroup>
       <ReleasePackageDir>$(OutDir)Package\</ReleasePackageDir>
     </PropertyGroup>

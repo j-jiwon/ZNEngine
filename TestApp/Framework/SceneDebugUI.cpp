@@ -376,7 +376,7 @@ void SceneDebugUI::Render(ZNScene* scene)
         if (GetSystemTimes(&idle, &kernel, &user))
         {
             auto toU64 = [](const FILETIME& ft) -> unsigned long long {
-                return (unsigned long long(ft.dwHighDateTime) << 32) | ft.dwLowDateTime;
+                return (static_cast<unsigned long long>(ft.dwHighDateTime) << 32) | ft.dwLowDateTime;
             };
             unsigned long long idleU   = toU64(idle);
             unsigned long long kernelU = toU64(kernel);
