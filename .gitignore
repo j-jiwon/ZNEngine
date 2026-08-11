@@ -50,10 +50,11 @@
 claude.md
 CLAUDE.md
 **/CLAUDE.md
-.claude/*.md
-.claude/*.html
+.claude/
 AGENTS.md
 **/AGENTS.md
+*.bak
+Thumbs.db
 build.log
 *.log
 

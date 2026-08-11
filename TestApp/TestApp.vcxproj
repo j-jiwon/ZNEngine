@@ -332,7 +332,8 @@
            Text="Release packaging requires $(OutDir)assimp-vc143-mt.dll." />
     <ItemGroup>
       <ReleaseShader Include="$(SolutionDir)Resources\Shaders\**\*" />
-      <ReleaseModel Include="$(SolutionDir)Resources\Models\**\*" />
+      <ReleaseModel Include="$(SolutionDir)Resources\Models\**\*"
+                    Exclude="$(SolutionDir)Resources\Models\**\Thumbs.db" />
       <ReleaseTexture Include="$(SolutionDir)Resources\Textures\**\*" />
     </ItemGroup>
     <RemoveDir Directories="$(ReleasePackageDir)" />
