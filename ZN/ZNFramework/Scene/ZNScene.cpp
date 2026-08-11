@@ -201,6 +201,16 @@ void ZNScene::RebuildEnumeration(std::vector<ZNGameObject*>& out, bool forward) 
 
 void ZNScene::DestroyObjectInternal(ZNGameObject* obj)
 {
+	// Children are non-owning raw pointers. Only release objects that this scene actually owns;
+	// detach foreign or not-yet-adopted children so they do not retain a dangling parent.
+	if (!obj)
+		return;
+	if (Resolve(obj->GetHandle()) != obj)
+	{
+		obj->DetachFromParent();
+		return;
+	}
+
 	// destroy the subtree first (children are separately pool-owned). copy the list because
 	// each child's DetachFromParent() mutates it.
 	std::vector<ZNGameObject*> kids = obj->GetChildren();
