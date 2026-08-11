@@ -334,6 +334,16 @@ void ZNScene::AddOffscreenCamera(ZNCamera* cam, RenderTexture* rt,
 
 		OffscreenCamEntry& entry = offscreenCamEntries[idx];
 
+		// Offscreen passes run before the active scene's GBuffer pass, so the global
+		// lighting context may still belong to the previously active scene. Push this
+		// callback owner's lighting explicitly while preserving the offscreen camera
+		// that OffscreenCameraPass installed immediately before invoking us.
+		GraphicsContext& ctx = GraphicsContext::GetInstance();
+		ctx.SetSpotLights(spotLights);
+		ctx.SetPointLights(pointLights);
+		ctx.SetDirectionalLight(directionalLight);
+		ctx.SetDiscoSources(sceneDiscoSources);
+
 		ForEachLiveObject(false, [&](ZNGameObject* obj)
 		{
 			if (!obj->IsVisible() || !obj->GetMesh()) return;
@@ -478,7 +488,7 @@ void ZNScene::AddCubemapCapture(const ZNVector3& position, float nearZ, float fa
 void ZNScene::SetEnvCubemapTexture(const std::wstring& panoramaPath, uint32 faceSize)
 {
 	auto* cubeTex = new EquirectCubeTexture();
-	cubeTex->Init(panoramaPath, faceSize);
+	cubeTex->Init(panoramaPath, faceSize, true);
 
 	ownedEnvCubemapSRV = cubeTex->GetSRVCpuHandle();
 	hasOwnedEnvCubemap = true;
@@ -496,7 +506,7 @@ void ZNScene::ApplyEnvCubemap()
 void ZNScene::SetSkyboxTexture(const std::wstring& panoramaPath, uint32 faceSize)
 {
 	auto* cubeTex = new EquirectCubeTexture();
-	cubeTex->Init(panoramaPath, faceSize);
+	cubeTex->Init(panoramaPath, faceSize, true);
 
 	ownedSkyboxSRV = cubeTex->GetSRVCpuHandle();
 	hasOwnedSkybox = true;

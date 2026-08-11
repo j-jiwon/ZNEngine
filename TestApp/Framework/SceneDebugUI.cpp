@@ -4,6 +4,7 @@
 #include <ZNFramework.h>
 #include <ZNFramework/ZNLog.h>
 #include <ZNFramework/Graphics/ZNLight.h>
+#include <ZNFramework/Graphics/Platform/Direct3D12/Shader.h>
 #include <imgui.h>
 #include <Windows.h>
 #include <algorithm>
@@ -62,13 +63,17 @@ void SceneDebugUI::EnsureDebugShaders()
 {
     if (dbgSolidShader && dbgAlphaShader) return;
 
+    DXGI_FORMAT hdrFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
+
     if (!dbgSolidShader) {
         dbgSolidShader = Platform::CreateShader();
         dbgSolidShader->Load(GetResourcePath() / L"Shaders" / L"forward_unlit.hlsli");
+        dynamic_cast<Shader*>(dbgSolidShader)->SetRenderTargetFormats(1, &hdrFormat);
     }
     if (!dbgAlphaShader) {
         dbgAlphaShader = Platform::CreateShader();
         dbgAlphaShader->Load(GetResourcePath() / L"Shaders" / L"forward_unlit.hlsli");
+        dynamic_cast<Shader*>(dbgAlphaShader)->SetRenderTargetFormats(1, &hdrFormat);
         dbgAlphaShader->EnableAlphaBlend();
         dbgAlphaShader->DisableDepthWrite();
     }

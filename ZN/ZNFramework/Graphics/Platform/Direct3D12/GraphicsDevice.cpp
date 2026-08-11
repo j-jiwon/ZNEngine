@@ -15,8 +15,12 @@ namespace ZNFramework::Platform::Direct3D
 GraphicsDevice::GraphicsDevice()
 {
 #ifdef _DEBUG
-    ::D3D12GetDebugInterface(IID_PPV_ARGS(&debugController));
+    ThrowIfFailed(::D3D12GetDebugInterface(IID_PPV_ARGS(&debugController)));
     debugController->EnableDebugLayer();
+
+    ComPtr<ID3D12Debug1> debugController1;
+    ThrowIfFailed(debugController.As(&debugController1));
+    debugController1->SetEnableGPUBasedValidation(TRUE);
 #endif
 
     //device.Reset();
@@ -24,6 +28,13 @@ GraphicsDevice::GraphicsDevice()
 
     CreateDXGIFactory1(IID_PPV_ARGS(&factory));
     ThrowIfFailed(D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&device)));
+
+#ifdef _DEBUG
+    ComPtr<ID3D12InfoQueue> infoQueue;
+    ThrowIfFailed(device.As(&infoQueue));
+    ThrowIfFailed(infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, TRUE));
+    ThrowIfFailed(infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, TRUE));
+#endif
     //ThrowIfFailed(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence)));
 
     // Find the adapter that matches the created device via LUID, then QI for IDXGIAdapter3

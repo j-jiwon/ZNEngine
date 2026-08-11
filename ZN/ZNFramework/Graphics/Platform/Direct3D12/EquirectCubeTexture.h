@@ -8,7 +8,7 @@ namespace ZNFramework {
 // (unlike CubeRenderTexture, this is never rendered into again after Init()).
 class EquirectCubeTexture {
 public:
-    void Init(const std::wstring& path, uint32 faceSize = 512);
+    void Init(const std::wstring& path, uint32 faceSize, bool srgb);
     D3D12_CPU_DESCRIPTOR_HANDLE GetSRVCpuHandle() const { return srvHandle; }
 
 private:

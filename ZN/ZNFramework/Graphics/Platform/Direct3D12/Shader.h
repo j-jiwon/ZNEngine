@@ -20,20 +20,17 @@ namespace ZNFramework
 		void EnableAdditiveBlend() override;
 
 	private:
-		void CreateShader(const wstring& path, const string& name, const string& version, ComPtr<ID3DBlob>& blob, D3D12_SHADER_BYTECODE& shaderByteCode);
-		void CreateVertexShader(const wstring& path, const string& name, const string& version);
-		void CreatePixelShader(const wstring& path, const string& name, const string& version);
-		void CreateWireframePSO();
+		ComPtr<ID3DBlob> CompileShader(const wstring& path, const string& name, const string& version);
+		ComPtr<ID3D12PipelineState> CreateWireframePSO();
 		void RebuildPSO();   // (re)create the main + wireframe PSO from pipelineDesc
 
 	private:
 		ComPtr<ID3DBlob> vsBlob;
 		ComPtr<ID3DBlob> psBlob;
-		ComPtr<ID3DBlob> errBlob;
-
 		ComPtr<ID3D12PipelineState>	pipelineState;
 		ComPtr<ID3D12PipelineState>	pipelineStateWireframe;
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC pipelineDesc = {};
+		std::string sourcePath;
 
 		// Store input layout descriptors to keep them valid
 		std::vector<D3D12_INPUT_ELEMENT_DESC> inputElementDescs;

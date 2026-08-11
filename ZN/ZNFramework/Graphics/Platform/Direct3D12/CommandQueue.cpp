@@ -200,6 +200,16 @@ void CommandQueue::BuildRenderGraph()
             skyboxRenderer, gbufferManager, sceneColorRT, this));
     }
 
+    // --- Forward pass (composites into HDR SceneColor before post-processing) ---
+    if (sceneColorRT) {
+        renderGraph.AddPass(std::make_unique<ForwardRenderPass>(
+            sceneColorRT, dsBuffer,
+            rootSig->GetSignature().Get(),
+            tdh->GetDescriptorHeap().Get(),
+            isForwardPass,
+            [this]() { if (forwardRenderCallback) forwardRenderCallback(); }));
+    }
+
     // --- Bloom pass (bright-pass extract + downsample/upsample chain from SceneColor) ---
     if (sceneColorRT && bloomChain) {
         renderGraph.AddPass(std::make_unique<BloomPass>(sceneColorRT, bloomChain));
@@ -211,14 +221,6 @@ void CommandQueue::BuildRenderGraph()
         renderGraph.AddPass(std::make_unique<ToneMappingPass>(
             sceneColorRT, bloomChain->GetOutputRT(), swapChain, toneMapShader));
     }
-
-    // --- Forward pass ---
-    renderGraph.AddPass(std::make_unique<ForwardRenderPass>(
-        swapChain, dsBuffer,
-        rootSig->GetSignature().Get(),
-        tdh->GetDescriptorHeap().Get(),
-        isForwardPass,
-        [this]() { if (forwardRenderCallback) forwardRenderCallback(); }));
 
     // --- ImGui pass ---
     // Pass &imguiSrvHeap so that a late SetImGuiDescriptorHeap() call is picked up automatically
