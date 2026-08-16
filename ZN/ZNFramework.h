@@ -85,7 +85,8 @@ namespace ZNFramework
 		Albedo = 0,   // t0: Base color
 		Normal = 1,   // t1: Normal map
 		ARM = 2,      // t2: AO(R), Roughness(G), Metallic(B)
-		Count = 3
+		Emissive = 3, // t4, not t3 (see Material::Bind's register table)
+		Count = 4
 	};
 
 	// Light data for shader (cbLight : register(b2))

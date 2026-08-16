@@ -66,7 +66,9 @@ namespace ZNFramework
         ComPtr<ID3D12Resource> thresholdConstantBuffer;
         void*                  mappedThresholdBuffer = nullptr;
 
-        float threshold = 1.0f;
+        // Bright-pass cutoff in HDR units; only pixels above it bloom. Overridden per scene by
+        // ZNScene::ApplyBloom, and tunable live from the Debug panel's Bloom section.
+        float threshold = 1.6f;
 
         uint32 width  = 0;
         uint32 height = 0;

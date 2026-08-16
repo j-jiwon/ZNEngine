@@ -160,24 +160,25 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
         std::filesystem::path shaderPath = GetResourcePath() / L"Shaders" / L"gbuffer.hlsli";
         gbufferShader->Load(shaderPath);
 
-        // Configure for all 5 MRT targets — must match GBufferManager's targets exactly, or the
-        // PSO leaves slots 3/4 as UNKNOWN while GBufferPass binds 5 RTVs and gbuffer.hlsli writes
-        // 5 SV_Targets. That mismatch floods the debug layer ("render target format in slot 3/4
-        // does not match") and makes WorldPos/ARM writes unreliable (spec: writes past the PSO's
+        // Configure for all 6 MRT targets — must match GBufferManager's targets exactly, or the
+        // PSO leaves trailing slots as UNKNOWN while GBufferPass binds 6 RTVs and gbuffer.hlsli
+        // writes 6 SV_Targets. That mismatch floods the debug layer ("render target format in
+        // slot N does not match") and makes those writes unreliable (spec: writes past the PSO's
         // RTV count are discarded).
-        DXGI_FORMAT mrtFormats[5] = {
+        DXGI_FORMAT mrtFormats[6] = {
             DXGI_FORMAT_R8G8B8A8_UNORM,      // 0 Base Color
             DXGI_FORMAT_R16G16B16A16_FLOAT,  // 1 World Normal
             DXGI_FORMAT_R32_FLOAT,           // 2 Depth copy
             DXGI_FORMAT_R16G16B16A16_FLOAT,  // 3 World Position
-            DXGI_FORMAT_R8G8B8A8_UNORM       // 4 ARM (AO / Roughness / Metallic)
+            DXGI_FORMAT_R8G8B8A8_UNORM,      // 4 ARM (AO / Roughness / Metallic)
+            DXGI_FORMAT_R11G11B10_FLOAT      // 5 Emissive
         };
 
         // Cast to concrete type to access SetRenderTargetFormats
         Shader* d3dShader = dynamic_cast<Shader*>(gbufferShader);
         if (d3dShader)
         {
-            d3dShader->SetRenderTargetFormats(5, mrtFormats);
+            d3dShader->SetRenderTargetFormats(_countof(mrtFormats), mrtFormats);
         }
 
         GraphicsContext::GetInstance().SetGBufferShader(gbufferShader);
@@ -190,18 +191,19 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
         std::filesystem::path shaderPath = GetResourcePath() / L"Shaders" / L"gbuffer_instanced.hlsli";
         gbufferInstancedShader->Load(shaderPath);
 
-        DXGI_FORMAT mrtFormats[5] = {
+        DXGI_FORMAT mrtFormats[6] = {
             DXGI_FORMAT_R8G8B8A8_UNORM,      // 0 Base Color
             DXGI_FORMAT_R16G16B16A16_FLOAT,  // 1 World Normal
             DXGI_FORMAT_R32_FLOAT,           // 2 Depth copy
             DXGI_FORMAT_R16G16B16A16_FLOAT,  // 3 World Position
-            DXGI_FORMAT_R8G8B8A8_UNORM       // 4 ARM (AO / Roughness / Metallic)
+            DXGI_FORMAT_R8G8B8A8_UNORM,      // 4 ARM (AO / Roughness / Metallic)
+            DXGI_FORMAT_R11G11B10_FLOAT      // 5 Emissive
         };
 
         Shader* d3dShader = dynamic_cast<Shader*>(gbufferInstancedShader);
         if (d3dShader)
         {
-            d3dShader->SetRenderTargetFormats(5, mrtFormats);
+            d3dShader->SetRenderTargetFormats(_countof(mrtFormats), mrtFormats);
         }
 
         GraphicsContext::GetInstance().SetGBufferInstancedShader(gbufferInstancedShader);
@@ -298,6 +300,7 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
                 ImTextureID armTexId       = guiLayer->SetTexture(gfxDevice->Device().Get(), gbufferMgr->GetARMSRV(), 4);
                 ImTextureID depthTexId     = guiLayer->SetGrayscaleTexture(gfxDevice->Device().Get(), gbufferMgr->GetDepthCopyResource(), DXGI_FORMAT_R32_FLOAT, 5);
                 ImTextureID shadowTexId    = (hasShadow && shadowMapPtr) ? guiLayer->SetGrayscaleTexture(gfxDevice->Device().Get(), shadowMapPtr->GetResource(), DXGI_FORMAT_R32_FLOAT, 6) : 0;
+                ImTextureID emissiveTexId  = guiLayer->SetTexture(gfxDevice->Device().Get(), gbufferMgr->GetEmissiveSRV(), 7);
 
                 // Pinned to the top-right corner (re-computed every frame, so it hugs the corner
                 // across window resize / maximize). Width matches the app's uniform panel width
@@ -314,6 +317,7 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
                 thumb("Normal",    normalTexId);
                 thumb("WorldPos",  worldPosTexId);
                 thumb("ARM",       armTexId);
+                thumb("Emissive",  emissiveTexId);
                 thumb("Depth",     depthTexId);
                 if (shadowTexId != 0)
                     thumb("Shadow", shadowTexId);
@@ -330,14 +334,15 @@ void ApplicationContext::SetScene(ZNScene* scene)
     currentScene = scene;
     ZNScene::SetActiveScene(scene); // inactive scenes' offscreen passes skip their geometry work
 
-    // Re-apply (or clear) this scene's own env cubemap / skybox — every scene is eagerly
-    // Initialize()'d up front (see App.cpp), so without this the single global
+    // Re-apply (or clear) this scene's own env cubemap / skybox / bloom grade — every scene is
+    // eagerly Initialize()'d up front (see App.cpp), so without this the single global
     // CommandQueue slots would just be whatever the last-initialized scene happened to
     // register, for every scene.
     if (currentScene)
     {
         currentScene->ApplyEnvCubemap();
         currentScene->ApplySkybox();
+        currentScene->ApplyBloom();
     }
 
     if (commandQueue && currentScene)

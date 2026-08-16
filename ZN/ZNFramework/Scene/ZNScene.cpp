@@ -530,3 +530,22 @@ void ZNScene::ApplySkybox()
 	else
 		cmdQ->ClearSkyboxSRV();
 }
+
+void ZNScene::SetBloom(float threshold, float intensity)
+{
+	bloomThreshold = threshold;
+	bloomIntensity = intensity;
+
+	// Only the active scene owns the global slot; the rest just record their numbers for
+	// ApplyBloom() to push on switch-in.
+	if (IsActiveScene())
+		ApplyBloom();
+}
+
+void ZNScene::ApplyBloom()
+{
+	ZNCommandQueue* cmdQ = GraphicsContext::GetInstance().GetCommandQueue();
+	if (!cmdQ) return;
+	cmdQ->SetBloomThreshold(bloomThreshold);
+	cmdQ->SetBloomIntensity(bloomIntensity);
+}

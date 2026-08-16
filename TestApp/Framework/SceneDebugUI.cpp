@@ -253,6 +253,21 @@ void SceneDebugUI::RenderDebugPanel(ZNScene* scene)
     if (!camEntries.empty())
         ImGui::Checkbox("Camera Indicators", &showCamIndicators);
 
+    // Bloom — bright-pass cutoff + how much of the chain is added back before ACES. Edited on
+    // the scene, not the CommandQueue, since the grade is per-scene (see ZNScene::SetBloom).
+    if (scene && cq->HasBloomControls())
+    {
+        ImGui::Separator();
+        ImGui::Text("Bloom");
+        float threshold = scene->GetBloomThreshold();
+        float intensity = scene->GetBloomIntensity();
+        bool  changed   = false;
+        if (ImGui::SliderFloat("Thresh.", &threshold, 0.f, 5.f)) changed = true;
+        if (ImGui::SliderFloat("Amount",  &intensity, 0.f, 2.f)) changed = true;
+        if (changed)
+            scene->SetBloom(threshold, intensity);
+    }
+
     // Camera — read-out (Pos/Rot moved here from Stats) + runtime tuning of the frame-based movement.
     if (scene && scene->GetCamera())
     {
@@ -604,8 +619,20 @@ void SceneDebugUI::Render(ZNScene* scene)
                 p.albedoColor = ZNVector4(col[0], col[1], col[2], col[3]);
                 changed = true;
             }
+            // Base values — ignored on any material that has an ARM texture (see gbuffer.hlsli).
             if (ImGui::SliderFloat("Metallic",  &p.metallic,  0.f, 1.f)) changed = true;
             if (ImGui::SliderFloat("Roughness", &p.roughness, 0.f, 1.f)) changed = true;
+            // Multipliers on the final value — the working controls on a textured model.
+            // Short labels to fit the uniform panel width.
+            if (ImGui::SliderFloat("Rough x", &p.roughnessScale, 0.f, 4.f)) changed = true;
+            if (ImGui::SliderFloat("Metal x", &p.metallicScale,  0.f, 2.f)) changed = true;
+            // glTF emissiveFactor — multiplies the emissive map, so only materials with one respond.
+            float emi[3] = { p.emissiveColor.x, p.emissiveColor.y, p.emissiveColor.z };
+            if (ImGui::ColorEdit3("Emissive", emi))
+            {
+                p.emissiveColor = ZNVector4(emi[0], emi[1], emi[2], 1.f);
+                changed = true;
+            }
             if (changed) mat->SetParams(p);
         }
         break;

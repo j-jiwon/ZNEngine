@@ -137,6 +137,17 @@ namespace ZNFramework
 		// Same re-apply-on-scene-switch pattern as ApplyEnvCubemap(), for the skybox slot.
 		void ApplySkybox();
 
+		// Per-scene bloom grade. The bright-pass cutoff is in HDR units, so the value that
+		// isolates highlights depends on the scene's own light intensities. Held here and pushed
+		// to the single global bloom slot on scene switch, for the same reason as
+		// ApplyEnvCubemap(). Editing the active scene applies immediately (Debug panel sliders).
+		void  SetBloom(float threshold, float intensity);
+		float GetBloomThreshold() const { return bloomThreshold; }
+		float GetBloomIntensity() const { return bloomIntensity; }
+
+		// Same re-apply-on-scene-switch pattern as ApplyEnvCubemap(), for the bloom settings.
+		void ApplyBloom();
+
 	protected:
 		// Enumeration caches (ownership per category), rebuilt on demand by the getters from
 		// objectSlots — the single source of truth. The render passes DON'T read these; they
@@ -209,5 +220,9 @@ namespace ZNFramework
 		// Set by SetSkyboxTexture(), applied to CommandQueue only via ApplySkybox().
 		D3D12_CPU_DESCRIPTOR_HANDLE ownedSkyboxSRV = {};
 		bool hasOwnedSkybox = false;
+
+		// Bloom grade (see SetBloom). Defaults mirror BloomChain/ToneMappingPass's own.
+		float bloomThreshold = 1.6f;
+		float bloomIntensity = 0.35f;
 	};
 }

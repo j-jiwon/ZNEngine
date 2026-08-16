@@ -5,12 +5,13 @@
 using namespace ZNFramework;
 
 // Optimised clear values, one per target — MUST match how GBufferPass clears them.
-static const float kGBufferClear[5][4] = {
+static const float kGBufferClear[6][4] = {
     { 0.f, 0.f, 0.f, 1.f }, // BaseColor: black, alpha 1
     { 0.f, 0.f, 0.f, 0.f }, // Normal
     { 1.f, 0.f, 0.f, 0.f }, // DepthCopy: far (1.0)
     { 0.f, 0.f, 0.f, 0.f }, // WorldPos
     { 0.f, 0.f, 0.f, 0.f }, // ARM
+    { 0.f, 0.f, 0.f, 0.f }, // Emissive: black = nothing emits
 };
 
 const float* GBufferManager::ClearColor(uint32 index) { return kGBufferClear[index]; }
@@ -40,7 +41,8 @@ void GBufferManager::CreateGBufferResources()
         DXGI_FORMAT_R16G16B16A16_FLOAT,  // World Normal (need precision)
         DXGI_FORMAT_R32_FLOAT,           // Depth copy (for visualization)
         DXGI_FORMAT_R16G16B16A16_FLOAT,  // World Position (half precision is sufficient)
-        DXGI_FORMAT_R8G8B8A8_UNORM       // ARM texture (AO, Roughness, Metallic)
+        DXGI_FORMAT_R8G8B8A8_UNORM,      // ARM texture (AO, Roughness, Metallic)
+        DXGI_FORMAT_R11G11B10_FLOAT      // Emissive (float keeps >1 factors, no alpha needed)
     };
 
     // Create each G-Buffer texture

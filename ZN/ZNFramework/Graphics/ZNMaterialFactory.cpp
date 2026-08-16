@@ -38,7 +38,10 @@ namespace ZNFramework
 		for (size_t i = 0; i < static_cast<size_t>(TextureType::Count); ++i)
 		{
 			std::unique_ptr<ZNTexture> tex;
-			const bool srgb = (static_cast<TextureType>(i) == TextureType::Albedo);
+			// glTF stores baseColor and emissive as sRGB-encoded colour; normal maps and the
+			// metallicRoughness/occlusion pack are linear data and must not be de-gamma'd.
+			const TextureType slot = static_cast<TextureType>(i);
+			const bool srgb = (slot == TextureType::Albedo || slot == TextureType::Emissive);
 
 			if (!matData.embeddedTextureData[i].empty())
 			{

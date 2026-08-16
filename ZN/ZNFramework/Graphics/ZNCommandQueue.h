@@ -44,6 +44,14 @@ namespace ZNFramework
 		ViewMode GetViewMode() const { return viewMode; }
 		void SetViewMode(ViewMode mode) { viewMode = mode; }
 
+		// Bloom tuning. The state lives in the backend's bright-pass chain and tone-map pass,
+		// so these forward there; no-ops on backends without one.
+		virtual bool  HasBloomControls() const   { return false; }
+		virtual float GetBloomThreshold() const  { return 0.0f; }
+		virtual void  SetBloomThreshold(float)   {}
+		virtual float GetBloomIntensity() const  { return 0.0f; }
+		virtual void  SetBloomIntensity(float)   {}
+
 		// Wireframe selection highlight: set once per frame before GBuffer pass.
 		// SetWireframeCurrentObject is called per-object in ZNGameObject::Render().
 		void SetWireframeSelectedObject(void* obj) { wireframeSelectedObject = obj; }

@@ -82,11 +82,12 @@ Texture2D normalTexture : register(t1);
 Texture2D depthTexture : register(t2);
 Texture2D worldPosTexture : register(t3);
 Texture2D armTexture : register(t4);  // ARM: R=AO, G=Roughness, B=Metallic
-Texture2D shadowMap : register(t5);   // Shadow map depth texture
-TextureCube envCube : register(t6);   // Captured environment cubemap (static bake); IBLBaker's source, not sampled directly here
-TextureCube irradianceCube : register(t7);   // IBL diffuse irradiance (cosine-convolved envCube); black = not baked yet
-TextureCube prefilteredCube : register(t8);  // IBL specular, roughness-mip chain (GGX prefiltered envCube); black = not baked yet
-Texture2D brdfLUT : register(t9);            // Split-sum BRDF LUT (scale,bias in .rg)
+Texture2D emissiveTexture : register(t5);    // Self-illumination written by the GBuffer pass
+Texture2D shadowMap : register(t6);   // Shadow map depth texture
+TextureCube envCube : register(t7);   // Captured environment cubemap (static bake); IBLBaker's source, not sampled directly here
+TextureCube irradianceCube : register(t8);   // IBL diffuse irradiance (cosine-convolved envCube); black = not baked yet
+TextureCube prefilteredCube : register(t9);  // IBL specular, roughness-mip chain (GGX prefiltered envCube); black = not baked yet
+Texture2D brdfLUT : register(t10);           // Split-sum BRDF LUT (scale,bias in .rg)
 
 SamplerState sampler0 : register(s0);
 SamplerComparisonState shadowSampler : register(s1);  // Comparison sampler for PCF
@@ -163,10 +164,14 @@ float CalculateShadow(float3 worldPos, float3 normal, float3 lightDir)
 
 static const float PI = 3.14159265359f;
 
+// Avoid the GGX singularity at zero roughness.
+static const float MIN_ROUGHNESS = 0.045f;
+
 // Normal Distribution Function (GGX/Trowbridge-Reitz)
 float DistributionGGX(float3 N, float3 H, float roughness)
 {
-    float a = roughness * roughness;
+    float a = max(roughness, MIN_ROUGHNESS);
+    a = a * a;
     float a2 = a * a;
     float NdotH = max(dot(N, H), 0.0f);
     float NdotH2 = NdotH * NdotH;
@@ -307,7 +312,12 @@ float3 ComputeDiscoCaustics(float3 worldPos, float3 N)
             SpotLightData spot = spotLights[i];
 
             float3 dirToLight = normalize(spot.position - C); // body -> light
-            float3 h = normalize(dirToLight + d);             // required facet normal (world)
+
+            // Avoid normalizing opposite vectors.
+            float3 hSum = dirToLight + d;
+            if (dot(hSum, hSum) < 1e-8f)
+                continue;
+            float3 h = normalize(hSum);                       // required facet normal (world)
 
             // Only facets that actually face both the light and the pixel can reflect.
             if (dot(h, dirToLight) <= 0.0f || dot(h, d) <= 0.0f)
@@ -375,7 +385,8 @@ float4 PS_Main(VS_OUT input) : SV_Target
     // Sample ARM texture (AO, Roughness, Metallic) - already converted in gbuffer pass
     float4 arm = armTexture.Sample(sampler0, input.uv);
     float ao = arm.r;
-    float roughness = arm.g;
+    // Floored here too — this value also drives the split-sum IBL (prefiltered mip + BRDF LUT).
+    float roughness = max(arm.g, MIN_ROUGHNESS);
     float metallic = arm.b;
 
     ao = max(ao, 0.1f);
@@ -498,7 +509,7 @@ float4 PS_Main(VS_OUT input) : SV_Target
     float3 diffuseIBL = irradianceCube.Sample(sampler0, N).rgb * albedo;
 
     // Split-sum specular: sample the prefiltered mip matching this surface's roughness,
-    // scale by (F0 * brdf.x + brdf.y) — the precomputed Fresnel/geometry integral (t9).
+    // scale by (F0 * brdf.x + brdf.y) — the precomputed Fresnel/geometry integral (t10).
     // kPrefilterMipCount-1 must match IBLBaker::kPrefilterMips-1 (currently 5 mips -> 4.0).
     static const float kMaxPrefilterMip = 4.0f;
     float3 R = reflect(-V, N);
@@ -512,7 +523,10 @@ float4 PS_Main(VS_OUT input) : SV_Target
     // on this pixel. Purely additive, tracks live spotlight color/intensity and body rotation.
     float3 disco = ComputeDiscoCaustics(worldPos, N);
 
-    // Combine ambient IBL, direct lighting, and disco scatter
-    float3 finalColor = ambient + Lo + disco;
+    // Emission is unlit and remains in HDR for bloom.
+    float3 emissive = emissiveTexture.Sample(sampler0, input.uv).rgb;
+
+    // Combine ambient IBL, direct lighting, disco scatter and emission
+    float3 finalColor = ambient + Lo + disco + emissive;
     return float4(finalColor, baseColor.a);
 }

@@ -323,8 +323,25 @@ void AssimpLoader::ProcessMaterial(aiMaterial* material, const aiScene* scene,
 	                  aiTextureType_DIFFUSE_ROUGHNESS, aiTextureType_SHININESS,
 	                  aiTextureType_AMBIENT_OCCLUSION }, TextureType::ARM);
 
+	// Emissive. EMISSION_COLOR is glTF's slot; EMISSIVE covers FBX/OBJ.
+	LoadTexturePath({ aiTextureType_EMISSION_COLOR, aiTextureType_EMISSIVE }, TextureType::Emissive);
+
+	// glTF emissiveFactor, scaling the texture above. Spec default is black; when a model has an
+	// emissive texture but no readable factor, fall back to white (importer gap, not intent).
+	{
+		bool hasEmissiveTex =
+			!outMaterial.texturePaths[static_cast<size_t>(TextureType::Emissive)].empty() ||
+			!outMaterial.embeddedTextureData[static_cast<size_t>(TextureType::Emissive)].empty();
+
+		aiColor4D emissive;
+		if (AI_SUCCESS == material->Get(AI_MATKEY_COLOR_EMISSIVE, emissive))
+			outMaterial.params.emissiveColor = ZNVector4(emissive.r, emissive.g, emissive.b, 1.f);
+		else if (hasEmissiveTex)
+			outMaterial.params.emissiveColor = ZNVector4(1.f, 1.f, 1.f, 1.f);
+	}
+
 	// Log resolved results
-	const char* slotNames[] = { " Albedo=", " Normal=", " ARM=" };
+	const char* slotNames[] = { " Albedo=", " Normal=", " ARM=", " Emissive=" };
 	bool anyResolved = false;
 	for (size_t i = 0; i < static_cast<size_t>(TextureType::Count); ++i)
 		if (!outMaterial.texturePaths[i].empty() || !outMaterial.embeddedTextureData[i].empty())
