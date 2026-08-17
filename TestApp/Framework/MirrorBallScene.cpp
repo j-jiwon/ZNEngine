@@ -20,7 +20,7 @@ void MirrorBallScene::Initialize()
     glassShader->EnableAlphaBlend();
     glassShader->DisableDepthWrite();
 
-    // room.glb real bounds: X:[-1.43,1.43] Y:[0.10(floor),1.87(ceiling)] Z:[-1.55,1.75]
+    // low_poly_isometric_room.glb real bounds: X:[-1.43,1.43] Y:[0.10(floor),1.87(ceiling)] Z:[-1.55,1.75]
     // room center: (0, -, 0.1). Everything below is placed relative to that box.
     ZNCamera* cam = new ZNCamera();
     cam->SetPosition(ZNVector3(1.655f, 1.619f, -2.018f));

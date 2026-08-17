@@ -10,3 +10,14 @@ This document lists the source and license information for third-party resource 
 - glTF rebuild and conversion: Copyright 2018 ctxwing, licensed under the [Creative Commons Attribution 4.0 International License](https://creativecommons.org/licenses/by/4.0/)
 
 The model was rebuilt and converted to conform to the final glTF 2.0 specification. See the [upstream legal information](https://github.com/KhronosGroup/glTF-Sample-Assets/blob/main/Models/DamagedHelmet/README.md#legal) for details.
+
+## Low Poly: Isometric Room
+
+- File: `Resources/Models/room.glb`
+- Original model: Low Poly: Isometric Room
+- Creator: Mehmet Nizam Saltan (`@nizamsaltan`)
+- Source: [Sketchfab](https://skfb.ly/oy78F)
+- Original model license: [Creative Commons Attribution 4.0 International](https://creativecommons.org/licenses/by/4.0/)
+- Original textures: Included with the original model and licensed under CC BY 4.0 by Mehmet Nizam Saltan.
+- Modifications: Converted to glTF binary format and partially retextured for use in ZNEngine.
+- Additional texture photographs: Copyright 2026 Jung Jiwon.
