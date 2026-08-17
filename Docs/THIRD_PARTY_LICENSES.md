@@ -37,3 +37,20 @@ The model was rebuilt and converted to conform to the final glTF 2.0 specificati
 - Source: [HDRI Night (free)](https://www.hdri-hub.com/hdrishop/freesamples/freehdri/item/74-hdr-night)
 - License: [Creative Commons Attribution 3.0 Unported](https://creativecommons.org/licenses/by/3.0/)
 - Usage: Night environment and skybox texture used by `MirrorBallScene`.
+
+## Stanford Bunny
+
+- File: `Resources/Models/stanford-bunny.fbx`
+- Source: [Stanford 3D Scanning Repository](https://graphics.stanford.edu/data/3Dscanrep/#bunny)
+- Creator: Stanford University Computer Graphics Laboratory
+- Reconstruction: Greg Turk and Marc Levoy
+- Usage terms: The repository permits research use and free redistribution with source acknowledgement. Commercial use requires permission from Stanford under the repository's stated terms.
+- Modifications: Converted to FBX format for use in ZNEngine.
+
+## Qwantani Noon HDRI
+
+- File: `Resources/Textures/qwantani_noon.jpg`
+- Creators: Greg Zaal (photography), Jarod Guest (processing)
+- Source: [Poly Haven](https://polyhaven.com/a/qwantani_noon)
+- License: [Creative Commons CC0 1.0 Universal](https://creativecommons.org/publicdomain/zero/1.0/)
+- Usage: Daytime environment texture used by `TestGameScene`.
