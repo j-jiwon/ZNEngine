@@ -58,7 +58,7 @@ void CCTVScene::Initialize()
 
     // Overhead camera: positioned high, pitching sharply down
     cctvCamera = new ZNCamera();
-    cctvCamera->SetPosition(ZNVector3(-1.15f, 1.8f, 1.25f));
+    cctvCamera->SetPosition(ZNVector3(-1.95f, 3.15f, 2.05f));
     cctvCamera->SetRotation(-36.5f, 144.0f); // nearly straight down
     cctvCamera->SetPerspective(3.141592f / 3.0f, 512.0f / 288.0f, 0.1f, 50.0f); // 60deg wide
 
@@ -73,8 +73,8 @@ void CCTVScene::Initialize()
     tvScreen->SetMaterial(tvMat);
     tvScreen->SetName("TV Screen");
     tvScreen->SetTag("TV");
-    tvScreen->GetTransform().position = ZNVector3(0.0f, 2.5f, 4.0f);
-    tvScreen->GetTransform().scale    = ZNVector3(4.0f, 0.05f, 2.25f); // 16:9
+    tvScreen->GetTransform().position = ZNVector3(1.03f, 1.27f, 2.21f);
+    tvScreen->GetTransform().scale    = ZNVector3(1.016f, 0.008f, 0.567f); // 16:9
     tvScreen->GetTransform().rotation = ZNVector3(-90.0f, 0.0f, 0.0f);
     tvScreen->SetCastShadow(false);
     AddForwardGameObject(tvScreen);

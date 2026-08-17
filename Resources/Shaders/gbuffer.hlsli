@@ -13,11 +13,17 @@ cbuffer cbMaterial : register(b1)
     float roughness;
     float ao;
     float useAlbedoTexture; // 1.0 = sample t0; 0.0 = albedoColor only
+    float4 emissiveColor;   // rgb = glTF emissiveFactor, scales tex_emissive; a unused
+    float roughnessScale;   // multiplies the final roughness (texture or scalar); 1.0 = unchanged
+    float metallicScale;    // multiplies the final metallic  (texture or scalar); 1.0 = unchanged
+    float useARMTexture;
 };
 
 Texture2D tex_0 : register(t0); // Albedo (BaseColor)
 Texture2D tex_1 : register(t1); // Normal map
 Texture2D tex_arm : register(t2); // ARM
+// t3 is reserved for instance data or the forward shadow map.
+Texture2D tex_emissive : register(t4);
 
 SamplerState sam_0 : register(s0);
 
@@ -45,6 +51,7 @@ struct PS_MRT_OUTPUT
     float4 depth : SV_Target2;      // Depth value for visualization (R32_FLOAT writes to .r channel)
     float4 worldPos : SV_Target3;
     float4 arm : SV_Target4;        // ARM texture: R=AO, G=Roughness, B=Metallic
+    float4 emissive : SV_Target5;   // Self-illumination, added unlit in deferred_lighting.hlsli
 };
 
 VS_OUT VS_Main(VS_IN input)
@@ -108,15 +115,23 @@ PS_MRT_OUTPUT PS_Main(VS_OUT input)
 
     // ARM (AO, Roughness, Metallic)
     float4 armSample = tex_arm.Sample(sam_0, input.uv);
-    if (dot(armSample.rgb, armSample.rgb) < 0.01)
+    float outAO, outRoughness, outMetallic;
+    if (useARMTexture < 0.5)
     {
-        output.arm = float4(ao, roughness, metallic, 1.0);
+        outAO = ao; outRoughness = roughness; outMetallic = metallic;
     }
     else
     {
-        // Use texture values directly (no conversion)
-        output.arm = float4(armSample.r, armSample.g, armSample.b, 1.0);
+        outAO        = armSample.r;
+        outRoughness = armSample.g;
+        outMetallic  = armSample.b;
     }
+
+    // Preserve texture variation while allowing per-material tuning.
+    const float kMinRoughness = 0.045;
+    output.arm = float4(outAO,
+                        max(saturate(outRoughness * roughnessScale), kMinRoughness),
+                        saturate(outMetallic  * metallicScale), 1.0);
     
     // Depth (R32_FLOAT only uses .r channel). Use the rasterizer's screen-space depth (SV_Position.z,
     // already [0,1] and perspective-correct) rather than interpolating a VS-computed z/w varying —
@@ -127,6 +142,8 @@ PS_MRT_OUTPUT PS_Main(VS_OUT input)
 
     // World Position
     output.worldPos = float4(input.worldPos, 1.0f);
+
+    output.emissive = float4(tex_emissive.Sample(sam_0, input.uv).rgb * emissiveColor.rgb, 1.0);
 
     return output;
 }

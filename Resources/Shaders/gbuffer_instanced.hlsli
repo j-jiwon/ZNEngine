@@ -23,6 +23,10 @@ cbuffer cbMaterial : register(b1)
     float roughness;
     float ao;
     float useAlbedoTexture; // 1.0 = sample t0; 0.0 = albedoColor only
+    float4 emissiveColor;   // rgb = glTF emissiveFactor, scales tex_emissive; a unused
+    float roughnessScale;   // see gbuffer.hlsli
+    float metallicScale;
+    float useARMTexture;
 };
 
 StructuredBuffer<float4x4> gInstanceWorlds : register(t3);
@@ -30,6 +34,7 @@ StructuredBuffer<float4x4> gInstanceWorlds : register(t3);
 Texture2D tex_0 : register(t0); // Albedo (BaseColor)
 Texture2D tex_1 : register(t1); // Normal map
 Texture2D tex_arm : register(t2); // ARM
+Texture2D tex_emissive : register(t4); // t3 is taken by gInstanceWorlds above
 
 SamplerState sam_0 : register(s0);
 
@@ -57,6 +62,7 @@ struct PS_MRT_OUTPUT
     float4 depth : SV_Target2;
     float4 worldPos : SV_Target3;
     float4 arm : SV_Target4;
+    float4 emissive : SV_Target5;
 };
 
 VS_OUT VS_Main(VS_IN input, uint instanceID : SV_InstanceID)
@@ -115,20 +121,31 @@ PS_MRT_OUTPUT PS_Main(VS_OUT input)
     output.normal = float4(N * 0.5 + 0.5, 1.0);
 
     float4 armSample = tex_arm.Sample(sam_0, input.uv);
-    if (dot(armSample.rgb, armSample.rgb) < 0.01)
+    float outAO, outRoughness, outMetallic;
+    if (useARMTexture < 0.5)
     {
-        output.arm = float4(ao, roughness, metallic, 1.0);
+        outAO = ao; outRoughness = roughness; outMetallic = metallic;
     }
     else
     {
-        output.arm = float4(armSample.r, armSample.g, armSample.b, 1.0);
+        outAO        = armSample.r;
+        outRoughness = armSample.g;
+        outMetallic  = armSample.b;
     }
+
+    // See gbuffer.hlsli — scales the winning source, and floors roughness so GGX can't hit 0/0.
+    const float kMinRoughness = 0.045;
+    output.arm = float4(outAO,
+                        max(saturate(outRoughness * roughnessScale), kMinRoughness),
+                        saturate(outMetallic  * metallicScale), 1.0);
 
     // See gbuffer.hlsli for why this uses rasterizer screen-space depth rather than a VS-computed
     // z/w varying.
     output.depth = float4(input.pos.z, 0.0, 0.0, 1.0);
 
     output.worldPos = float4(input.worldPos, 1.0f);
+
+    output.emissive = float4(tex_emissive.Sample(sam_0, input.uv).rgb * emissiveColor.rgb, 1.0);
 
     return output;
 }

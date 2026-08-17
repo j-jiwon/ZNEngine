@@ -16,12 +16,14 @@ namespace ZNFramework
         D3D12_CPU_DESCRIPTOR_HANDLE GetDepthCopyRTV() const { return rtvHandles[2]; }
         D3D12_CPU_DESCRIPTOR_HANDLE GetWorldPosRTV() const { return rtvHandles[3]; }
         D3D12_CPU_DESCRIPTOR_HANDLE GetARMRTV() const { return rtvHandles[4]; }
+        D3D12_CPU_DESCRIPTOR_HANDLE GetEmissiveRTV() const { return rtvHandles[5]; }
         // SRV access for reading in debug views
         D3D12_CPU_DESCRIPTOR_HANDLE GetBaseColorSRV() const { return srvHandles[0]; }
         D3D12_CPU_DESCRIPTOR_HANDLE GetNormalSRV() const { return srvHandles[1]; }
         D3D12_CPU_DESCRIPTOR_HANDLE GetDepthCopySRV() const { return srvHandles[2]; }
         D3D12_CPU_DESCRIPTOR_HANDLE GetWorldPosSRV() const { return srvHandles[3]; }
         D3D12_CPU_DESCRIPTOR_HANDLE GetARMSRV() const { return srvHandles[4]; }
+        D3D12_CPU_DESCRIPTOR_HANDLE GetEmissiveSRV() const { return srvHandles[5]; }
 
         // Get all RTVs for OMSetRenderTargets
         D3D12_CPU_DESCRIPTOR_HANDLE* GetAllRTVs() { return rtvHandles; }
@@ -32,9 +34,10 @@ namespace ZNFramework
         ID3D12Resource* GetDepthCopyResource() const { return gbufferTextures[2].Get(); }
         ID3D12Resource* GetWorldPosResource() const { return gbufferTextures[3].Get(); }
         ID3D12Resource* GetARMResource() const { return gbufferTextures[4].Get(); }
+        ID3D12Resource* GetEmissiveResource() const { return gbufferTextures[5].Get(); }
         ID3D12DescriptorHeap* GetSRVHeap() const { return srvHeap.Get(); }
 
-        // Per-target optimised clear colour (index 0..4). Single source of truth shared by resource
+        // Per-target optimised clear colour (index 0..5). Single source of truth shared by resource
         // creation and GBufferPass's ClearRenderTargetView — if the two drift, D3D12 falls back to
         // the slow non-optimised clear path ("clear values do not match" warning).
         static const float* ClearColor(uint32 index);
@@ -45,7 +48,7 @@ namespace ZNFramework
         void CreateSRVs();
 
     private:
-        static constexpr uint32 GBUFFER_COUNT = 5;
+        static constexpr uint32 GBUFFER_COUNT = 6;
 
         ComPtr<ID3D12Resource> gbufferTextures[GBUFFER_COUNT];
         ComPtr<ID3D12DescriptorHeap> rtvHeap;

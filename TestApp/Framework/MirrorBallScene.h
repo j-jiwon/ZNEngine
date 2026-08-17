@@ -24,12 +24,12 @@ private:
     BallModel mirrorBall;  // Metallic 1.0 / Roughness 0.0, deferred pass
     BallModel glassBall;   // Translucent glass, forward pass
 
-    struct MonsterModel {
+    struct HelmetModel {
         ZNFramework::ZNGameObject*              root = nullptr; // R1: model root (moves all parts)
         std::vector<ZNFramework::ZNGameObject*> objects;
         std::vector<ZNFramework::ZNMaterial*>   materials; // one per glTF material slot
     };
-    MonsterModel monster;  // Monster_S_0.glb, deferred pass
+    HelmetModel helmet;  // DamagedHelmet.glb, deferred pass
 
     struct RoomModel {
         ZNFramework::ZNGameObject*              root = nullptr; // R1: model root
@@ -43,7 +43,7 @@ private:
 
     // Disco caustics are now computed per-pixel in deferred_lighting.hlsli's
     // ComputeDiscoCaustics — the scene just registers the reflecting bodies (mirror ball,
-    // monster's mirror tiles) as DiscoSources each frame in Update() (updating each body's
+    // helmet) as DiscoSources each frame in Update() (updating each body's
     // live center/rotation), and the deferred pass scatters every spotlight off them onto
     // floor/walls/geometry, tracking live light color/intensity automatically. No sprite
     // objects or per-glint materials to own here anymore.

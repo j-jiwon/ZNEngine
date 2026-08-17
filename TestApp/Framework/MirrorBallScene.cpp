@@ -3,6 +3,7 @@
 #include <imgui.h>
 #include <iostream>
 #include <filesystem>
+#include <cmath>
 #include "ZNFramework/Graphics/Platform/Direct3D12/Shader.h"
 
 using namespace ZNFramework;
@@ -19,7 +20,7 @@ void MirrorBallScene::Initialize()
     glassShader->EnableAlphaBlend();
     glassShader->DisableDepthWrite();
 
-    // room.glb real bounds: X:[-1.43,1.43] Y:[0.10(floor),1.87(ceiling)] Z:[-1.55,1.75]
+    // low_poly_isometric_room.glb real bounds: X:[-1.43,1.43] Y:[0.10(floor),1.87(ceiling)] Z:[-1.55,1.75]
     // room center: (0, -, 0.1). Everything below is placed relative to that box.
     ZNCamera* cam = new ZNCamera();
     cam->SetPosition(ZNVector3(1.655f, 1.619f, -2.018f));
@@ -27,10 +28,12 @@ void MirrorBallScene::Initialize()
     cam->SetMoveSpeed(1.5f);
     SetCamera(cam);
 
+    SetBloom(0.1f, 0.15f);
+
     ZNDirectionalLight* dirLight = Platform::CreateDirectionalLight();
     dirLight->SetDirection(ZNVector3(0.118f, 0.1f, 0.9f));
-    dirLight->SetIntensity(0.45f);
-    dirLight->SetColor(ZNVector3(0.9f, 0.9f, 0.2f));
+    dirLight->SetIntensity(1.5f);
+    dirLight->SetColor(ZNVector3(0.18f, 0.8f, 0.45f));
     dirLight->SetAmbientIntensity(0.5f);
     dirLight->SetShadowFocusPoint(ZNVector3(0.f, 1.f, 0.f));
     dirLight->SetShadowBounds(10.f, 0.1f, 30.f);
@@ -40,10 +43,10 @@ void MirrorBallScene::Initialize()
     // 4 corner spotlights near the ceiling, aimed at the mirror ball (position/direction/
     // color/intensity hand-tuned live via the Inspector, then baked back in here)
     static const struct { ZNVector3 pos; ZNVector3 dir; ZNVector3 color; float intensity; } kLights[4] = {
-        { ZNVector3(-1.2f, 1.90f, -1.3f), ZNVector3( 0.526f, -0.589f,  0.613f), ZNVector3(1.000f, 0.176f, 0.825f), 2.769f },
-        { ZNVector3( 1.2f, 1.95f, -1.3f), ZNVector3(-0.531f, -0.578f,  0.620f), ZNVector3(0.949f, 0.865f, 0.147f), 4.000f },
-        { ZNVector3(-1.2f, 2.65f,  1.5f), ZNVector3( 0.415f, -0.731f, -0.541f), ZNVector3(0.143f, 0.843f, 0.922f), 4.154f },
-        { ZNVector3( 1.2f, 1.95f,  1.5f), ZNVector3(-0.626f, -0.602f, -0.496f), ZNVector3(0.906f, 0.467f, 0.906f), 4.000f },
+        { ZNVector3(-3.4f, 2.3f, -2.6f), ZNVector3( 0.574f, -0.643f,  0.587f), ZNVector3(1.000f, 0.176f, 0.825f), 0.600f },
+        { ZNVector3( 1.2f, 2.15f, -0.65f), ZNVector3(-0.545f, -0.571f,  0.614f), ZNVector3(0.949f, 0.865f, 0.147f), 1.500f },
+        { ZNVector3(-1.2f, 2.9f,  1.25f), ZNVector3( 0.415f, -0.731f, -0.541f), ZNVector3(0.143f, 0.843f, 0.922f), 1.154f },
+        { ZNVector3( 1.2f, 2.25f,  1.5f), ZNVector3(-0.626f, -0.602f, -0.496f), ZNVector3(0.906f, 0.467f, 0.906f), 1.000f },
     };
     for (int i = 0; i < 4; ++i)
     {
@@ -53,7 +56,7 @@ void MirrorBallScene::Initialize()
         spotLights[i]->SetColor(kLights[i].color);
         spotLights[i]->SetIntensity(kLights[i].intensity);
         spotLights[i]->SetAmbientIntensity(0.5f);
-        // Wide enough to cover both the mirror ball and Monster, so both register a nonzero
+        // Wide enough to cover both the mirror ball and the helmet, so both register a nonzero
         // coneFactor in ComputeDiscoCaustics.
         spotLights[i]->SetCutoffAngle(12.f, 24.f);
         spotLights[i]->SetAttenuation(1.f, 0.045f, 0.0075f);
@@ -119,17 +122,17 @@ void MirrorBallScene::Initialize()
         }
     }
 
-    // --- Monster model (glTF binary) ---
+    // --- Helmet model (glTF binary) ---
     {
-        std::filesystem::path monsterPath =
-            GetResourcePath() / L"Models" / L"Monster_S_0.glb";
+        std::filesystem::path helmetPath =
+            GetResourcePath() / L"Models" / L"DamagedHelmet.glb";
 
-        if (std::filesystem::exists(monsterPath))
+        if (std::filesystem::exists(helmetPath))
         {
-            ZNLOG_INFO(LogChannel::Scene, "Loading Monster_S_0.glb");
+            ZNLOG_INFO(LogChannel::Scene, "Loading DamagedHelmet.glb");
             ZNModelLoader* loader = Platform::CreateModelLoader();
             ModelData modelData;
-            if (loader->Load(monsterPath, modelData))
+            if (loader->Load(helmetPath, modelData))
             {
                 // One material per glTF material slot; textures (embedded or file-based) are
                 // loaded and bound automatically. Flat-color fallback only kicks in when a
@@ -149,34 +152,37 @@ void MirrorBallScene::Initialize()
                             albedo = ZNVector4(0.8f, 0.75f, 0.70f, 1.0f); // fallback warm-white
                     }
 
-                    // Disco-ball skin: metallic/roughness close to MirrorBall's so Monster's own
-                    // surface reflects the shared env cubemap too, not just the glints it scatters
-                    // onto the room via ComputeDiscoCaustics.
+                    // Shine for slots with no ARM texture, so the body reflects the shared env
+                    // cubemap rather than only scattering glints onto the room. DamagedHelmet
+                    // ships a metallicRoughness map, so these apply to untextured slots only.
                     patched.params.metallic  = 0.9f;
                     patched.params.roughness = 0.3f;
 
-                    monster.materials.push_back(ZNMaterialFactory::CreatePBRFromData(defaultShader, patched));
+                    // Preserve the texture variation while softening its specular response.
+                    patched.params.roughnessScale = 1.2f;
+                    patched.params.metallicScale  = 0.8f;
+
+                    helmet.materials.push_back(ZNMaterialFactory::CreatePBRFromData(defaultShader, patched));
                 }
-                if (monster.materials.empty())
+                if (helmet.materials.empty())
                 {
                     MaterialData fallback;
                     fallback.params.albedoColor = ZNVector4(0.8f, 0.75f, 0.70f, 1.0f);
                     fallback.params.roughness   = 0.6f;
-                    monster.materials.push_back(ZNMaterialFactory::CreatePBRFromData(defaultShader, fallback));
+                    helmet.materials.push_back(ZNMaterialFactory::CreatePBRFromData(defaultShader, fallback));
                 }
 
-                // R1: model transform now lives on a single root; parts inherit it.
-                Transform monsterXform;
-                monsterXform.position = ZNVector3(0.0f, 0.8f, 0.0f); // standing on the real floor (Y~0.1)
-                monsterXform.rotation = ZNVector3(0.0f, -40.f, 0.0f);
-                monsterXform.scale    = ZNVector3(0.5f, 0.5f, 0.5f); // ~15cm radius decorative sphere
-                monster.root = AddModelRoot("Monster", monsterXform);
+                Transform helmetXform;
+                helmetXform.position = ZNVector3(0.0f, 0.8f, 0.0f);
+                helmetXform.rotation = ZNVector3(0.0f, -40.f, 0.0f);
+                helmetXform.scale    = ZNVector3(0.5f, 0.5f, 0.5f);
+                helmet.root = AddModelRoot("Helmet", helmetXform);
 
                 for (const auto& meshData : modelData.meshes)
                 {
-                    size_t matIdx = (meshData.materialIndex < monster.materials.size())
+                    size_t matIdx = (meshData.materialIndex < helmet.materials.size())
                                   ? meshData.materialIndex : 0;
-                    ZNMaterial* mat = monster.materials[matIdx];
+                    ZNMaterial* mat = helmet.materials[matIdx];
 
                     ZNMesh* mesh = Platform::CreateMesh();
                     mesh->Init(meshData.vertices, meshData.indices);
@@ -185,21 +191,21 @@ void MirrorBallScene::Initialize()
                     ZNGameObject* obj = new ZNGameObject();
                     obj->SetMesh(mesh);
                     obj->SetMaterial(mat);
-                    obj->SetName("Monster_" + std::to_string(monster.objects.size()));
-                    // identity local transform -> inherits monster.root's world transform
-                    monster.root->AddChild(obj);
+                    obj->SetName("Helmet_" + std::to_string(helmet.objects.size()));
+                    // identity local transform -> inherits helmet.root's world transform
+                    helmet.root->AddChild(obj);
                     AddGameObject(obj);
-                    monster.objects.push_back(obj);
+                    helmet.objects.push_back(obj);
                 }
-                ZNLOG_INFO(LogChannel::Scene, "Monster loaded: %zu meshes, %zu materials",
-                           monster.objects.size(), monster.materials.size());
+                ZNLOG_INFO(LogChannel::Scene, "Helmet loaded: %zu meshes, %zu materials",
+                           helmet.objects.size(), helmet.materials.size());
             }
             else
-                ZNLOG_WARN(LogChannel::Scene, "Failed to load Monster_S_0.glb");
+                ZNLOG_WARN(LogChannel::Scene, "Failed to load DamagedHelmet.glb");
             delete loader;
         }
         else
-            ZNLOG_WARN(LogChannel::Scene, "Monster_S_0.glb not found: %s", monsterPath.string().c_str());
+            ZNLOG_WARN(LogChannel::Scene, "DamagedHelmet.glb not found: %s", helmetPath.string().c_str());
     }
 
     // --- Glass ball: semi-transparent, forward pass with alpha blend ---
@@ -352,9 +358,16 @@ void MirrorBallScene::Update(float deltaTime)
         obj->GetTransform().rotation.y -= 20.f * deltaTime;
 
     // Rotates the whole model (children inherit root's world transform) and is the same value the
-    // Outliner/Inspector shows for "Monster" and that the DiscoSource below scatters light with.
-    if (monster.root)
-        monster.root->GetTransform().rotation.y += 20.f * deltaTime;
+    // Outliner/Inspector shows for "Helmet" and that the DiscoSource below scatters light with.
+    // Wrapped to [0,360) so ComputeDiscoCaustics, which rebuilds its facet frame from this angle
+    // every frame, keeps its precision over long sessions.
+    if (helmet.root)
+    {
+        float& yaw = helmet.root->GetTransform().rotation.y;
+        yaw = fmodf(yaw - 10.f * deltaTime, 360.f);
+        if (yaw < 0.f)
+            yaw += 360.f;
+    }
 
     // Register the two reflecting bodies as disco sources each frame (their live center +
     // rotation). The deferred lighting pass (ComputeDiscoCaustics) scatters every spotlight
@@ -370,15 +383,14 @@ void MirrorBallScene::Update(float deltaTime)
         ball.brightness  = 1.0f;
         discoSources.push_back(ball);
     }
-    if (monster.root)
+    if (helmet.root)
     {
-        // Monster's mirror tiles cluster up near its head, above the model's pivot.
-        DiscoSource mon;
-        mon.center      = monster.root->GetTransform().position + ZNVector3(0.f, 0.3f, 0.f);
-        mon.rotationDeg = monster.root->GetTransform().rotation;
-        mon.facetGridN  = 10.f; // fewer, larger tiles than the ball
-        mon.brightness  = 0.6f;
-        discoSources.push_back(mon);
+        DiscoSource hel;
+        hel.center      = helmet.root->GetTransform().position;
+        hel.rotationDeg = helmet.root->GetTransform().rotation;
+        hel.facetGridN  = 10.f; // fewer, larger facets than the ball
+        hel.brightness  = 0.6f;
+        discoSources.push_back(hel);
     }
 
     SetDiscoSources(discoSources);

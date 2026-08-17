@@ -230,7 +230,7 @@ bool VehicleScene::LoadCarModel(const std::filesystem::path& path, float targetL
     delete loader;
     if (!ok || modelData.meshes.empty()) return false;
 
-    // Materials: flat baseColor per glTF material (these cars carry colour, not textures).
+    // Regular traffic intentionally uses a flat material; only the ego keeps the model textures.
     if (isEgo)
     {
         for (const auto& matData : modelData.materials)
@@ -323,7 +323,8 @@ void VehicleScene::ApplyEgoPaint()
     for (size_t i = 0; i < egoCarModel.mats.size(); ++i)
     {
         MaterialParams p = egoBaseMatParams[i];
-        if (i == 0) p.albedoColor = kEgoPaint;   // mat[0] is the body shell
+        if (i == 0 && p.useAlbedoTexture < 0.5f)
+            p.albedoColor = kEgoPaint;
         egoCarModel.mats[i]->SetParams(p);
     }
 }
@@ -346,10 +347,10 @@ void VehicleScene::BuildStaticStage()
     ground->SetCastShadow(false);
     AddGameObject(ground);
 
-    // --- Car model (car_white): plain copy for Car-class tracks, a second copy for the ego (its
+    // --- Car model: plain copy for Car-class tracks, a second copy for the ego (its
     // body-shell material gets painted red -- see ApplyEgoPaint) ---
-    LoadCarModel(GetResourcePath() / L"Models" / L"car_white.glb", Vehicle::SyntheticSource::kEgoLen, carModel);
-    LoadCarModel(GetResourcePath() / L"Models" / L"car_white.glb", Vehicle::SyntheticSource::kEgoLen, egoCarModel, true);
+    LoadCarModel(GetResourcePath() / L"Models" / L"sedan-sports.glb", Vehicle::SyntheticSource::kEgoLen, carModel);
+    LoadCarModel(GetResourcePath() / L"Models" / L"sedan-sports.glb", Vehicle::SyntheticSource::kEgoLen, egoCarModel, true);
     if (egoCarModel.valid)
     {
         for (ZNMaterial* m : egoCarModel.mats)

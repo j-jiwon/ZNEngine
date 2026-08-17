@@ -16,6 +16,7 @@ class GBufferManager;
 class DeferredLightingPass;
 class ShadowMap;
 class BloomChain;
+class ToneMappingPass;
 class IBLBaker;
 class SkyboxRenderer;
 class ZNCamera;
@@ -55,6 +56,16 @@ public:
     void SetBloomChain(BloomChain* chain)                      { bloomChain = chain; }
     void SetIBLBaker(IBLBaker* baker)                          { iblBaker = baker; }
     void SetSkyboxRenderer(SkyboxRenderer* renderer)           { skyboxRenderer = renderer; }
+    // Bloom tuning — forwards to bloomChain (bright-pass cutoff) and toneMappingPass (how much
+    // of the chain is added back). ZNScene::ApplyBloom pushes these on scene switch, which
+    // happens before the render graph builds toneMappingPass, so the intensity is cached here
+    // and applied once that pass exists.
+    bool  HasBloomControls() const  override { return bloomChain != nullptr; }
+    float GetBloomThreshold() const override;
+    void  SetBloomThreshold(float t) override;
+    float GetBloomIntensity() const override;
+    void  SetBloomIntensity(float i) override;
+
     void SetShadowRenderCallback(std::function<void()> cb)     { shadowRenderCallback = std::move(cb); }
     void SetGBufferRenderCallback(std::function<void()> cb)    { gbufferRenderCallback = std::move(cb); }
 
@@ -155,6 +166,8 @@ private:
     ShadowMap*             shadowMap             = nullptr;
     RenderTexture*         sceneColorRT          = nullptr;
     BloomChain*            bloomChain            = nullptr;
+    ToneMappingPass*       toneMappingPass       = nullptr; // owned by renderGraph; borrowed for bloom tuning
+    float                  bloomIntensity        = 0.35f;   // cached until toneMappingPass exists
     IBLBaker*              iblBaker              = nullptr;
     SkyboxRenderer*        skyboxRenderer        = nullptr;
 

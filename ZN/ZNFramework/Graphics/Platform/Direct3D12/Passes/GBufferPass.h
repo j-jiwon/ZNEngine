@@ -39,7 +39,8 @@ public:
 
         // Transition all GBuffer targets → RENDER_TARGET
         static const char* names[] = {
-            "GBuf_BaseColor","GBuf_Normal","GBuf_DepthCopy","GBuf_WorldPos","GBuf_ARM"
+            "GBuf_BaseColor","GBuf_Normal","GBuf_DepthCopy","GBuf_WorldPos","GBuf_ARM",
+            "GBuf_Emissive"
         };
         for (auto n : names)
             rg.Transition(cmd, rg.GetResource(n), D3D12_RESOURCE_STATE_RENDER_TARGET);
@@ -53,15 +54,16 @@ public:
         cmd->ClearRenderTargetView(gbufMgr->GetDepthCopyRTV(), GBufferManager::ClearColor(2), 0, nullptr);
         cmd->ClearRenderTargetView(gbufMgr->GetWorldPosRTV(),  GBufferManager::ClearColor(3), 0, nullptr);
         cmd->ClearRenderTargetView(gbufMgr->GetARMRTV(),       GBufferManager::ClearColor(4), 0, nullptr);
+        cmd->ClearRenderTargetView(gbufMgr->GetEmissiveRTV(),  GBufferManager::ClearColor(5), 0, nullptr);
 
-        D3D12_CPU_DESCRIPTOR_HANDLE rtvs[5] = {
+        D3D12_CPU_DESCRIPTOR_HANDLE rtvs[6] = {
             gbufMgr->GetBaseColorRTV(), gbufMgr->GetNormalRTV(),
             gbufMgr->GetDepthCopyRTV(), gbufMgr->GetWorldPosRTV(),
-            gbufMgr->GetARMRTV()
+            gbufMgr->GetARMRTV(),       gbufMgr->GetEmissiveRTV()
         };
         D3D12_CPU_DESCRIPTOR_HANDLE dsv = dsBuffer->GetDSVCpuHandle();
         cmd->ClearDepthStencilView(dsv, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
-        cmd->OMSetRenderTargets(5, rtvs, FALSE, &dsv);
+        cmd->OMSetRenderTargets(_countof(rtvs), rtvs, FALSE, &dsv);
 
         if (renderCb) renderCb();
 

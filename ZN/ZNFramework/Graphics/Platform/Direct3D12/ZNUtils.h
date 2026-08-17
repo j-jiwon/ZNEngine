@@ -47,6 +47,7 @@ enum class SRV_REGISTER : uint8
 	t2,
 	t3,
 	t4,
+	t5,
 
 	END
 };
@@ -58,7 +59,7 @@ enum
 	SRV_REGISTER_COUNT = static_cast<uint8>(SRV_REGISTER::END) - CBV_REGISTER_COUNT,
 	REGISTER_COUNT = CBV_REGISTER_COUNT + SRV_REGISTER_COUNT,
 
-	// Global SRV registers appended after the per-material t0~t4 GBuffer range in the
+	// Global SRV registers appended after the per-material t0~t5 GBuffer range in the
 	// shared root signature's descriptor table (see RootSignature.cpp): shadow map,
 	// env cube, IBL irradiance, IBL prefiltered specular, IBL BRDF LUT. The visible
 	// skybox (SkyboxPass/SkyboxRenderer) is NOT in this global set — it uses its own
@@ -67,7 +68,7 @@ enum
 	GLOBAL_SRV_COUNT = 5,
 
 	// Total descriptor count for a heap laid out to match the root signature's single
-	// descriptor table (b0~b4 CBVs, then t0~t4 GBuffer + GLOBAL_SRV_COUNT global SRVs).
+	// descriptor table (b0~b4 CBVs, then t0~t5 GBuffer + GLOBAL_SRV_COUNT global SRVs).
 	// Every dedicated per-pass descriptor heap (DeferredLightingPass, BloomChain,
 	// ToneMappingPass, IBLBaker) is sized off this so they can never drift out of sync
 	// with the root signature.

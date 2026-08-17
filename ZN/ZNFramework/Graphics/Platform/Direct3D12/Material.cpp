@@ -33,6 +33,17 @@ namespace ZNFramework::Platform::Direct3D
 		}
 		return tex;
 	}
+
+	static Texture* GetDefaultWhiteTexture()
+	{
+		static Texture* tex = nullptr;
+		if (!tex)
+		{
+			tex = new Texture();
+			tex->InitSolidColor(255, 255, 255, 255);
+		}
+		return tex;
+	}
 }
 
 Material::~Material()
@@ -57,6 +68,7 @@ void Material::Init()
 	// Force creation now (during scene setup, before the render loop starts) rather than
 	// lazily on first Bind() — GPU upload isn't meant to run mid-frame.
 	Platform::Direct3D::GetDefaultBlackTexture();
+	Platform::Direct3D::GetDefaultWhiteTexture();
 }
 
 void Material::SetShader(ZNShader* inShader)
@@ -74,6 +86,8 @@ void Material::SetTexture(TextureType type, ZNTexture* texture)
 		ownsTexture[index] = true;
 		if (type == TextureType::Albedo)
 			params.useAlbedoTexture = (texture != nullptr) ? 1.0f : 0.0f;
+		else if (type == TextureType::ARM)
+			params.useARMTexture = (texture != nullptr) ? 1.0f : 0.0f;
 	}
 }
 
@@ -173,17 +187,37 @@ void Material::Bind()
 		tableDescHeap->SetCBV(plHandle, CBV_REGISTER::b3);
 	}
 
-	// Bind textures (t0 ~ t4). Slots with no real texture get the shared black placeholder
-	// instead of being skipped — the descriptor table is a rotating per-object pool, so a
-	// skipped slot would otherwise keep whatever unrelated texture a prior draw left there.
+	// Material texture slot -> shader register. Not positional: t3 belongs to the instanced
+	// GBuffer's world-matrix buffer and the forward pass's shadow map (both set in Mesh.cpp
+	// before this runs), so Emissive takes t4.
+	static constexpr SRV_REGISTER kTextureRegister[static_cast<size_t>(TextureType::Count)] = {
+		SRV_REGISTER::t0, // Albedo
+		SRV_REGISTER::t1, // Normal
+		SRV_REGISTER::t2, // ARM
+		SRV_REGISTER::t4, // Emissive — free in gbuffer.hlsli / gbuffer_instanced.hlsli
+	};
+
+	// Bind textures. Slots with no real texture get the shared black placeholder instead of
+	// being skipped — the descriptor table is a rotating per-object pool, so a skipped slot
+	// would otherwise keep whatever unrelated texture a prior draw left there.
 	for (size_t i = 0; i < textures.size(); ++i)
 	{
-		SRV_REGISTER srvRegister = static_cast<SRV_REGISTER>(static_cast<int>(SRV_REGISTER::t0) + i);
+		// Forward shaders use t4 for IBL irradiance and have no emissive term.
+		if (isForwardPass && i == static_cast<size_t>(TextureType::Emissive))
+			continue;
+
+		SRV_REGISTER srvRegister = kTextureRegister[i];
 		if (i == 0 && hasAlbedoSRVOverride)
 			tableDescHeap->SetSRV(albedoSRVOverride, SRV_REGISTER::t0);
 		else if (textures[i])
 			tableDescHeap->SetSRV(textures[i]->GetCpuHandle(), srvRegister);
 		else
-			tableDescHeap->SetSRV(Platform::Direct3D::GetDefaultBlackTexture()->GetCpuHandle(), srvRegister);
+		{
+			// Missing emissive maps use white so emissiveFactor can work on its own.
+			Texture* fallback = i == static_cast<size_t>(TextureType::Emissive)
+				? Platform::Direct3D::GetDefaultWhiteTexture()
+				: Platform::Direct3D::GetDefaultBlackTexture();
+			tableDescHeap->SetSRV(fallback->GetCpuHandle(), srvRegister);
+		}
 	}
 }

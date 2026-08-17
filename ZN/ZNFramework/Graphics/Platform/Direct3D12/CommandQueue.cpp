@@ -121,6 +121,7 @@ void CommandQueue::BuildRenderGraph()
         renderGraph.Import("GBuf_DepthCopy", gbufferManager->GetDepthCopyResource(), D3D12_RESOURCE_STATE_RENDER_TARGET);
         renderGraph.Import("GBuf_WorldPos",  gbufferManager->GetWorldPosResource(),  D3D12_RESOURCE_STATE_RENDER_TARGET);
         renderGraph.Import("GBuf_ARM",       gbufferManager->GetARMResource(),       D3D12_RESOURCE_STATE_RENDER_TARGET);
+        renderGraph.Import("GBuf_Emissive",  gbufferManager->GetEmissiveResource(),  D3D12_RESOURCE_STATE_RENDER_TARGET);
     }
 
     renderGraph.Import("BackBuffer", swapChain->GetBackRTVBuffer().Get(), D3D12_RESOURCE_STATE_PRESENT);
@@ -218,8 +219,12 @@ void CommandQueue::BuildRenderGraph()
     // --- Tone mapping pass (HDR SceneColor + Bloom -> LDR BackBuffer, ACES + gamma) ---
     if (sceneColorRT && bloomChain) {
         ZNShader* toneMapShader = GraphicsContext::GetInstance().GetToneMapShader();
-        renderGraph.AddPass(std::make_unique<ToneMappingPass>(
-            sceneColorRT, bloomChain->GetOutputRT(), swapChain, toneMapShader));
+        auto pass = std::make_unique<ToneMappingPass>(
+            sceneColorRT, bloomChain->GetOutputRT(), swapChain, toneMapShader);
+        toneMappingPass = pass.get(); // borrowed for the Debug panel's bloom sliders
+        // The active scene pushed its bloom grade during SetScene(), before this pass existed.
+        toneMappingPass->SetBloomIntensity(bloomIntensity);
+        renderGraph.AddPass(std::move(pass));
     }
 
     // --- ImGui pass ---
@@ -293,6 +298,7 @@ void CommandQueue::RefreshGBufferResources()
     renderGraph.Import("GBuf_DepthCopy", gbufferManager->GetDepthCopyResource(), D3D12_RESOURCE_STATE_RENDER_TARGET);
     renderGraph.Import("GBuf_WorldPos",  gbufferManager->GetWorldPosResource(),  D3D12_RESOURCE_STATE_RENDER_TARGET);
     renderGraph.Import("GBuf_ARM",       gbufferManager->GetARMResource(),       D3D12_RESOURCE_STATE_RENDER_TARGET);
+    renderGraph.Import("GBuf_Emissive",  gbufferManager->GetEmissiveResource(),  D3D12_RESOURCE_STATE_RENDER_TARGET);
 }
 
 void CommandQueue::RefreshSceneColorResource()
@@ -432,6 +438,27 @@ void CommandQueue::FlushResourceQueue()
 
     resourceCommandAllocator->Reset();
     resourceCommandList->Reset(resourceCommandAllocator.Get(), nullptr);
+}
+
+float CommandQueue::GetBloomThreshold() const
+{
+    return bloomChain ? bloomChain->GetThreshold() : 0.0f;
+}
+
+void CommandQueue::SetBloomThreshold(float t)
+{
+    if (bloomChain) bloomChain->SetThreshold(t);
+}
+
+float CommandQueue::GetBloomIntensity() const
+{
+    return bloomIntensity;
+}
+
+void CommandQueue::SetBloomIntensity(float i)
+{
+    bloomIntensity = i;
+    if (toneMappingPass) toneMappingPass->SetBloomIntensity(i);
 }
 
 void CommandQueue::WaitSync()

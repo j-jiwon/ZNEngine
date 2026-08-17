@@ -16,7 +16,8 @@ public:
     ToneMappingPass(RenderTexture* sceneColor, RenderTexture* bloom,
                     SwapChain* swapChain, ZNShader* toneMapShader);
 
-    void SetBloomIntensity(float intensity) { bloomIntensity = intensity; }
+    void  SetBloomIntensity(float intensity) { bloomIntensity = intensity; }
+    float GetBloomIntensity() const          { return bloomIntensity; }
 
 protected:
     void Draw(ID3D12GraphicsCommandList* cmd, RenderGraph& rg,
@@ -32,7 +33,9 @@ private:
     SwapChain*     swapChain;
     ZNShader*      toneMapShader;
 
-    float bloomIntensity = 1.0f;
+    // How much of the bloom chain is added back before ACES. Overridden per scene by
+    // ZNScene::ApplyBloom, and tunable live from the Debug panel's Bloom section.
+    float bloomIntensity = 0.35f;
 
     ComPtr<ID3D12Resource>    quadVertexBuffer;
     D3D12_VERTEX_BUFFER_VIEW  quadVertexBufferView = {};

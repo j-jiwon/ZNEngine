@@ -345,8 +345,8 @@ void DeferredLightingPass::Render(GBufferManager* gbufferManager, ShadowMap* sha
     cbvDesc.SizeInBytes = static_cast<UINT>(lightingConstantBuffer->GetDesc().Width);
     device->Device()->CreateConstantBufferView(&cbvDesc, cpuHandle);
 
-    // Copy G-Buffer SRVs
-    cpuHandle.ptr += lightingDescSize * 5;
+    // Copy G-Buffer SRVs, starting right after the b0~b4 CBV range
+    cpuHandle.ptr += lightingDescSize * CBV_REGISTER_COUNT;
     device->Device()->CopyDescriptorsSimple(1, cpuHandle, gbufferManager->GetBaseColorSRV(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
     cpuHandle.ptr += lightingDescSize;
@@ -361,7 +361,10 @@ void DeferredLightingPass::Render(GBufferManager* gbufferManager, ShadowMap* sha
     cpuHandle.ptr += lightingDescSize;
     device->Device()->CopyDescriptorsSimple(1, cpuHandle, gbufferManager->GetARMSRV(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-    // Copy Shadow Map SRV (t5)
+    cpuHandle.ptr += lightingDescSize;
+    device->Device()->CopyDescriptorsSimple(1, cpuHandle, gbufferManager->GetEmissiveSRV(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+    // Copy Shadow Map SRV (t6)
     if (shadowMap)
     {
         cpuHandle.ptr += lightingDescSize;
@@ -372,7 +375,7 @@ void DeferredLightingPass::Render(GBufferManager* gbufferManager, ShadowMap* sha
         cpuHandle.ptr += lightingDescSize;
     }
 
-    // Copy env cubemap SRV (t6) — the active scene's captured reflection cubemap, or the
+    // Copy env cubemap SRV (t7) — the active scene's captured reflection cubemap, or the
     // black fallback (contributes zero reflection) if none was registered.
     {
         cpuHandle.ptr += lightingDescSize;
@@ -382,7 +385,7 @@ void DeferredLightingPass::Render(GBufferManager* gbufferManager, ShadowMap* sha
         device->Device()->CopyDescriptorsSimple(1, cpuHandle, envSRV, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
     }
 
-    // Copy IBL SRVs (t7 irradiance, t8 prefiltered specular, t9 BRDF LUT) — IBLBaker
+    // Copy IBL SRVs (t8 irradiance, t9 prefiltered specular, t10 BRDF LUT) — IBLBaker
     // itself falls back to black irradiance/prefiltered cubes until BakeEnvironment()
     // has actually run, so no extra fallback handling is needed here.
     {

@@ -101,7 +101,7 @@ void TestGameScene::Initialize()
 
     // Env cubemap (static skybox) — feeds the sphere grid's IBL diffuse/specular so the
     // roughness/metallic variation is actually visible (see deferred_lighting.hlsli).
-    SetEnvCubemapTexture(GetResourcePath() / L"Textures" / L"skybox_day.jpg");
+    SetEnvCubemapTexture(GetResourcePath() / L"Textures" / L"qwantani_noon.jpg");
 
     // Load bunny model — duplicated into a single row below the sphere grid, all
     // identical for now; reserved for a different (non-PBR-grid) test later.
