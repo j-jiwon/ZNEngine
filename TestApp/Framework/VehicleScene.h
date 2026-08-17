@@ -80,8 +80,8 @@ private:
     ZNFramework::ZNShader* offscreenShader = nullptr; // forward_pbr for the surround/top-down RTs
 
     ZNFramework::ZNGameObject* ego = nullptr;
-    CarModel carModel;      // car_white, plain — shared by Car-class tracks
-    CarModel egoCarModel;   // car_white, separate bake — one material gets painted red (ApplyEgoPaint)
+    CarModel carModel;      // plain, shared by Car-class tracks
+    CarModel egoCarModel;   // separate bake; one material gets painted red (ApplyEgoPaint)
     std::vector<ZNFramework::MaterialParams> egoBaseMatParams;  // egoCarModel.mats[i]'s loaded colour
 
     // Car: `mesh` is the plain-cube fallback used when no car model loaded. Pedestrian/Cyclist:

@@ -21,3 +21,19 @@ The model was rebuilt and converted to conform to the final glTF 2.0 specificati
 - Original textures: Included with the original model and licensed under CC BY 4.0 by Mehmet Nizam Saltan.
 - Modifications: Converted to glTF binary format and partially retextured for use in ZNEngine.
 - Additional texture photographs: Copyright 2026 Jung Jiwon.
+
+## Kenney Car Kit
+
+- Files: `Resources/Models/sedan-sports.glb`, `Resources/Models/Textures/colormap.png`
+- Creator: Kenney
+- Source: [Kenney Car Kit](https://kenney.nl/assets/car-kit)
+- License: [Creative Commons CC0 1.0 Universal](https://creativecommons.org/publicdomain/zero/1.0/)
+- Usage: Vehicle models and textures used by `VehicleScene`.
+
+## HDRI Night
+
+- File: `Resources/Textures/night_free_Bg.jpg`
+- Creator: HDRI Hub
+- Source: [HDRI Night (free)](https://www.hdri-hub.com/hdrishop/freesamples/freehdri/item/74-hdr-night)
+- License: [Creative Commons Attribution 3.0 Unported](https://creativecommons.org/licenses/by/3.0/)
+- Usage: Night environment and skybox texture used by `MirrorBallScene`.
