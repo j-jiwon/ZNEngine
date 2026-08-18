@@ -634,7 +634,7 @@ void VehicleScene::RenderDataSourcePanel()
 
     // --- Surround View section (multi-camera, stage 4) ---
     // Turn each surround RT into an ImGui thumbnail via the shared ImGui layer (same machinery as
-    // the engine's GBuffer preview). Slots 1-6 are the GBuffer channels, so start at 7.
+    // the engine's GBuffer preview). Slots 1-7 are reserved for GBuffer channels, so start at 8.
     if (!surroundViews.empty() &&
         ImGui::CollapsingHeader("Surround View", ImGuiTreeNodeFlags_DefaultOpen))
     {
@@ -644,7 +644,7 @@ void VehicleScene::RenderDataSourcePanel()
         if (gui && dev)
         {
             const float cell = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) * 0.5f;
-            int slot = 7;
+            int slot = 8;
             for (size_t i = 0; i < surroundViews.size(); ++i)
             {
                 const SurroundView& sv = surroundViews[i];
