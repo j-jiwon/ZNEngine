@@ -2,6 +2,15 @@
 
 This document lists the source and license information for third-party libraries and resource data included with ZNEngine.
 
+> **Scope.** The BSD 3-Clause license in [LICENSE](../LICENSE) covers ZNEngine's **source code only**.
+> Every asset and library listed below keeps its own license. Two entries carry conditions worth
+> calling out before reuse:
+>
+> - **`DamagedHelmet.glb` is non-commercial (CC BY-NC 4.0).** It is the only asset here that is not
+>   free for commercial use — see the note in its section.
+> - **`night_free_Bg.jpg` requires attribution (CC BY 3.0, not CC0).** Credit HDRI Hub anywhere the
+>   demo is published, including video end credits.
+
 ## Damaged Helmet
 
 - File: `Resources/Models/DamagedHelmet.glb`
@@ -10,6 +19,12 @@ This document lists the source and license information for third-party libraries
 - glTF rebuild and conversion: Copyright 2018 ctxwing, licensed under the [Creative Commons Attribution 4.0 International License](https://creativecommons.org/licenses/by/4.0/)
 
 The model was rebuilt and converted to conform to the final glTF 2.0 specification. See the [upstream legal information](https://github.com/KhronosGroup/glTF-Sample-Assets/blob/main/Models/DamagedHelmet/README.md#legal) for details.
+
+> **Non-commercial asset.** The two copyrights above are cumulative, not a choice: ctxwing's glTF
+> rebuild is CC BY 4.0, but it is a derivative of theblueturtle_'s CC BY-NC 4.0 original, so the
+> **NonCommercial condition carries through to this file**. `DamagedHelmet.glb` is used here only as
+> a portfolio/demo asset in `MirrorBallScene` and is **not** covered by ZNEngine's BSD 3-Clause
+> source license. Remove or replace it before any commercial use of this repository.
 
 ## Low Poly: Isometric Room
 
@@ -35,8 +50,11 @@ The model was rebuilt and converted to conform to the final glTF 2.0 specificati
 - File: `Resources/Textures/night_free_Bg.jpg`
 - Creator: HDRI Hub
 - Source: [HDRI Night (free)](https://www.hdri-hub.com/hdrishop/freesamples/freehdri/item/74-hdr-night)
-- License: [Creative Commons Attribution 3.0 Unported](https://creativecommons.org/licenses/by/3.0/)
+- License: [Creative Commons Attribution 3.0 Unported](https://creativecommons.org/licenses/by/3.0/) — **attribution required** (this is CC BY, not CC0)
 - Usage: Night environment and skybox texture used by `MirrorBallScene`.
+- Attribution: Carry the credit "HDRI Night (c) HDRI Hub, CC BY 3.0" wherever `MirrorBallScene` is
+  shown, including demo-video end credits — not only in this document.
+- Modifications: The source HDRI was converted to JPEG for runtime loading (see the HDR note below).
 
 ## Stanford Bunny
 
@@ -54,6 +72,26 @@ The model was rebuilt and converted to conform to the final glTF 2.0 specificati
 - Source: [Poly Haven](https://polyhaven.com/a/qwantani_noon)
 - License: [Creative Commons CC0 1.0 Universal](https://creativecommons.org/publicdomain/zero/1.0/)
 - Usage: Daytime environment texture used by `TestGameScene`.
+- Modifications: Converted from the source HDRI to JPEG for runtime loading (see the note below).
+
+## First-Party Assets
+
+The following assets were created by the ZNEngine author and are distributed under the same
+[BSD 3-Clause License](../LICENSE) as the engine source.
+
+- Files: `Resources/Textures/studio_grey.jpg`, `Resources/Models/MirrorBall/mirrorball_a.fbx`
+- Creator / Copyright: Copyright 2026 Jung Jiwon
+- Usage: `studio_grey.jpg` is the studio environment and skybox texture used by `VehicleScene`;
+  `mirrorball_a.fbx` is the mirror-ball model used by `MirrorBallScene`.
+
+## Note on environment texture formats
+
+The environment maps above originate as HDRIs, but they ship here as **JPEG**, and
+`EquirectCubeTexture::Init` loads them through WIC into `R8G8B8A8_UNORM`. The engine's environment /
+skybox / IBL input is therefore **8-bit LDR**, not floating-point HDR. ZNEngine's HDR pipeline is
+real but starts downstream: `SceneColor` is `R16G16B16A16_FLOAT`, and lighting, bloom, and ACES
+tone-mapping all run at that precision. Loading Radiance `.hdr` or `.exr` source files directly into
+a float cube format is not implemented.
 
 ## Libraries
 

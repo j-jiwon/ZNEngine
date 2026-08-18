@@ -13,8 +13,9 @@ namespace ZNFramework { class RenderTexture; }
 
 // Automotive 3D-viz demo. Ego fixed at the origin; a data source emits ego-relative FrameData each
 // tick, SceneBinding maps it onto pool objects. Cars (ego + Car-class tracks) share one low-poly
-// model, ego reskinned red; pedestrians/cyclists stay engine-primitive cubes (coral/amber).
-// See .claude/zn_automative3d.md.
+// model, ego reskinned red; pedestrians/cyclists are assembled from engine primitives into a
+// humanoid silhouette (coral body + head, amber leaning rider + bike-frame bar) -- see
+// SpawnHumanoidInstance.
 class VehicleScene : public ZNFramework::ZNScene
 {
 public:
