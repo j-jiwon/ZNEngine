@@ -22,7 +22,13 @@ namespace ZNFramework
 		// (GBuffer pass only — see ZNScene::Render()). Default falls back to one Render() per
 		// instance for any backend that doesn't override it.
 		virtual void RenderInstanced(const std::vector<ZNMatrix4>& worldMatrices) { Render(); }
+		// Same batching for the forward/offscreen-camera path (ZNScene::AddOffscreenCamera) and the
+		// shadow pass (ZNScene::RenderShadow). Both fall back to the per-object call by default.
+		virtual void RenderForwardInstanced(const std::vector<ZNMatrix4>& worldMatrices) { Render(); }
 		virtual void RenderShadow(const ZNMatrix4& lightViewProj, ZNShader* shadowShader) = 0;
+		virtual void RenderShadowInstanced(const ZNMatrix4& lightViewProj, ZNShader* shadowShader,
+		                                   const std::vector<ZNMatrix4>& worldMatrices)
+		{ RenderShadow(lightViewProj, shadowShader); }
 		virtual void SetTransform(const Transform& t) = 0;
 		virtual void SetWorldMatrix(const ZNMatrix4& world) = 0;  // R1: hierarchy-composed world
 		virtual void SetTexture(ZNTexture* inTexture) = 0;

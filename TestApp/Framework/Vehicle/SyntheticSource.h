@@ -20,6 +20,16 @@ namespace Vehicle
         const char*      GetName() const override { return "Synthetic"; }
         float            GetSensorHz() const override { return sensorHz; }
 
+        // Stress knob: multiplies every lane's agent count and respawns the traffic. Exists to push
+        // the renderer past the point where instancing can be dismissed as noise -- x1 is the demo
+        // (16 tracks), x50 is ~800 tracks / ~7.5k scene objects. Cars beyond the first per lane slot
+        // get a lateral spread inside the lane so a x50 lane reads as a swarm rather than one line
+        // of coincident cars; x1 is left bit-identical to the pre-stress behaviour so it stays a
+        // valid measurement baseline.
+        void SetDensityMultiplier(int m);
+        int  GetDensityMultiplier() const { return density; }
+        int  GetTrackCount() const { return static_cast<int>(agents.size()); }
+
         // Geometry shared with the scene (ego placement, chase camera, lane markings).
         static constexpr float kEgoSpeed  = 14.0f;   // ~50 km/h
         static constexpr float kEgoLaneX  = 2.0f;    // ego sits in 차선3, at this X
@@ -47,6 +57,9 @@ namespace Vehicle
         };
 
         void BuildFrame();   // rebuild frame.ego + frame.objects from the current agents
+        // (Re)creates the whole agent set at the current density, reseeding the rng first so the
+        // same multiplier always produces the same traffic -- a measurement run has to be repeatable.
+        void SpawnAgents();
 
         std::vector<Agent> agents;
         FrameData          frame;
@@ -57,5 +70,7 @@ namespace Vehicle
         float zFront   =  78.0f;   // recycle boundary ahead of the ego (past the visible road)
         float sensorHz = 30.0f;    // nominal sensor rate (drives the latency readout)
         int   nextId   = 1;
+        int   density  = 1;        // see SetDensityMultiplier
+        unsigned seedValue = 0;    // kept so SpawnAgents() can reseed rng
     };
 }

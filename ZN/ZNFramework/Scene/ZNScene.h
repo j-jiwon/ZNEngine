@@ -20,6 +20,7 @@ namespace ZNFramework
 	class ZNShader;
 	class ZNMatrix4;
 	class ZNMaterial;
+	class ZNMesh;
 	class RenderTexture;
 
 	class ZNScene
@@ -102,8 +103,12 @@ namespace ZNFramework
 		// Registers an offscreen camera that auto-renders all scene gameObjects using
 		// their existing material params (metallic, roughness, albedo) through forwardShader.
 		// No manual per-object material matching needed.
+		// Pass `forwardInstancedShader` (the forward_pbr_instanced.hlsli variant) to let objects
+		// that share a Mesh be drawn into this RT with one instanced call each, the same way
+		// Render() batches the main GBuffer pass. Null keeps the pass fully per-object.
 		void AddOffscreenCamera(ZNCamera* cam, RenderTexture* rt,
-		                        const std::string& resourceName, ZNShader* forwardShader);
+		                        const std::string& resourceName, ZNShader* forwardShader,
+		                        ZNShader* forwardInstancedShader = nullptr);
 
 		// Captures a static environment cubemap from `position` (6 faces, 90 deg FOV) on the
 		// first frame only, using each gameObject's own material params through forwardShader
@@ -194,6 +199,17 @@ namespace ZNFramework
 		// frame from Render() (see .cpp) — previously duplicated in Render() and RenderForward().
 		void           SyncGraphicsContext();
 
+		// One mesh shared by >= 2 live objects -> one instanced draw. Everything else stays on the
+		// per-object path. Shared by all three batched passes (GBuffer, shadow, offscreen cameras)
+		// so they can never disagree about what counts as a batch.
+		struct MeshBatch { ZNMesh* mesh; std::vector<ZNGameObject*> objects; };
+		void BuildMeshBatches(bool forward, bool shadowCastersOnly,
+		                      std::vector<MeshBatch>& batches,
+		                      std::vector<ZNGameObject*>& singles) const;
+		// False when the instanced shader is missing, the master toggle is off, or the view mode
+		// can't express a shared draw (wireframe's per-object selection highlight).
+		static bool InstancingUsable(const ZNShader* instancedShader);
+
 		std::vector<DebugCameraEntry> debugCameras;
 
 		struct OffscreenCamEntry {
@@ -201,6 +217,7 @@ namespace ZNFramework
 			RenderTexture* rt;
 			std::string  resourceName;
 			ZNShader*    forwardShader;
+			ZNShader*    forwardInstancedShader;   // null -> this pass stays fully per-object
 			std::unordered_map<ZNMaterial*, ZNMaterial*> matCache;
 		};
 		std::vector<OffscreenCamEntry> offscreenCamEntries;

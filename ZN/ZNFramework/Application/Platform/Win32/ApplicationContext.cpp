@@ -115,8 +115,12 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
     rootSignature->Init();
     // Sized for ~90+ objects/scene across GBuffer + shadow + multiple offscreen forward
     // passes (each object can push several PushData()/CommitTable() calls per frame).
-    constantBuffer->Init(sizeof(TransformMatrices), 8192);
-    tableDescriptorHeap->Init(8192);
+    // One descriptor group + up to three constant-buffer slots (b0 transform, b2 forward light,
+    // b1 material) per draw call. Sized for the un-instanced Stress-mode worst case -- VehicleScene
+    // at x50 density with instancing toggled OFF is ~25k draws/frame across all passes -- so the
+    // "before" half of a before/after measurement renders correctly instead of clamping.
+    constantBuffer->Init(sizeof(TransformMatrices), 98304);
+    tableDescriptorHeap->Init(32768);
     depthStencilBuffer->Init();
     
     // resize
@@ -152,6 +156,22 @@ void ApplicationContext::Initialize(ZNWindow* inWindow, ZNGraphicsDevice* inDevi
         {
             d3dShader->SetRenderTargetFormats(0, nullptr);
         }
+    }
+
+    // Load the instanced shadow depth shader (world matrix from a per-instance StructuredBuffer
+    // instead of cbShadowTransform -- see ZNScene::RenderShadow() batching). Depth only, like above.
+    {
+        shadowDepthInstancedShader = ZNFramework::Platform::CreateShader();
+        std::filesystem::path shaderPath = GetResourcePath() / L"Shaders" / L"shadow_depth_instanced.hlsli";
+        shadowDepthInstancedShader->Load(shaderPath);
+
+        Shader* d3dShader = dynamic_cast<Shader*>(shadowDepthInstancedShader);
+        if (d3dShader)
+        {
+            d3dShader->SetRenderTargetFormats(0, nullptr);
+        }
+
+        GraphicsContext::GetInstance().SetShadowInstancedShader(shadowDepthInstancedShader);
     }
 
     // Load G-Buffer shader for MRT

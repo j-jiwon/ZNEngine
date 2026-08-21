@@ -47,6 +47,12 @@ void VehicleScene::Initialize()
     offscreenShader = Platform::CreateShader();
     offscreenShader->Load(GetResourcePath() / L"Shaders" / L"forward_pbr.hlsli");
 
+    // Instanced counterpart of the above: lets the five surround views batch shared-mesh tracks the
+    // same way the main GBuffer pass does. Without it those five passes alone would dominate the
+    // frame's draw-call count at high track densities.
+    offscreenInstancedShader = Platform::CreateShader();
+    offscreenInstancedShader->Load(GetResourcePath() / L"Shaders" / L"forward_pbr_instanced.hlsli");
+
     // Chase camera: behind + above the ego, looking down +Z. (Projection is overwritten each frame
     // by ApplicationContext — far plane 100 covers the road.)
     ZNCamera* cam = new ZNCamera();
@@ -471,7 +477,7 @@ void VehicleScene::BuildSurroundViews()
         cam->SetPerspective(3.14159265f / 2.0f, 1.0f, 0.1f, 140.0f); // 90deg, square RT
 
         surroundViews.push_back({ name, cam, rt });
-        AddOffscreenCamera(cam, rt, name, offscreenShader);
+        AddOffscreenCamera(cam, rt, name, offscreenShader, offscreenInstancedShader);
     };
 
     addSurround("Front", ZNVector3(egoX,        eyeY,  2.8f), -10.0f,   0.0f); // +Z
@@ -496,7 +502,7 @@ void VehicleScene::BuildSurroundViews()
                      ZNVector3(0.0f,  0.0f, 1.0f));  // +Z up in the image
 
         surroundViews.push_back({ "Top-Down", cam, rt });
-        AddOffscreenCamera(cam, rt, "Top-Down", offscreenShader);
+        AddOffscreenCamera(cam, rt, "Top-Down", offscreenShader, offscreenInstancedShader);
     }
 }
 
@@ -741,6 +747,36 @@ void VehicleScene::RenderDataSourcePanel()
     ImGui::Text("Ego speed : %.1f m/s (%.0f km/h)", frame.ego.speed, frame.ego.speed * 3.6f);
     ImGui::Text("Tracked   : %d", binding.LiveTrackCount());
     ImGui::Text("Draw calls: %d", ZNGameObject::GetLastFrameDrawCalls());
+    ImGui::Text("Objects   : %d", static_cast<int>(GetGameObjects().size()));
+
+    // --- Instancing + stress (stage 6) ---
+    // The draw-call line above is the measurement. Toggling instancing here re-renders the SAME
+    // scene, camera and object count the un-batched way, so before/after is one click apart instead
+    // of two builds; the density steps push the object count far enough that the difference shows up
+    // in frame time and not just in the counter.
+    ImGui::Separator();
+    ImGui::TextUnformatted("Instancing / stress");
+
+    bool instOn = ZNFramework::GraphicsContext::GetInstance().IsInstancingEnabled();
+    if (ImGui::Checkbox("Instanced draws", &instOn))
+        ZNFramework::GraphicsContext::GetInstance().SetInstancingEnabled(instOn);
+    ImGui::SameLine();
+    ImGui::TextDisabled(instOn ? "(shared mesh -> 1 draw)" : "(1 draw per object)");
+
+    // Density only drives the synthetic generator; a log replays whatever was recorded.
+    ImGui::BeginDisabled(!isLive || !synthetic);
+    static const int kDensitySteps[] = { 1, 5, 20, 50 };
+    const int curDensity = synthetic ? synthetic->GetDensityMultiplier() : 1;
+    ImGui::TextUnformatted("Density");
+    for (int step : kDensitySteps)
+    {
+        ImGui::SameLine();
+        char lbl[8];
+        std::snprintf(lbl, sizeof(lbl), "x%d", step);
+        if (ImGui::RadioButton(lbl, curDensity == step) && synthetic)
+            synthetic->SetDensityMultiplier(step);
+    }
+    ImGui::EndDisabled();
 
     // --- Temporal resample: discrete sensor -> render fps (stage 3) ---
     ImGui::Separator();

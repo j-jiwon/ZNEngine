@@ -124,6 +124,18 @@ namespace ZNFramework
         void SetGBufferInstancedShader(ZNShader* inShader) { gbufferInstancedShader = inShader; }
         ZNShader* GetGBufferInstancedShader() const { return gbufferInstancedShader; }
 
+        // Instanced shadow-depth variant, same idea as the GBuffer one -- used by
+        // ZNScene::RenderShadow() to batch shadow casters that share a Mesh.
+        void SetShadowInstancedShader(ZNShader* inShader) { shadowInstancedShader = inShader; }
+        ZNShader* GetShadowInstancedShader() const { return shadowInstancedShader; }
+
+        // Master switch for every instanced-draw path (GBuffer, shadow, offscreen cameras). Off
+        // means each object issues its own draw, i.e. exactly the pre-instancing behaviour -- so
+        // before/after draw-call and frame-time numbers can be taken back to back on the same
+        // scene, camera and object count instead of across two builds. Exposed in the Debug panel.
+        void SetInstancingEnabled(bool v) { instancingEnabled = v; }
+        bool IsInstancingEnabled() const  { return instancingEnabled; }
+
         void SetToneMapShader(ZNShader* inShader) { toneMapShader = inShader; }
         ZNShader* GetToneMapShader() const { return toneMapShader; }
 
@@ -142,7 +154,9 @@ namespace ZNFramework
         ZNTableDescriptorHeap* descHeap = nullptr;
         ZNShader* gbufferShader = nullptr;
         ZNShader* gbufferInstancedShader = nullptr;
+        ZNShader* shadowInstancedShader = nullptr;
         ZNShader* toneMapShader = nullptr;
+        bool instancingEnabled = true;
         ZNCamera* camera = nullptr;
         std::vector<ZNSpotLight*> spotLights;
         std::vector<ZNPointLight*> pointLights;
