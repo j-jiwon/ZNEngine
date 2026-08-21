@@ -87,8 +87,11 @@ public:
     // any of it executes (no frame pipelining), so an earlier batch's region must stay untouched
     // until the GPU actually reads it.
     D3D12_CPU_DESCRIPTOR_HANDLE PushInstanceWorlds(const ZNMatrix4* worlds, uint32 count);
-    static constexpr uint32 kInstanceWorldCapacity        = 4096; // total instances/frame, all batches
-    static constexpr uint32 kMaxInstanceBatchesPerFrame    = 32;  // distinct (mesh) batches/frame
+    // Sized for the Stress-mode worst case (VehicleScene at x50 density): every batch is pushed
+    // once per pass and all 7 passes -- shadow, 5 surround views, GBuffer -- now instance, so the
+    // per-frame instance total is roughly 7x the on-screen instance count.
+    static constexpr uint32 kInstanceWorldCapacity        = 65536; // total instances/frame, all batches
+    static constexpr uint32 kMaxInstanceBatchesPerFrame    = 256;  // distinct (mesh, pass) batches/frame
 
     // Re-import GBuffer resource pointers after a resize (resources are recreated)
     void RefreshGBufferResources();

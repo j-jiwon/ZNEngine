@@ -33,6 +33,92 @@ void Mesh::Init(const vector<Vertex>& vertrexBuffer, const vector<uint32>& index
 	CreateIndexBuffer(indexBuffer);
 }
 
+// Shared by Render() (per-object forward draws) and RenderForwardInstanced() (batched ones):
+// builds cbForwardLight at b2 from the current GraphicsContext lights/camera and binds the shadow
+// map (t3) + IBL irradiance cube (t4). Harmless during the GBuffer pass, whose shaders ignore b2.
+void Mesh::BindForwardLightData(ZNCamera* camera)
+{
+	CommandQueue* queue = GraphicsContext::GetInstance().GetAs<CommandQueue>();
+	ConstantBuffer* constantBuffer = GraphicsContext::GetInstance().GetAs<ConstantBuffer>();
+	TableDescriptorHeap* tableDescHeap = GraphicsContext::GetInstance().GetAs<TableDescriptorHeap>();
+
+	struct FwdSpot {
+		float pos[3];    float intensity;
+		float dir[3];    float innerCutoff;
+		float col[3];    float outerCutoff;
+		float attConst;  float attLinear;  float attQuad;  float padding;
+	}; // 64 bytes
+	struct FwdLightCB {
+		float dirDir[3];   float dirIntensity;   // 16
+		float dirColor[3]; float dirAmbient;     // 16
+		float viewPos[3];  int   numSpots;       // 16
+		FwdSpot spots[2];                        // 128 (2 x 64)
+		float lightVP[16];                       // 64 (row-major 4x4)
+		float shadowBias;  float smW; float smH; float smPad; // 16
+		// Total: 256 bytes
+	} fwdLight = {};
+	static_assert(sizeof(FwdLightCB) == 256, "FwdLightCB must be exactly 256 bytes");
+
+	ZNDirectionalLight* dirLight = GraphicsContext::GetInstance().GetDirectionalLight();
+	if (dirLight)
+	{
+		ZNVector3 d = dirLight->GetDirection();
+		fwdLight.dirDir[0] = d.x; fwdLight.dirDir[1] = d.y; fwdLight.dirDir[2] = d.z;
+		fwdLight.dirIntensity = dirLight->GetIntensity();
+		ZNVector3 c = dirLight->GetColor();
+		fwdLight.dirColor[0] = c.x; fwdLight.dirColor[1] = c.y; fwdLight.dirColor[2] = c.z;
+		fwdLight.dirAmbient = dirLight->GetAmbientIntensity();
+
+		auto* d3dDirLight = dynamic_cast<Platform::Direct3D::DirectionalLight*>(dirLight);
+		if (d3dDirLight)
+		{
+			ZNMatrix4 lvp = d3dDirLight->GetLightViewProjectionMatrix();
+			memcpy(fwdLight.lightVP, lvp.value, sizeof(float) * 16);
+		}
+	}
+	if (camera)
+	{
+		ZNVector3 p = camera->GetPosition();
+		fwdLight.viewPos[0] = p.x; fwdLight.viewPos[1] = p.y; fwdLight.viewPos[2] = p.z;
+	}
+	const auto& spotLights = GraphicsContext::GetInstance().GetSpotLights();
+	int ns = 0;
+	for (size_t si = 0; si < spotLights.size() && ns < 2; ++si)
+	{
+		if (!spotLights[si] || spotLights[si]->GetType() != LightType::Spot) continue;
+		ZNSpotLight* sp = static_cast<ZNSpotLight*>(spotLights[si]);
+		FwdSpot& s = fwdLight.spots[ns++];
+		ZNVector3 p = sp->GetPosition(); s.pos[0]=p.x; s.pos[1]=p.y; s.pos[2]=p.z;
+		s.intensity = sp->GetIntensity();
+		ZNVector3 dd = sp->GetDirection(); s.dir[0]=dd.x; s.dir[1]=dd.y; s.dir[2]=dd.z;
+		s.innerCutoff = cosf(sp->GetInnerCutoffAngle() * 3.14159f / 180.0f);
+		ZNVector3 col = sp->GetColor(); s.col[0]=col.x; s.col[1]=col.y; s.col[2]=col.z;
+		s.outerCutoff = cosf(sp->GetOuterCutoffAngle() * 3.14159f / 180.0f);
+		s.attConst = sp->GetConstantAttenuation();
+		s.attLinear = sp->GetLinearAttenuation();
+		s.attQuad = sp->GetQuadraticAttenuation();
+	}
+	fwdLight.numSpots = ns;
+
+	// Bind the IBL irradiance cube at t4 so forward_pbr's ambient matches the deferred (main)
+	// pass per-scene: bright for VehicleScene's grey studio, dark/moody for MirrorBall's night
+	// env, etc. Black fallback until baked; t4 is otherwise unused by forward geometry.
+	if (IBLBaker* ibl = queue->GetIBLBaker())
+		tableDescHeap->SetSRV(ibl->GetIrradianceSRV(), SRV_REGISTER::t4);
+
+	ShadowMap* sm = queue->GetShadowMap();
+	if (sm)
+	{
+		fwdLight.shadowBias = 0.005f;
+		fwdLight.smW = static_cast<float>(sm->GetWidth());
+		fwdLight.smH = static_cast<float>(sm->GetHeight());
+		tableDescHeap->SetSRV(sm->GetSRV(), SRV_REGISTER::t3);
+	}
+
+	D3D12_CPU_DESCRIPTOR_HANDLE lh = constantBuffer->PushData(0, &fwdLight, sizeof(FwdLightCB));
+	tableDescHeap->SetCBV(lh, CBV_REGISTER::b2);
+}
+
 void Mesh::Render()
 {
 	CommandQueue* queue = GraphicsContext::GetInstance().GetAs<CommandQueue>();
@@ -56,85 +142,9 @@ void Mesh::Render()
 	D3D12_CPU_DESCRIPTOR_HANDLE handle1 = constantBuffer->PushData(0, &transformMatrices, sizeof(TransformMatrices));
 	tableDescHeap->SetCBV(handle1, CBV_REGISTER::b0);
 
-	// Set forward light data (b2) BEFORE material->Bind() so that Material can overwrite b2
+	// Fill cbForwardLight (b2) BEFORE material->Bind() so that Material can overwrite b2
 	// in the forward pass with its own per-pass data (e.g. point lights).
-	{
-		struct FwdSpot {
-			float pos[3];    float intensity;
-			float dir[3];    float innerCutoff;
-			float col[3];    float outerCutoff;
-			float attConst;  float attLinear;  float attQuad;  float padding;
-		}; // 64 bytes
-		struct FwdLightCB {
-			float dirDir[3];   float dirIntensity;   // 16
-			float dirColor[3]; float dirAmbient;     // 16
-			float viewPos[3];  int   numSpots;       // 16
-			FwdSpot spots[2];                        // 128 (2 x 64)
-			float lightVP[16];                       // 64 (row-major 4x4)
-			float shadowBias;  float smW; float smH; float smPad; // 16
-			// Total: 256 bytes
-		} fwdLight = {};
-		static_assert(sizeof(FwdLightCB) == 256, "FwdLightCB must be exactly 256 bytes");
-
-		ZNDirectionalLight* dirLight = GraphicsContext::GetInstance().GetDirectionalLight();
-		if (dirLight)
-		{
-			ZNVector3 d = dirLight->GetDirection();
-			fwdLight.dirDir[0] = d.x; fwdLight.dirDir[1] = d.y; fwdLight.dirDir[2] = d.z;
-			fwdLight.dirIntensity = dirLight->GetIntensity();
-			ZNVector3 c = dirLight->GetColor();
-			fwdLight.dirColor[0] = c.x; fwdLight.dirColor[1] = c.y; fwdLight.dirColor[2] = c.z;
-			fwdLight.dirAmbient = dirLight->GetAmbientIntensity();
-
-			auto* d3dDirLight = dynamic_cast<Platform::Direct3D::DirectionalLight*>(dirLight);
-			if (d3dDirLight)
-			{
-				ZNMatrix4 lvp = d3dDirLight->GetLightViewProjectionMatrix();
-				memcpy(fwdLight.lightVP, lvp.value, sizeof(float) * 16);
-			}
-		}
-		if (camera)
-		{
-			ZNVector3 p = camera->GetPosition();
-			fwdLight.viewPos[0] = p.x; fwdLight.viewPos[1] = p.y; fwdLight.viewPos[2] = p.z;
-		}
-		const auto& spotLights = GraphicsContext::GetInstance().GetSpotLights();
-		int ns = 0;
-		for (size_t si = 0; si < spotLights.size() && ns < 2; ++si)
-		{
-			if (!spotLights[si] || spotLights[si]->GetType() != LightType::Spot) continue;
-			ZNSpotLight* sp = static_cast<ZNSpotLight*>(spotLights[si]);
-			FwdSpot& s = fwdLight.spots[ns++];
-			ZNVector3 p = sp->GetPosition(); s.pos[0]=p.x; s.pos[1]=p.y; s.pos[2]=p.z;
-			s.intensity = sp->GetIntensity();
-			ZNVector3 dd = sp->GetDirection(); s.dir[0]=dd.x; s.dir[1]=dd.y; s.dir[2]=dd.z;
-			s.innerCutoff = cosf(sp->GetInnerCutoffAngle() * 3.14159f / 180.0f);
-			ZNVector3 col = sp->GetColor(); s.col[0]=col.x; s.col[1]=col.y; s.col[2]=col.z;
-			s.outerCutoff = cosf(sp->GetOuterCutoffAngle() * 3.14159f / 180.0f);
-			s.attConst = sp->GetConstantAttenuation();
-			s.attLinear = sp->GetLinearAttenuation();
-			s.attQuad = sp->GetQuadraticAttenuation();
-		}
-		fwdLight.numSpots = ns;
-
-		// Bind the IBL irradiance cube at t4 so forward_pbr's ambient matches the deferred (main)
-		// pass per-scene: bright for VehicleScene's grey studio, dark/moody for MirrorBall's night
-		// env, etc. Black fallback until baked; t4 is otherwise unused by forward geometry.
-		if (IBLBaker* ibl = queue->GetIBLBaker())
-			tableDescHeap->SetSRV(ibl->GetIrradianceSRV(), SRV_REGISTER::t4);
-
-		ShadowMap* sm = queue->GetShadowMap();
-		if (sm)
-		{
-			fwdLight.shadowBias = 0.005f;
-			fwdLight.smW = static_cast<float>(sm->GetWidth());
-			fwdLight.smH = static_cast<float>(sm->GetHeight());
-			tableDescHeap->SetSRV(sm->GetSRV(), SRV_REGISTER::t3);
-		}
-
-		D3D12_CPU_DESCRIPTOR_HANDLE lh = constantBuffer->PushData(0, &fwdLight, sizeof(FwdLightCB));
-		tableDescHeap->SetCBV(lh, CBV_REGISTER::b2);
-	}
+	BindForwardLightData(camera);
 
 	// Use Material if available, otherwise fallback to legacy texture path
 	// Material::Bind() may overwrite b2 in the forward pass (see Material.cpp).
@@ -188,6 +198,87 @@ void Mesh::RenderInstanced(const vector<ZNMatrix4>& worldMatrices)
     // bind since the instanced PSO is already bound by the caller (see ZNScene::Render()).
     if (material)
         material->Bind();
+
+    tableDescHeap->CommitTable();
+
+    queue->CommandList()->DrawIndexedInstanced(indexCount, static_cast<uint32>(worldMatrices.size()), 0, 0, 0);
+}
+
+void Mesh::RenderForwardInstanced(const vector<ZNMatrix4>& worldMatrices)
+{
+    if (worldMatrices.empty())
+        return;
+
+    CommandQueue* queue = GraphicsContext::GetInstance().GetAs<CommandQueue>();
+    queue->CommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    queue->CommandList()->IASetVertexBuffers(0, 1, &vertexBufferView);
+    queue->CommandList()->IASetIndexBuffer(&indexBufferView);
+
+    ZNCamera* camera = GraphicsContext::GetInstance().GetCamera();
+
+    // Matches cbViewProj in forward_pbr_instanced.hlsli (no per-draw world).
+    struct InstancedTransformCB
+    {
+        ZNMatrix4 view;
+        ZNMatrix4 projection;
+    } xf;
+    xf.view       = camera ? camera->ViewMatrix() : ZNMatrix4();
+    xf.projection = camera ? camera->ProjectionMatrix() : ZNMatrix4();
+
+    ConstantBuffer* constantBuffer = GraphicsContext::GetInstance().GetAs<ConstantBuffer>();
+    TableDescriptorHeap* tableDescHeap = GraphicsContext::GetInstance().GetAs<TableDescriptorHeap>();
+
+    D3D12_CPU_DESCRIPTOR_HANDLE cbHandle = constantBuffer->PushData(0, &xf, sizeof(xf));
+    tableDescHeap->SetCBV(cbHandle, CBV_REGISTER::b0);
+
+    // Same lights/shadow/IBL bindings the per-object forward path uses (b2, t3, t4).
+    BindForwardLightData(camera);
+
+    // t5, not t3: the forward shader's shadow map owns t3 and IBL irradiance owns t4
+    // (see forward_pbr_instanced.hlsli).
+    D3D12_CPU_DESCRIPTOR_HANDLE instHandle =
+        queue->PushInstanceWorlds(worldMatrices.data(), static_cast<uint32>(worldMatrices.size()));
+    tableDescHeap->SetSRV(instHandle, SRV_REGISTER::t5);
+
+    // Binds b1 + t0~t2 and, since this runs with isForwardPass set, the material's shader —
+    // which the caller swapped to the instanced variant for the duration of this batch
+    // (see ZNScene::AddOffscreenCamera).
+    if (material)
+        material->Bind();
+
+    tableDescHeap->CommitTable();
+
+    queue->CommandList()->DrawIndexedInstanced(indexCount, static_cast<uint32>(worldMatrices.size()), 0, 0, 0);
+}
+
+void Mesh::RenderShadowInstanced(const ZNMatrix4& lightViewProj, ZNShader* shadowShader,
+                                 const vector<ZNMatrix4>& worldMatrices)
+{
+    if (worldMatrices.empty())
+        return;
+
+    CommandQueue* queue = GraphicsContext::GetInstance().GetAs<CommandQueue>();
+    queue->CommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    queue->CommandList()->IASetVertexBuffers(0, 1, &vertexBufferView);
+    queue->CommandList()->IASetIndexBuffer(&indexBufferView);
+
+    // Unlike the GBuffer path there's no PSO sharing to preserve here: the shadow pass binds
+    // nothing but this shader, so each batch can bind it itself (same as RenderShadow()).
+    if (shadowShader)
+        shadowShader->Bind();
+
+    // Matches cbShadowViewProj in shadow_depth_instanced.hlsli.
+    ZNMatrix4 vp = lightViewProj;
+
+    ConstantBuffer* constantBuffer = GraphicsContext::GetInstance().GetAs<ConstantBuffer>();
+    TableDescriptorHeap* tableDescHeap = GraphicsContext::GetInstance().GetAs<TableDescriptorHeap>();
+
+    D3D12_CPU_DESCRIPTOR_HANDLE cbHandle = constantBuffer->PushData(0, &vp, sizeof(vp));
+    tableDescHeap->SetCBV(cbHandle, CBV_REGISTER::b0);
+
+    D3D12_CPU_DESCRIPTOR_HANDLE instHandle =
+        queue->PushInstanceWorlds(worldMatrices.data(), static_cast<uint32>(worldMatrices.size()));
+    tableDescHeap->SetSRV(instHandle, SRV_REGISTER::t3);
 
     tableDescHeap->CommitTable();
 

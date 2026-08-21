@@ -245,6 +245,17 @@ void SceneDebugUI::RenderDebugPanel(ZNScene* scene)
     if (ImGui::Checkbox("Wireframe", &wireframe))
         cq->SetViewMode(wireframe ? ViewMode::Wireframe : ViewMode::Lit);
 
+    // Instanced draws (common to all scenes). Off = every object issues its own draw, i.e. the
+    // pre-instancing behaviour, so the Stats panel's Draw Calls / frame time can be read before and
+    // after on an otherwise identical frame. Forced off in wireframe, which needs per-object
+    // material overrides for the selection highlight (see ZNScene::InstancingUsable).
+    GraphicsContext& gctx = GraphicsContext::GetInstance();
+    bool instanced = gctx.IsInstancingEnabled();
+    ImGui::BeginDisabled(wireframe);
+    if (ImGui::Checkbox("Instanced Draws", &instanced))
+        gctx.SetInstancingEnabled(instanced);
+    ImGui::EndDisabled();
+
     // Spotlight indicators (shown only when scene has spotlights)
     if (!spotEntries.empty())
         ImGui::Checkbox("Spotlight Indicators", &showSpotIndicators);

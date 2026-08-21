@@ -32,15 +32,36 @@ namespace Vehicle
     }
 
     SyntheticSource::SyntheticSource(unsigned seed)
-        : rng(seed)
+        : rng(seed), seedValue(seed)
     {
+        SpawnAgents();
+    }
+
+    // Stress knob (see the header). Rebuilding from scratch rather than adding/removing agents keeps
+    // the lane spacing correct at every multiplier, and every track gets a fresh id, so the binding
+    // sees a clean despawn-everything/spawn-everything -- no stale objects at the old density.
+    void SyntheticSource::SetDensityMultiplier(int m)
+    {
+        if (m < 1) m = 1;
+        if (m == density) return;
+        density = m;
+        SpawnAgents();
+    }
+
+    void SyntheticSource::SpawnAgents()
+    {
+        rng.seed(seedValue);
         std::uniform_real_distribution<float> unit(0.f, 1.f);
         const float range = zFront - zBack;
 
+        agents.clear();
         for (int li = 0; li < kLaneCount; ++li)
         {
             const LaneDef& L = kLanes[li];
-            for (int k = 0; k < L.count; ++k)
+            // The ego lane's pacing cars hold fixed slots ahead of the ego; multiplying them would
+            // just stack cars kilometres down the road, so density applies to moving traffic only.
+            const int count = L.pacing ? L.count : L.count * density;
+            for (int k = 0; k < count; ++k)
             {
                 Agent a;
                 a.lane  = li;
@@ -52,7 +73,11 @@ namespace Vehicle
                 a.id    = nextId++;
                 a.relZ  = L.pacing
                     ? 18.0f + k * 24.0f                             // fixed slots ahead of the ego
-                    : zBack + (k + unit(rng)) * (range / L.count);  // one car per even slice of the lane
+                    : zBack + (k + unit(rng)) * (range / count);    // one car per even slice of the lane
+                // At x1 the lane is a single file of evenly spaced cars, as before. Denser lanes
+                // would otherwise be a line of coincident cars, so spread them across the lane.
+                if (density > 1 && !L.pacing)
+                    a.relX += (unit(rng) - 0.5f) * kLaneWidth * 0.8f;
                 agents.push_back(a);
             }
         }

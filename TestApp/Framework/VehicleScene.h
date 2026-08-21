@@ -79,6 +79,8 @@ private:
 
     ZNFramework::ZNShader* mainShader      = nullptr;
     ZNFramework::ZNShader* offscreenShader = nullptr; // forward_pbr for the surround/top-down RTs
+    // forward_pbr_instanced counterpart: batches shared-mesh tracks in those same five passes.
+    ZNFramework::ZNShader* offscreenInstancedShader = nullptr;
 
     ZNFramework::ZNGameObject* ego = nullptr;
     CarModel carModel;      // plain, shared by Car-class tracks

@@ -50,42 +50,81 @@ void ZNScene::SyncGraphicsContext()
 	ctx.SetDiscoSources(sceneDiscoSources);
 }
 
+// False whenever a shared instanced draw can't stand in for the per-object one: no instanced
+// shader compiled, the Debug panel toggle is off (so before/after can be measured back to back on
+// the same scene), or wireframe view mode, whose per-object selection highlight can't be expressed
+// by a single draw that shares one material/CB across every instance in it.
+bool ZNScene::InstancingUsable(const ZNShader* instancedShader)
+{
+	if (!instancedShader) return false;
+	GraphicsContext& ctx = GraphicsContext::GetInstance();
+	if (!ctx.IsInstancingEnabled()) return false;
+	ZNCommandQueue* cq = ctx.GetCommandQueue();
+	return !(cq && cq->GetViewMode() == ViewMode::Wireframe);
+}
+
+// Groups objects that share a Mesh (already 1:1 with Material in this codebase — see
+// SceneBinding::Apply / VehicleScene::SpawnCarInstance, both hand every instance the SAME shared
+// Mesh*) into instanced batches; anything with a unique Mesh (Ground, EGO, other scenes' one-off
+// objects) comes back in `singles` for the unchanged per-object path.
+void ZNScene::BuildMeshBatches(bool forward, bool shadowCastersOnly,
+                               std::vector<MeshBatch>& batches,
+                               std::vector<ZNGameObject*>& singles) const
+{
+	std::unordered_map<ZNMesh*, std::vector<ZNGameObject*>> byMesh;
+	ForEachLiveObject(forward, [&](ZNGameObject* obj) {
+		if (!obj->IsVisible() || !obj->GetMesh()) return;
+		if (shadowCastersOnly && !obj->GetCastShadow()) return;
+		byMesh[obj->GetMesh()].push_back(obj);
+	});
+
+	for (auto& [meshPtr, objs] : byMesh)
+	{
+		if (objs.size() >= 2)
+			batches.push_back({ meshPtr, std::move(objs) });
+		else
+			for (ZNGameObject* obj : objs) singles.push_back(obj);
+	}
+}
+
+namespace
+{
+	// One instanced draw stands in for objs.size() per-object draws, so the stats those draws would
+	// have recorded (triangles, vertices) still have to land somewhere for the Stats panel to mean
+	// anything — while the draw-call count deliberately goes up by exactly 1.
+	void RecordBatchStats(ZNMesh* mesh, size_t instanceCount)
+	{
+		ZNGameObject::RecordDrawCall(
+			static_cast<int>(mesh->GetIndexCount() / 3) * static_cast<int>(instanceCount),
+			static_cast<int>(mesh->GetVertexCount()) * static_cast<int>(instanceCount));
+	}
+
+	void CollectWorlds(const std::vector<ZNGameObject*>& objs, std::vector<ZNMatrix4>& out)
+	{
+		out.clear();
+		out.reserve(objs.size());
+		for (ZNGameObject* obj : objs)
+			out.push_back(obj->GetWorldMatrix());
+	}
+}
+
 void ZNScene::Render()
 {
 	// Runs inside GBufferPass, before DeferredLightingPass/ForwardRenderPass read the context.
 	SyncGraphicsContext();
 
 	GraphicsContext& ctx = GraphicsContext::GetInstance();
-	ZNCommandQueue* cq = ctx.GetCommandQueue();
 	ZNShader* instancedShader = ctx.GetGBufferInstancedShader();
 
-	// Wireframe's per-object selection highlight can't be expressed by a shared instanced draw
-	// (one draw = one material/CB for every instance in it), so skip batching in that view mode.
-	if (!instancedShader || (cq && cq->GetViewMode() == ViewMode::Wireframe))
+	if (!InstancingUsable(instancedShader))
 	{
 		ForEachLiveObject(false, [](ZNGameObject* obj) { obj->Render(); });
 		return;
 	}
 
-	// Group opaque objects that share a Mesh (already 1:1 with Material in this codebase — see
-	// SceneBinding::Apply / VehicleScene::SpawnCarInstance, both hand every instance the SAME
-	// shared Mesh*) into a single instanced draw each; anything with a unique Mesh (Ground, EGO,
-	// other scenes' one-off objects) falls back to the normal per-object path unchanged.
-	std::unordered_map<ZNMesh*, std::vector<ZNGameObject*>> byMesh;
-	ForEachLiveObject(false, [&](ZNGameObject* obj) {
-		if (obj->IsVisible() && obj->GetMesh())
-			byMesh[obj->GetMesh()].push_back(obj);
-	});
-
-	std::vector<std::pair<ZNMesh*, std::vector<ZNGameObject*>>> batched;
+	std::vector<MeshBatch>     batched;
 	std::vector<ZNGameObject*> singles;
-	for (auto& [meshPtr, objs] : byMesh)
-	{
-		if (objs.size() >= 2)
-			batched.emplace_back(meshPtr, std::move(objs));
-		else
-			for (ZNGameObject* obj : objs) singles.push_back(obj);
-	}
+	BuildMeshBatches(false, false, batched, singles);
 
 	// Draw every batch first, all under one PSO bind...
 	if (!batched.empty())
@@ -93,18 +132,11 @@ void ZNScene::Render()
 		instancedShader->Bind();
 
 		std::vector<ZNMatrix4> worldMatrices;
-		for (auto& [meshPtr, objs] : batched)
+		for (auto& batch : batched)
 		{
-			worldMatrices.clear();
-			worldMatrices.reserve(objs.size());
-			for (ZNGameObject* obj : objs)
-				worldMatrices.push_back(obj->GetWorldMatrix());
-
-			meshPtr->RenderInstanced(worldMatrices);
-
-			ZNGameObject::RecordDrawCall(
-				static_cast<int>(meshPtr->GetIndexCount() / 3) * static_cast<int>(objs.size()),
-				static_cast<int>(meshPtr->GetVertexCount()) * static_cast<int>(objs.size()));
+			CollectWorlds(batch.objects, worldMatrices);
+			batch.mesh->RenderInstanced(worldMatrices);
+			RecordBatchStats(batch.mesh, batch.objects.size());
 		}
 	}
 
@@ -124,9 +156,34 @@ void ZNScene::Render()
 
 void ZNScene::RenderShadow(const ZNMatrix4& lightViewProj, ZNShader* shadowShader)
 {
-	// Shadow casters come from the deferred (opaque) list; each object self-filters on
-	// castShadow. Forward/transparent objects (glass, windows) intentionally cast no shadow.
-	ForEachLiveObject(false, [&](ZNGameObject* obj) { obj->RenderShadow(lightViewProj, shadowShader); });
+	// Shadow casters come from the deferred (opaque) list. Forward/transparent objects (glass,
+	// windows) intentionally cast no shadow.
+	ZNShader* instancedShader = GraphicsContext::GetInstance().GetShadowInstancedShader();
+
+	if (!InstancingUsable(instancedShader))
+	{
+		// Each object self-filters on castShadow.
+		ForEachLiveObject(false, [&](ZNGameObject* obj) { obj->RenderShadow(lightViewProj, shadowShader); });
+		return;
+	}
+
+	// castShadow is filtered up front here instead, so a mesh shared by both casters and
+	// non-casters batches only its casters.
+	std::vector<MeshBatch>     batched;
+	std::vector<ZNGameObject*> singles;
+	BuildMeshBatches(false, true, batched, singles);
+
+	std::vector<ZNMatrix4> worldMatrices;
+	for (auto& batch : batched)
+	{
+		CollectWorlds(batch.objects, worldMatrices);
+		batch.mesh->RenderShadowInstanced(lightViewProj, instancedShader, worldMatrices);
+		RecordBatchStats(batch.mesh, batch.objects.size());
+	}
+
+	// Mesh::RenderShadow() binds the per-object shadow PSO itself, so no restore is needed here.
+	for (ZNGameObject* obj : singles)
+		obj->RenderShadow(lightViewProj, shadowShader);
 }
 
 void ZNScene::RenderForward()
@@ -329,9 +386,10 @@ ZNGameObject* ZNScene::FindGameObjectWithName(const std::string& name)
 }
 
 void ZNScene::AddOffscreenCamera(ZNCamera* cam, RenderTexture* rt,
-                                  const std::string& resourceName, ZNShader* forwardShader)
+                                  const std::string& resourceName, ZNShader* forwardShader,
+                                  ZNShader* forwardInstancedShader)
 {
-	offscreenCamEntries.push_back({ cam, rt, resourceName, forwardShader, {} });
+	offscreenCamEntries.push_back({ cam, rt, resourceName, forwardShader, forwardInstancedShader, {} });
 	const size_t idx = offscreenCamEntries.size() - 1;
 
 	CommandQueue* cmdQ = GraphicsContext::GetInstance().GetAs<CommandQueue>();
@@ -354,38 +412,81 @@ void ZNScene::AddOffscreenCamera(ZNCamera* cam, RenderTexture* rt,
 		ctx.SetDirectionalLight(directionalLight);
 		ctx.SetDiscoSources(sceneDiscoSources);
 
-		ForEachLiveObject(false, [&](ZNGameObject* obj)
+		// Lookup or lazily create the forward material standing in for a main-pass one, so this
+		// pass shades with the object's real params through entry.forwardShader.
+		auto forwardMaterialFor = [&entry](ZNMaterial* mainMat) -> ZNMaterial*
 		{
-			if (!obj->IsVisible() || !obj->GetMesh()) return;
-
-			ZNMaterial* mainMat = obj->GetMaterial();
-			if (!mainMat) return;
-
-			// Lookup or lazily create the forward material for this source material.
-			ZNMaterial* fwdMat = nullptr;
 			auto it = entry.matCache.find(mainMat);
-			if (it == entry.matCache.end())
+			if (it != entry.matCache.end())
 			{
-				MaterialParams p = mainMat->GetParams();
-				fwdMat = ZNMaterialFactory::CreatePBR(
-					entry.forwardShader, p.albedoColor, p.metallic, p.roughness, p.ao);
-				fwdMat->SetParams(p);        // sync useAlbedoTexture and other fields
-				fwdMat->CopyTexturesFrom(mainMat);
-				entry.matCache[mainMat] = fwdMat;
-			}
-			else
-			{
-				fwdMat = it->second;
 				// Sync params so Inspector edits to the main material are reflected.
-				fwdMat->SetParams(mainMat->GetParams());
+				it->second->SetParams(mainMat->GetParams());
+				return it->second;
 			}
+			MaterialParams p = mainMat->GetParams();
+			ZNMaterial* fwdMat = ZNMaterialFactory::CreatePBR(
+				entry.forwardShader, p.albedoColor, p.metallic, p.roughness, p.ao);
+			fwdMat->SetParams(p);        // sync useAlbedoTexture and other fields
+			fwdMat->CopyTexturesFrom(mainMat);
+			entry.matCache[mainMat] = fwdMat;
+			return fwdMat;
+		};
 
-			// Temporarily override the mesh material, render, then restore.
+		// Temporarily override the mesh material, render, then restore.
+		auto renderWith = [&](ZNGameObject* obj, ZNMaterial* fwdMat, auto&& draw)
+		{
 			ZNMaterial* origMat = obj->GetMaterial();
 			obj->GetMesh()->SetMaterial(fwdMat);
-			obj->Render();
+			draw();
 			obj->GetMesh()->SetMaterial(origMat);
-		});
+		};
+
+		if (!InstancingUsable(entry.forwardInstancedShader))
+		{
+			ForEachLiveObject(false, [&](ZNGameObject* obj)
+			{
+				if (!obj->IsVisible() || !obj->GetMesh()) return;
+				ZNMaterial* mainMat = obj->GetMaterial();
+				if (!mainMat) return;
+				ZNMaterial* fwdMat = forwardMaterialFor(mainMat);
+				renderWith(obj, fwdMat, [&] { obj->Render(); });
+			});
+			return;
+		}
+
+		std::vector<MeshBatch>     batched;
+		std::vector<ZNGameObject*> singles;
+		BuildMeshBatches(false, false, batched, singles);
+
+		std::vector<ZNMatrix4> worldMatrices;
+		for (auto& batch : batched)
+		{
+			// Mesh and Material are 1:1 here, so one stand-in material covers the whole batch.
+			ZNGameObject* first   = batch.objects.front();
+			ZNMaterial*   mainMat = first->GetMaterial();
+			if (!mainMat) { for (ZNGameObject* o : batch.objects) singles.push_back(o); continue; }
+
+			ZNMaterial* fwdMat = forwardMaterialFor(mainMat);
+			CollectWorlds(batch.objects, worldMatrices);
+
+			// Material::Bind() binds its own shader during a forward pass, so the batch's shader
+			// has to be the instanced one for the duration of the draw. Restoring it to
+			// entry.forwardShader afterwards keeps the cached material usable by the per-object
+			// path below (and by the next frame, if the toggle flips).
+			fwdMat->SetShader(entry.forwardInstancedShader);
+			renderWith(first, fwdMat, [&] { batch.mesh->RenderForwardInstanced(worldMatrices); });
+			fwdMat->SetShader(entry.forwardShader);
+
+			RecordBatchStats(batch.mesh, batch.objects.size());
+		}
+
+		for (ZNGameObject* obj : singles)
+		{
+			ZNMaterial* mainMat = obj->GetMaterial();
+			if (!mainMat) continue;
+			ZNMaterial* fwdMat = forwardMaterialFor(mainMat);
+			renderWith(obj, fwdMat, [&] { obj->Render(); });
+		}
 	});
 }
 

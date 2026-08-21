@@ -43,6 +43,7 @@ namespace ZNFramework
 		class ZNShader* gbufferShader = nullptr;
 		class ZNShader* gbufferInstancedShader = nullptr;
 		class ZNShader* shadowDepthShader = nullptr;
+		class ZNShader* shadowDepthInstancedShader = nullptr;
 		class ZNConstantBuffer* constantBuffer = nullptr;
 		class ZNDepthStencilBuffer* depthStencilBuffer = nullptr;
 

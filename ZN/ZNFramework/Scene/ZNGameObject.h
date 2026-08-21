@@ -28,6 +28,7 @@ namespace ZNFramework
 		void SetVisible(bool visible) { isVisible = visible; }
 		bool IsVisible() const { return isVisible; }
 		void SetCastShadow(bool value) { castShadow = value; }
+		bool GetCastShadow() const { return castShadow; }
 
 		ZNMesh* GetMesh() const { return mesh; }
 		ZNMaterial* GetMaterial() const { return material; }
