@@ -97,8 +97,29 @@ Licences
 "@ | Set-Content (Join-Path $stage "README.txt") -Encoding UTF8
 
 # --- zip -----------------------------------------------------------------
+# Entry names are built by hand instead of using Compress-Archive or
+# ZipFile::CreateFromDirectory. Both of those go through .NET Framework, which writes
+# Path.DirectorySeparatorChar ('\') into the archive; the zip spec requires '/'. Explorer and
+# 7-Zip cope, but unzip on Linux/macOS then produces one flat file per entry with the
+# separators baked into the filename instead of a directory tree. ZipArchive::CreateEntry
+# takes the entry name verbatim, so normalising it here is the one reliable fix on PS 5.1.
 if (Test-Path $zip) { Remove-Item $zip -Force }
-Compress-Archive -Path $stage -DestinationPath $zip
+Add-Type -AssemblyName System.IO.Compression
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+
+$stageParent = Split-Path $stage -Parent
+$archive = [System.IO.Compression.ZipFile]::Open(
+    $zip, [System.IO.Compression.ZipArchiveMode]::Create)
+try {
+    # Relative to the stage's PARENT, so the archive keeps its top-level folder.
+    Get-ChildItem $stage -Recurse -File | ForEach-Object {
+        $rel = $_.FullName.Substring($stageParent.Length + 1).Replace('\', '/')
+        [void][System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
+            $archive, $_.FullName, $rel,
+            [System.IO.Compression.CompressionLevel]::Optimal)
+    }
+}
+finally { $archive.Dispose() }
 
 $mb = [math]::Round((Get-Item $zip).Length / 1MB, 1)
 Write-Host ""
