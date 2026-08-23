@@ -5,7 +5,7 @@ Its automotive demo feeds sensor-style tracking data into the scene graph throug
 pipeline, allowing synthetic traffic and recorded logs to share the same interpolation and
 scene-binding code.
 
-![Instanced draws: 7,267 to 60 draw calls](Docs/images/vehicle_instancing_toggle.gif)
+![Instanced draws: 7,267 to 60 draw calls](Docs/images/vehicle_instancing_toggle.webp)
 
 **[Demo video (2:33)](https://youtu.be/_2CfJv7DidY)** · **[Case study](Docs/CASE_STUDY.md)** · **[Windows build](https://github.com/j-jiwon/ZNEngine/releases/latest)**
 

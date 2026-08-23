@@ -9,6 +9,7 @@ $ErrorActionPreference = "Stop"
 $config  = "Release"
 $platform = "x64"
 $root     = Split-Path $PSScriptRoot -Parent
+$packageAssets = Join-Path $root "Tools\PackageAssets"
 $bin      = Join-Path $root "Build\${platform}_${config}"
 $name     = "ZNEngine_demo_${platform}"
 $stage = Join-Path $root "Build\package\$name"
@@ -38,20 +39,20 @@ foreach ($d in @("Shaders", "Models", "Textures")) {
     Copy-Item $src (Join-Path $stage "Resources\$d") -Recurse
 }
 
-# Logs\ is created at runtime by WriteLog, but shipping a recorded scenario means
-# "Load Log" works on first launch instead of showing an empty timeline.
+# Runtime recordings stay ignored under Resources\Logs. PackageAssets holds a tracked default so
+# every checkout ships the same recording and "Load Log" works on first launch.
 $logs = Join-Path $stage "Resources\Logs"
 New-Item -ItemType Directory -Path $logs -Force | Out-Null
-$scenario = Join-Path $root "Resources\Logs\scenario.json"
+$scenario = Join-Path $packageAssets "default_scenario.json"
 if (-not (Test-Path $scenario)) {
-    throw "Required sample log not found at $scenario. Record one before packaging."
+    throw "Tracked sample log not found at $scenario"
 }
-Copy-Item $scenario $logs
+Copy-Item $scenario (Join-Path $logs "scenario.json")
 
-# Panel layout. Without this the first launch piles every ImGui window in the corner.
-$ini = Join-Path $root "TestApp\imgui.ini"
-if (-not (Test-Path $ini)) { throw "Required UI layout not found at $ini" }
-Copy-Item $ini $stage
+# Runtime layout changes stay ignored. Ship the tracked default instead.
+$ini = Join-Path $packageAssets "default_imgui.ini"
+if (-not (Test-Path $ini)) { throw "Tracked UI layout not found at $ini" }
+Copy-Item $ini (Join-Path $stage "imgui.ini")
 
 Copy-Item (Join-Path $root "LICENSE") $stage
 Copy-Item (Join-Path $root "Docs\THIRD_PARTY_LICENSES.md") $stage
