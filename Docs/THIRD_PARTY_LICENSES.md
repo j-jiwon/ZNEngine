@@ -2,14 +2,18 @@
 
 This document lists the source and license information for third-party libraries and resource data included with ZNEngine.
 
-> **Scope.** The BSD 3-Clause license in [LICENSE](../LICENSE) covers ZNEngine's **source code only**.
-> Every asset and library listed below keeps its own license. Two entries carry conditions worth
-> calling out before reuse:
+> **Scope.** The BSD 3-Clause license in [LICENSE](../LICENSE) covers **ZNEngine-authored source
+> code and the first-party assets explicitly identified below**. It does not cover third-party
+> libraries or assets; each keeps its own license or usage terms. The following entries carry
+> conditions worth calling out before reuse:
 >
-> - **`DamagedHelmet.glb` is non-commercial (CC BY-NC 4.0).** It is the only asset here that is not
->   free for commercial use — see the note in its section.
+> - **`DamagedHelmet.glb` is non-commercial (CC BY-NC 4.0).** It is not licensed for commercial use
+>   under its current terms — see the note in its section.
+> - **`stanford-bunny.fbx` requires Stanford's permission for commercial use.** Free redistribution
+>   and research use are permitted with source acknowledgement, but commercial use and inclusion
+>   in a product for sale require permission — see the note in its section.
 > - **`night_free_Bg.jpg` requires attribution (CC BY 3.0, not CC0).** Credit HDRI Hub anywhere the
->   demo is published, including video end credits.
+>   demo is published, including the video description or end credits.
 
 ## Damaged Helmet
 
@@ -52,8 +56,8 @@ The model was rebuilt and converted to conform to the final glTF 2.0 specificati
 - Source: [HDRI Night (free)](https://www.hdri-hub.com/hdrishop/freesamples/freehdri/item/74-hdr-night)
 - License: [Creative Commons Attribution 3.0 Unported](https://creativecommons.org/licenses/by/3.0/) — **attribution required** (this is CC BY, not CC0)
 - Usage: Night environment and skybox texture used by `MirrorBallScene`.
-- Attribution: Carry the credit "HDRI Night (c) HDRI Hub, CC BY 3.0" wherever `MirrorBallScene` is
-  shown, including demo-video end credits — not only in this document.
+- Attribution: Carry the credit "HDRI Night © HDRI Hub, CC BY 3.0" wherever `MirrorBallScene` is
+  shown, including a demo video's description or end credits — not only in this document.
 - Modifications: The source HDRI was converted to JPEG for runtime loading (see the HDR note below).
 
 ## Stanford Bunny
@@ -64,6 +68,12 @@ The model was rebuilt and converted to conform to the final glTF 2.0 specificati
 - Reconstruction: Greg Turk and Marc Levoy
 - Usage terms: The repository permits research use and free redistribution with source acknowledgement. Commercial use requires permission from Stanford under the repository's stated terms.
 - Modifications: Converted to FBX format for use in ZNEngine.
+
+> **Commercial-use restriction.** Stanford welcomes research use and free redistribution with
+> acknowledgement, but the model and images made from it may not be used commercially or included
+> in a product for sale without permission. `stanford-bunny.fbx` is therefore not covered by
+> ZNEngine's BSD 3-Clause source license and must be removed, replaced, or separately cleared for
+> commercial distribution.
 
 ## Qwantani Noon HDRI
 
@@ -127,7 +137,21 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 - License: MIT
 - Copyright: Copyright (c) 2013-2025 Niels Lohmann
 
-The following MIT License terms apply to Dear ImGui and JSON for Modern C++:
+### Microsoft DirectX Components
+
+- Files:
+  - `Library/Include/DirectXTex`, `Library/Lib/Debug/DirectXTex.lib`, `Library/Lib/Release/DirectXTex.lib`
+  - `ZN/ZNFramework/Graphics/Platform/Direct3D12/DDSTextureLoader12.h`
+  - `ZN/ZNFramework/Graphics/Platform/Direct3D12/DDSTextureLoader12.cpp`
+  - `ZN/ZNFramework/Graphics/Platform/Direct3D12/d3dx12.h`
+- Projects: [DirectXTex](https://github.com/microsoft/DirectXTex),
+  [DirectX Headers](https://github.com/microsoft/DirectX-Headers)
+- License: MIT
+- Copyright: Copyright (c) Microsoft Corporation
+
+The following MIT License terms apply to Dear ImGui, JSON for Modern C++, and the Microsoft DirectX
+components listed above. The copyright notices for each project are retained in their respective
+entries and source files.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
