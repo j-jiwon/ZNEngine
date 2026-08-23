@@ -41,7 +41,7 @@ int main()
 void TestApp::OnInitialize()
 {
     window = ZNFramework::WindowPlatform::Create();
-    window->Create(1100, 800);
+    window->Create(1920, 1080);
 
     device = ZNFramework::Platform::CreateGraphicsDevice();
     context->Initialize(window, device);
