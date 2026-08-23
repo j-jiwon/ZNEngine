@@ -62,39 +62,10 @@ else { Write-Warning "No imgui.ini at $ini -- first launch will use the default 
 Copy-Item (Join-Path $root "LICENSE") $stage
 Copy-Item (Join-Path $root "Docs\THIRD_PARTY_LICENSES.md") $stage
 
-# --- readme --------------------------------------------------------------
-@"
-ZNEngine -- automotive surround-view demo ($Version)
-====================================================
-
-Run TestApp.exe. Keep it in the same folder as Resources\ -- the app resolves assets
-relative to the executable.
-
-Requirements
-  Windows 10/11, x64
-  A Direct3D 12 capable GPU
-  Microsoft Visual C++ Redistributable (x64):
-    https://aka.ms/vs/17/release/vc_redist.x64.exe
-  (this build links the CRT dynamically)
-
-Controls
-  [TODO: fill in -- e.g. right mouse drag to look, WASD to move,
-   Speed / Sens sliders in the Debug panel]
-
-What to try
-  Scenes            switch between Vehicle / MirrorBall / Test / CCTV
-  DataSource        Live (synthetic) vs Load Log (JSON replay, seek + loop)
-  Temporal resample interpolation mode, sensor Hz, dropout, jitter
-  Instancing        toggle "Instanced draws" and watch the draw-call counter
-  Density           x1 / x5 / x20 / x50 traffic multiplier
-
-Source, case study and demo video
-  https://github.com/j-jiwon/ZNEngine
-
-Licences
-  Engine source: BSD 3-Clause (LICENSE)
-  Third-party libraries and assets: THIRD_PARTY_LICENSES.md
-"@ | Set-Content (Join-Path $stage "README.txt") -Encoding UTF8
+# Package-specific usage guide. Keep it as a tracked file so controls, links, and
+# licence notices are reviewable without editing this script.
+Copy-Item (Join-Path $root "Docs\DISTRIBUTION_README.txt") `
+          (Join-Path $stage "README.txt")
 
 # --- zip -----------------------------------------------------------------
 # Entry names are built by hand instead of using Compress-Archive or
