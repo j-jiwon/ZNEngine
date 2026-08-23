@@ -1,31 +1,23 @@
 # Tools/package.ps1
-# Builds a distributable zip from an existing Release|x64 build.
+# Builds the distributable zip from an existing Release|x64 build.
 #   PS> .\Tools\package.ps1
-#   PS> .\Tools\package.ps1 -Version v1.1
 #
-# Produces Build\package\ZNEngine_demo_<Version>_x64.zip with the layout GetResourcePath()
-# expects when running outside Visual Studio:  TestApp.exe + Resources\ side by side.
-
-param(
-    [string]$Config   = "Release",
-    [string]$Platform = "x64",
-    [string]$Version  = "v1.0"
-)
+# Produces Build\package\ZNEngine_demo_x64.zip with the stable asset name used by the
+# releases/latest download link. The archive layout keeps TestApp.exe and Resources\ side by side.
 
 $ErrorActionPreference = "Stop"
-$root  = Split-Path $PSScriptRoot -Parent
-$bin   = Join-Path $root "Build\${Platform}_${Config}"
-$name  = "ZNEngine_demo_${Version}_${Platform}"
+$config  = "Release"
+$platform = "x64"
+$root     = Split-Path $PSScriptRoot -Parent
+$bin      = Join-Path $root "Build\${platform}_${config}"
+$name     = "ZNEngine_demo_${platform}"
 $stage = Join-Path $root "Build\package\$name"
 $zip   = Join-Path $root "Build\package\$name.zip"
 
 # --- preconditions -------------------------------------------------------
 $exe = Join-Path $bin "TestApp.exe"
 if (-not (Test-Path $exe)) {
-    throw "TestApp.exe not found at $exe. Build $Config|$Platform first."
-}
-if ($Config -ne "Release") {
-    Write-Warning "Packaging a $Config build. Ship Release: the D3D12 debug layer is slow."
+    throw "TestApp.exe not found at $exe. Build $config|$platform first."
 }
 
 # --- stage ---------------------------------------------------------------
@@ -36,8 +28,8 @@ Copy-Item $exe $stage
 
 # Assimp is linked dynamically -- the dll must sit next to the exe.
 $dll = Join-Path $root "Library\Bin\x64\assimp-vc143-mt.dll"
-if (Test-Path $dll) { Copy-Item $dll $stage }
-else { Write-Warning "assimp dll not found at $dll -- skipping (static link?)" }
+if (-not (Test-Path $dll)) { throw "Required runtime DLL not found at $dll" }
+Copy-Item $dll $stage
 
 # Runtime assets. Shaders are compiled at load time, so they must ship.
 foreach ($d in @("Shaders", "Models", "Textures")) {
@@ -51,13 +43,15 @@ foreach ($d in @("Shaders", "Models", "Textures")) {
 $logs = Join-Path $stage "Resources\Logs"
 New-Item -ItemType Directory -Path $logs -Force | Out-Null
 $scenario = Join-Path $root "Resources\Logs\scenario.json"
-if (Test-Path $scenario) { Copy-Item $scenario $logs }
-else { Write-Warning "No scenario.json -- 'Load Log' will have nothing to play. Record one first." }
+if (-not (Test-Path $scenario)) {
+    throw "Required sample log not found at $scenario. Record one before packaging."
+}
+Copy-Item $scenario $logs
 
 # Panel layout. Without this the first launch piles every ImGui window in the corner.
 $ini = Join-Path $root "TestApp\imgui.ini"
-if (Test-Path $ini) { Copy-Item $ini $stage }
-else { Write-Warning "No imgui.ini at $ini -- first launch will use the default layout." }
+if (-not (Test-Path $ini)) { throw "Required UI layout not found at $ini" }
+Copy-Item $ini $stage
 
 Copy-Item (Join-Path $root "LICENSE") $stage
 Copy-Item (Join-Path $root "Docs\THIRD_PARTY_LICENSES.md") $stage

@@ -1,11 +1,12 @@
 # ZNEngine — Automotive Surround-View Demo
 
-A real-time 3D visualisation demo built on a from-scratch C++ / Direct3D 12 engine.
-Sensor-style tracking data is bound to a scene graph through an interface that the scene
-knows nothing about — the data source can be swapped without the renderer noticing.
+A real-time 3D visualisation demo built on a custom C++ / Direct3D 12 engine.
+Sensor-style tracking data flows into the scene graph through a source-agnostic pipeline, allowing
+synthetic traffic and recorded logs to share the same interpolation and scene-binding code.
 
-**Stack** C++17 · Direct3D 12 · HLSL · custom engine (no Unreal / Unity)
-**Links** [Repository](https://github.com/j-jiwon/ZNEngine) · [Demo video (2 min +)](https://youtu.be/_2CfJv7DidY) · [Windows build](https://github.com/j-jiwon/ZNEngine/releases/latest/download/ZNEngine_demo_x64.zip)
+**Stack** C++20 · Direct3D 12 · HLSL · custom engine (no Unreal / Unity)
+
+**Links** [Repository](https://github.com/j-jiwon/ZNEngine) · [Demo video (2:33)](https://youtu.be/_2CfJv7DidY) · [Windows build](https://github.com/j-jiwon/ZNEngine/releases/latest/download/ZNEngine_demo_x64.zip)
 
 ![Automotive surround-view demo](images/vehicle_x1_instancing_on.png)
 
@@ -21,9 +22,9 @@ A second problem stacks on top of it: **the sensor rate and the display rate are
 Feeding 30 Hz data straight to a 120 Hz screen makes objects step rather than move. Real inputs
 add dropped frames and latency on top of that.
 
-The third is lifetime. Tracked objects are **created and destroyed every frame** as they enter
-and leave the sensor's field of view. Hold scene objects by raw pointer and you will eventually
-hold a pointer to something that has been freed.
+The third is lifetime. Tracked-object membership is **reconciled every frame**, with objects
+created and destroyed as tracks enter and leave the sensor's field of view. Hold scene objects by
+raw pointer and you will eventually hold a pointer to something that has been freed.
 
 ---
 
@@ -35,7 +36,7 @@ flowchart LR
     LP["LogPlaybackSource<br/>JSON replay, seek, loop"]
     IDS(["IDataSource"])
     FD["FrameData<br/>timestamp, ego state,<br/>tracked objects"]
-    FI["FrameInterpolator<br/>sensor Hz to display fps<br/>dropout, jitter, latency"]
+    FI["FrameInterpolator<br/>sensor rate to display frame rate<br/>dropout, jitter, latency"]
     SB["SceneBinding<br/>spawn / update / release"]
     SG["Scene graph<br/>slot + generation handles"]
 
@@ -49,13 +50,13 @@ flowchart LR
 graph every frame: spawn new ids, release vanished ones, update the rest. Switching sources is
 a pointer assignment.
 
-`FrameInterpolator` sits above that and resamples sensor Hz to render fps. Off / Interpolate /
-Extrapolate are selectable, and **dropout, jitter and latency can be injected deliberately** so
-the behaviour under degraded input is something you can watch rather than imagine.
+`FrameInterpolator` sits above that and resamples sensor-rate frames to the render frame rate.
+Off / Interpolate / Extrapolate are selectable, and **dropout, jitter and latency can be injected
+deliberately** so the behaviour under degraded input is something you can watch rather than imagine.
 
 **Ownership.** The scene owns its objects in a **slot pool with generation counters**. A handle is
-`{slot index, generation}`; when a freed slot is reused its generation increments and every stale
-handle to it becomes invalid on its own. The render list is not maintained separately — it is
+`{slot index, generation}`; when a freed slot is reused its generation increments, so every stale
+handle fails generation validation. The render list is not maintained separately — it is
 **derived from that ownership pool** each frame.
 
 > To be precise: this is **not an object pool**. What gets reused is the slot index and its
@@ -164,7 +165,7 @@ which is why the optimisation stayed behind a runtime toggle instead of becoming
 |---|---|---|---|
 | Surround views (5) | 39.1% | **66.1%** | 46.9% |
 | Main view (GBuffer + lighting) | 38.0% | 24.6% | 40.9% |
-| Fullscreen post (skybox · bloom · tonemap) | 15.6% | 0.8% | 5.0% |
+| Fullscreen post (skybox · bloom · tone mapping) | 15.6% | 0.8% | 5.0% |
 | Shadow | 2.8% | 8.2% | 5.6% |
 
 **Adding one more offscreen view looks like UI layout work; it is actually drawing the scene again.**
@@ -206,7 +207,7 @@ Listing weaknesses in a portfolio piece may look odd. It is what makes the numbe
 - **No frustum culling or LOD.** Offscreen objects are still submitted. The numbers above are
   measured without culling.
 - **No automatic render-graph ordering.** Pass execution order depends on registration order.
-- **Environment map input is LDR.** SceneColor, tonemap and bloom run on an `R16G16B16A16_FLOAT`
+- **Environment map input is LDR.** SceneColor, tone mapping and bloom run on an `R16G16B16A16_FLOAT`
   path, but the step that resamples the equirectangular panorama into a cubemap is 8-bit, so IBL
   highlight energy is already clipped at the source.
 - **One directional shadow only.** No spot or point shadows, no cascades.
@@ -215,7 +216,8 @@ Listing weaknesses in a portfolio piece may look odd. It is what makes the numbe
 
 ## Appendix — the renderer
 
-Deferred shading (6 MRTs) with an HDR SceneColor, bloom and tonemapping. Every pass is registered
-with a render graph that inserts resource-state transitions automatically. The same engine's
-MirrorBall scene implements PBR with split-sum IBL and **analytic disco caustics**, solving for the
-light spots by inverting the mirror-ball facet grid rather than tracing them.
+Deferred shading (6 MRTs) with lighting, bloom and tone mapping running through an
+`R16G16B16A16_FLOAT` SceneColor path; environment-map input remains 8-bit LDR. Every pass is
+registered with a render graph that inserts resource-state transitions automatically. The same
+engine's MirrorBall scene implements PBR with split-sum IBL and **analytic disco caustics**, solving
+for the light spots by inverting the mirror-ball facet grid rather than tracing them.
