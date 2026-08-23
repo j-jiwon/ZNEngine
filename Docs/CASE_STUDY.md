@@ -5,7 +5,7 @@ Sensor-style tracking data is bound to a scene graph through an interface that t
 knows nothing about — the data source can be swapped without the renderer noticing.
 
 **Stack** C++17 · Direct3D 12 · HLSL · custom engine (no Unreal / Unity)
-**Links** [Repository](https://github.com/j-jiwon/ZNEngine.git) · [Demo video (2 min +)](https://youtu.be/_2CfJv7DidY) · [Windows build](TODO)
+**Links** [Repository](https://github.com/j-jiwon/ZNEngine) · [Demo video (2 min +)](https://youtu.be/_2CfJv7DidY) · [Windows build](https://github.com/j-jiwon/ZNEngine/releases/latest/download/ZNEngine_demo_x64.zip)
 
 ![Automotive surround-view demo](images/vehicle_x1_instancing_on.png)
 
